@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* root styling */
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: #000000;
+  color: #ffffff;
+}
+
+/* header styling */
+
+header {
+  background-color: #fff;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* main styling */
+
+main {
+  padding: 1rem;
+}
+
+/* footer styling */
+
+footer {
+  background-color: #fff;
+  box-shadow: 0 -2px 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* card styling */
+
+.card {
+  background-color: #fff;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* button styling */
+
+button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #45a049;
+}
