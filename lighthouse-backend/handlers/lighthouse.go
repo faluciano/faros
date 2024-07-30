@@ -7,8 +7,20 @@ import (
 )
 
 var lighthouses = []schemas.Lighthouse{
-	{Name: "Lighthouse 1", Coordinates: "37.7749,-122.4194", Stamped: true, Hours: "9 AM - 5 PM", Image: "image1.jpg"},
-	{Name: "Lighthouse 2", Coordinates: "37.8199,-122.4783", Stamped: false, Hours: "10 AM - 6 PM", Image: "image2.jpg"},
+	{
+		ID:        0,
+		Name:      "Westpoint Lighthouse",
+		Latitude:  47.6620,
+		Longitude: -122.4357,
+		Image:     "https://www.seattleandsound.com/wp-content/uploads/2019/01/westpointlighthouse.jpg",
+	},
+	{
+		ID:        1,
+		Name:      "Point Robinson Lighthouse",
+		Latitude:  47.3881,
+		Longitude: -122.3750,
+		Image:     "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Point_Robinson_Lighthouse.JPG/280px-Point_Robinson_Lighthouse.JPG",
+	},
 }
 
 func GetLighthouses(w http.ResponseWriter, r *http.Request) {

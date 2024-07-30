@@ -1,25 +1,20 @@
+import Navbar from "./components/navbar";
+import LighthouseMap from "./components/lighthousemap";
 import { useEffect, useState } from "react";
-import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0);
-  const [data, setData] = useState("");
+  const [lighthouses, setLighthouses] = useState([]);
 
   useEffect(() => {
     fetch("http://localhost:8000/api/lighthouses")
-      .then((response) => response.text())
-      .then(setData);
+      .then((response) => response.json())
+      .then((data) => setLighthouses(data));
   }, []);
 
   return (
     <>
-      <h1>Hello, World!</h1>
-      <div className="">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-      </div>
-      <p className="text-white">{data}</p>
+      <Navbar />
+      <LighthouseMap lighthouses={lighthouses} />
     </>
   );
 }
