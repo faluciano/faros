@@ -1,4 +1,6 @@
-import { Marker, MapContainer, Popup, TileLayer } from "react-leaflet";
+import React, { useState } from "react";
+import { Map, Marker } from "pigeon-maps";
+import { osm } from "pigeon-maps/providers";
 
 interface Lighthouse {
   id: number;
@@ -9,33 +11,73 @@ interface Lighthouse {
 }
 
 const LighthouseMap = ({ lighthouses }: { lighthouses: Array<Lighthouse> }) => {
+  const [selectedLighthouse, setSelectedLighthouse] =
+    useState<Lighthouse | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  const handleMarkerClick = (
+    lighthouse: Lighthouse,
+    { event }: { event: React.MouseEvent }
+  ) => {
+    const { clientX, clientY } = event;
+    setSelectedLighthouse(lighthouse);
+    setPopoverPosition({ top: clientY, left: clientX });
+  };
+
+  const handleMapClick = () => {
+    setSelectedLighthouse(null);
+    setPopoverPosition(null);
+  };
+
   return (
-    <MapContainer
-      center={[47.6062, -122.3321]}
-      zoom={10}
-      style={{ height: "100vh", width: "100%" }}
-    >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">'
-      />
-      {lighthouses.map((lighthouse) => (
-        <Marker
-          key={lighthouse.id}
-          position={[lighthouse.latitude, lighthouse.longitude]}
+    <div onClick={handleMapClick} style={{ position: "relative" }}>
+      <Map
+        height={window.innerHeight}
+        provider={osm}
+        defaultCenter={[47.6062, -122.3321]}
+        zoom={9}
+      >
+        {lighthouses.map((lighthouse) => (
+          <Marker
+            key={lighthouse.id}
+            anchor={[lighthouse.latitude, lighthouse.longitude]}
+            onClick={(markerEvent) => {
+              markerEvent.event.stopPropagation();
+              handleMarkerClick(lighthouse, markerEvent);
+            }}
+          />
+        ))}
+      </Map>
+      {selectedLighthouse && popoverPosition && (
+        <div
+          className="popover"
+          style={{
+            color: "black",
+            position: "absolute",
+            top: popoverPosition.top,
+            left: popoverPosition.left,
+            transform: "translate(-50%, -100%)",
+            backgroundColor: "white",
+            padding: "10px",
+            border: "1px solid black",
+            borderRadius: "5px",
+            zIndex: 1000,
+          }}
+          onClick={(event) => event.stopPropagation()}
         >
-          <Popup>
-            {lighthouse.name}
-            <br />
-            <img
-              src={lighthouse.image}
-              alt={lighthouse.name}
-              style={{ width: "100px" }}
-            />
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
+          <h3>{selectedLighthouse.name}</h3>
+          <img
+            src={selectedLighthouse.image}
+            alt={selectedLighthouse.name}
+            width={100}
+          />
+        </div>
+      )}
+    </div>
   );
 };
+
 export default LighthouseMap;

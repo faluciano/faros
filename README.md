@@ -18,4 +18,4 @@ Web app to track visited lighthouses around the world with a map to display visi
 - React (Frontend)
 - Clerk (Auth)
 - Postgress (DB)
-- React Leaflet (Maps)
+- Pigeon-Maps (Maps)
