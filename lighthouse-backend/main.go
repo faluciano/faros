@@ -15,5 +15,5 @@ func main() {
 
 	handler := cors.Default().Handler(r)
 	http.Handle("/", handler)
-	http.ListenAndServe(":8000", nil)
+	http.ListenAndServe("localhost:8000", nil)
 }

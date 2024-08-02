@@ -3,11 +3,13 @@ import { Map, Marker } from "pigeon-maps";
 import { osm } from "pigeon-maps/providers";
 
 interface Lighthouse {
-  id: number;
+  id: string;
   latitude: number;
   longitude: number;
   name: string;
   image: string;
+  state: string;
+  country: string;
 }
 
 const LighthouseMap = ({ lighthouses }: { lighthouses: Array<Lighthouse> }) => {
@@ -37,8 +39,8 @@ const LighthouseMap = ({ lighthouses }: { lighthouses: Array<Lighthouse> }) => {
       <Map
         height={window.innerHeight}
         provider={osm}
-        defaultCenter={[47.6062, -122.3321]}
-        zoom={9}
+        defaultCenter={[47.7511, -120.7401]}
+        zoom={8}
       >
         {lighthouses.map((lighthouse) => (
           <Marker
