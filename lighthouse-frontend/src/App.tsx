@@ -28,7 +28,7 @@ function App() {
   const [lighthouses, setLighthouses] = useState<Lighthouse[]>([]);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/lighthouses")
+    fetch("https://faros-backend.azurewebsites.net/api/lighthouses")
       .then((response) => response.json())
       .then((data) => setLighthouses(data))
       .catch(() => setLighthouses(dummyLighthouses));
