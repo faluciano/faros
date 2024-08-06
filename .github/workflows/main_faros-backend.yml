@@ -31,7 +31,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: ${{ secrets.AzureAppService_ContainerUsername_2afb8b6a9eed492d8c20c83a9ede8481 }}/faluciano/faros-backend:${{ github.sha }}
+          tags: ${{ secrets.AzureAppService_ContainerUsername_2afb8b6a9eed492d8c20c83a9ede8481 }}/faros-backend:${{ github.sha }}
           file: lighthouse-backend/dockerfile # Ensure this path is correct
           context: ./lighthouse-backend # Added context to specify build directory
           build-args: |
