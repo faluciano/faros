@@ -6,12 +6,10 @@ import (
 
 	"lighthouse-backend/schemas"
 
-	"github.com/joho/godotenv"
 	supa "github.com/nedpals/supabase-go"
 )
 
 func GetLighthouses() ([]schemas.Lighthouse, error) {
-	godotenv.Load()
 
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
@@ -34,7 +32,6 @@ func GetLighthouses() ([]schemas.Lighthouse, error) {
 }
 
 func GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
-	godotenv.Load()
 
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
@@ -57,7 +54,6 @@ func GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
 }
 
 func GetLighthousesByState(state string) ([]schemas.Lighthouse, error) {
-	godotenv.Load()
 
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
