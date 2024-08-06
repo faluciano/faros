@@ -1,6 +1,14 @@
 # Use an official Golang runtime as a parent image
 FROM golang:1.22-alpine AS build
 
+ARG SUPABASE_URL
+ARG SUPABASE_KEY
+ARG PORT
+
+ENV SUPABASE_URL=${SUPABASE_URL}
+ENV SUPABASE_KEY=${SUPABASE_KEY}
+ENV PORT=${PORT}
+
 # Set the Current Working Directory inside the container
 WORKDIR /app
 
@@ -24,9 +32,6 @@ WORKDIR /root/
 
 # Copy the Pre-built binary file from the previous stage
 COPY --from=build /app/main .
-
-# Copy .env file
-COPY .env .
 
 # Expose port 8080 to the outside world
 EXPOSE 8080
