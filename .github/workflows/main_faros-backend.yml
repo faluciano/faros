@@ -49,4 +49,4 @@ jobs:
           app-name: "faros-backend"
           slot-name: "production"
           publish-profile: ${{ secrets.AzureAppService_PublishProfile_140473bef51b4b42abc323aa8d968cc9 }}
-          images: ${{ secrets.AzureAppService_ContainerUsername_2afb8b6a9eed492d8c20c83a9ede8481 }}/faluciano/faros-backend:${{ github.sha }}
+          images: ${{ secrets.AzureAppService_ContainerUsername_2afb8b6a9eed492d8c20c83a9ede8481 }}/faros-backend:${{ github.sha }}
