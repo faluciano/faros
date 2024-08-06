@@ -29,15 +29,15 @@ jobs:
 
       - name: Build and push container image to registry
         uses: docker/build-push-action@v3
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          PORT: ${{ secrets.PORT }}
         with:
           push: true
           tags: ${{ secrets.AzureAppService_ContainerUsername_2afb8b6a9eed492d8c20c83a9ede8481 }}/faros-backend:${{ github.sha }}
           file: lighthouse-backend/dockerfile # Ensure this path is correct
           context: ./lighthouse-backend # Added context to specify build directory
-          build-args: |
-            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-            SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
-            PORT=${{ secrets.PORT }}
 
   deploy:
     runs-on: ubuntu-latest
