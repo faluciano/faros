@@ -15,11 +15,7 @@ import (
 func main() {
 	//Load .env file
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-		return
-	}
+	godotenv.Load()
 
 	r := mux.NewRouter()
 	r.HandleFunc("/api/lighthouses", handlers.GetLighthouses).Methods("GET")

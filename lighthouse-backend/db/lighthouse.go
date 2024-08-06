@@ -11,11 +11,7 @@ import (
 )
 
 func GetLighthouses() ([]schemas.Lighthouse, error) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-		return nil, err
-	}
+	godotenv.Load()
 
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
@@ -23,11 +19,11 @@ func GetLighthouses() ([]schemas.Lighthouse, error) {
 
 	if supabase == nil {
 		log.Fatal("Failed to create Supabase client")
-		return nil, err
+		return nil, nil
 	}
 	lighthouses := []schemas.Lighthouse{}
 	query := supabase.DB.From("lighthouses").Select("*")
-	err = query.Execute(&lighthouses)
+	err := query.Execute(&lighthouses)
 
 	if err != nil {
 		log.Fatal("Request failed:", err)
@@ -38,11 +34,7 @@ func GetLighthouses() ([]schemas.Lighthouse, error) {
 }
 
 func GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-		return nil, err
-	}
+	godotenv.Load()
 
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
@@ -50,11 +42,11 @@ func GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
 
 	if supabase == nil {
 		log.Fatal("Failed to create Supabase client")
-		return nil, err
+		return nil, nil
 	}
 	lighthouses := []schemas.Lighthouse{}
 	query := supabase.DB.From("lighthouses").Select("*").Eq("country", country)
-	err = query.Execute(&lighthouses)
+	err := query.Execute(&lighthouses)
 
 	if err != nil {
 		log.Fatal("Request failed:", err)
@@ -65,11 +57,7 @@ func GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
 }
 
 func GetLighthousesByState(state string) ([]schemas.Lighthouse, error) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-		return nil, err
-	}
+	godotenv.Load()
 
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
@@ -77,11 +65,11 @@ func GetLighthousesByState(state string) ([]schemas.Lighthouse, error) {
 
 	if supabase == nil {
 		log.Fatal("Failed to create Supabase client")
-		return nil, err
+		return nil, nil
 	}
 	lighthouses := []schemas.Lighthouse{}
 	query := supabase.DB.From("lighthouses").Select("*").Eq("state", state)
-	err = query.Execute(&lighthouses)
+	err := query.Execute(&lighthouses)
 
 	if err != nil {
 		log.Fatal("Request failed:", err)
