@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "lighthouse-backend/**"
   workflow_dispatch:
 
 defaults:
