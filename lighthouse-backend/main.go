@@ -13,16 +13,14 @@ import (
 )
 
 func main() {
-	//Load .env file
 
 	godotenv.Load()
 
 	r := mux.NewRouter()
-	r.HandleFunc("/api/lighthouses", handlers.GetLighthouses).Methods("GET")
-
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Welcome to Lighthouse API"))
 	})
+	r.HandleFunc("/api/lighthouses", handlers.GetLighthouses).Methods("GET")
 
 	handler := cors.Default().Handler(r)
 	http.Handle("/", handler)
