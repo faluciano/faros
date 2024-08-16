@@ -17,3 +17,7 @@ go.work.sum
 
 # env file
 .env
+
+/tmp
+
+.air.toml
