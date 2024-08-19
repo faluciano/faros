@@ -15,13 +15,13 @@ const dummyLighthouses = [
   },
 ];
 
-const LighthouseMap = () => {
+const UserMap = () => {
   const [lighthouses, setLighthouses] = useState<Lighthouse[]>([]);
 
   useEffect(() => {
-    let url = "https://faros-backend.azurewebsites.net/api/lighthouses";
+    let url = "https://faros-backend.azurewebsites.net/api/user/{id}";
     if (process.env.NODE_ENV === "development") {
-      url = "http://localhost:8080/api/lighthouses";
+      url = "http://localhost:8080/api/user/{id}";
     }
 
     fetch(url)
@@ -98,4 +98,4 @@ const LighthouseMap = () => {
   );
 };
 
-export default LighthouseMap;
+export default UserMap;
