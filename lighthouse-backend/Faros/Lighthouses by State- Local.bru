@@ -1,0 +1,15 @@
+meta {
+  name: Lighthouses by State- Local
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8080/api/lighthouses?state=
+  body: none
+  auth: none
+}
+
+params:query {
+  state: 
+}
