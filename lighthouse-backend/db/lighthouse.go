@@ -3,22 +3,31 @@ package db
 import (
 	"log"
 	"os"
+	"sync"
 
 	"lighthouse-backend/schemas"
 
 	supa "github.com/nedpals/supabase-go"
 )
 
-func GetLighthouses() ([]schemas.Lighthouse, error) {
+var (
+	supabase     *supa.Client
+	initSupabase sync.Once
+)
 
+func initializeSupabase() {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
-	supabase := supa.CreateClient(SUPABASE_URL, SUPABASE_KEY)
+	supabase = supa.CreateClient(SUPABASE_URL, SUPABASE_KEY)
 
 	if supabase == nil {
 		log.Fatal("Failed to create Supabase client")
-		return nil, nil
 	}
+}
+
+func GetLighthouses() ([]schemas.Lighthouse, error) {
+	initSupabase.Do(initializeSupabase)
+
 	lighthouses := []schemas.Lighthouse{}
 	query := supabase.DB.From("lighthouses").Select("*")
 	err := query.Execute(&lighthouses)
@@ -32,15 +41,8 @@ func GetLighthouses() ([]schemas.Lighthouse, error) {
 }
 
 func GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
+	initSupabase.Do(initializeSupabase)
 
-	SUPABASE_URL := os.Getenv("SUPABASE_URL")
-	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
-	supabase := supa.CreateClient(SUPABASE_URL, SUPABASE_KEY)
-
-	if supabase == nil {
-		log.Fatal("Failed to create Supabase client")
-		return nil, nil
-	}
 	lighthouses := []schemas.Lighthouse{}
 	query := supabase.DB.From("lighthouses").Select("*").Eq("country", country)
 	err := query.Execute(&lighthouses)
@@ -54,15 +56,8 @@ func GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
 }
 
 func GetLighthousesByState(state string) ([]schemas.Lighthouse, error) {
+	initSupabase.Do(initializeSupabase)
 
-	SUPABASE_URL := os.Getenv("SUPABASE_URL")
-	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
-	supabase := supa.CreateClient(SUPABASE_URL, SUPABASE_KEY)
-
-	if supabase == nil {
-		log.Fatal("Failed to create Supabase client")
-		return nil, nil
-	}
 	lighthouses := []schemas.Lighthouse{}
 	query := supabase.DB.From("lighthouses").Select("*").Eq("state", state)
 	err := query.Execute(&lighthouses)
