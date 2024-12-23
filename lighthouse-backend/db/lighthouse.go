@@ -2,28 +2,9 @@ package db
 
 import (
 	"log"
-	"os"
-	"sync"
 
 	"lighthouse-backend/schemas"
-
-	supa "github.com/nedpals/supabase-go"
 )
-
-var (
-	supabase     *supa.Client
-	initSupabase sync.Once
-)
-
-func initializeSupabase() {
-	SUPABASE_URL := os.Getenv("SUPABASE_URL")
-	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
-	supabase = supa.CreateClient(SUPABASE_URL, SUPABASE_KEY)
-
-	if supabase == nil {
-		log.Fatal("Failed to create Supabase client")
-	}
-}
 
 func GetLighthouses() ([]schemas.Lighthouse, error) {
 	initSupabase.Do(initializeSupabase)

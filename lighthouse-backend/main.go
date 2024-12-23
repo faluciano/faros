@@ -21,6 +21,7 @@ func main() {
 		w.Write([]byte("Welcome to Lighthouse API"))
 	})
 	r.HandleFunc("/api/lighthouses", handlers.GetLighthouses).Methods("GET")
+	r.HandleFunc("/api/user", handlers.GetUserByID).Methods("GET")
 
 	handler := cors.Default().Handler(r)
 	http.Handle("/", handler)
