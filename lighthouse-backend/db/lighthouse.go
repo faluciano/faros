@@ -1,51 +1,71 @@
 package db
 
 import (
-	"log"
-
 	"lighthouse-backend/schemas"
+	"log"
 )
 
 func GetLighthouses() ([]schemas.Lighthouse, error) {
-	initSupabase.Do(initializeSupabase)
-
 	lighthouses := []schemas.Lighthouse{}
-	query := supabase.DB.From("lighthouses").Select("*")
-	err := query.Execute(&lighthouses)
-
+	query, err := DB.Query("SELECT country, state, lighthouse, latitude, longitude, image FROM lighthouses")
 	if err != nil {
-		log.Fatal("Request failed:", err)
+		log.Printf("Failed to query lighthouses: %v", err)
 		return nil, err
+	}
+	defer query.Close()
+
+	for query.Next() {
+		var lighthouse schemas.Lighthouse
+		err := query.Scan(&lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image)
+		if err != nil {
+			log.Printf("Failed to scan lighthouse: %v", err)
+			return nil, err
+		}
+		lighthouses = append(lighthouses, lighthouse)
 	}
 
 	return lighthouses, nil
 }
 
 func GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
-	initSupabase.Do(initializeSupabase)
-
 	lighthouses := []schemas.Lighthouse{}
-	query := supabase.DB.From("lighthouses").Select("*").Eq("country", country)
-	err := query.Execute(&lighthouses)
-
+	query, err := DB.Query("SELECT country, state, lighthouse, latitude, longitude, image FROM lighthouses WHERE country = ?", country)
 	if err != nil {
-		log.Fatal("Request failed:", err)
+		log.Printf("Failed to query lighthouses by country: %v", err)
 		return nil, err
+	}
+	defer query.Close()
+
+	for query.Next() {
+		var lighthouse schemas.Lighthouse
+		err := query.Scan(&lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image)
+		if err != nil {
+			log.Printf("Failed to scan lighthouse: %v", err)
+			return nil, err
+		}
+		lighthouses = append(lighthouses, lighthouse)
 	}
 
 	return lighthouses, nil
 }
 
 func GetLighthousesByState(state string) ([]schemas.Lighthouse, error) {
-	initSupabase.Do(initializeSupabase)
-
 	lighthouses := []schemas.Lighthouse{}
-	query := supabase.DB.From("lighthouses").Select("*").Eq("state", state)
-	err := query.Execute(&lighthouses)
-
+	query, err := DB.Query("SELECT country, state, lighthouse, latitude, longitude, image FROM lighthouses WHERE state = ?", state)
 	if err != nil {
-		log.Fatal("Request failed:", err)
+		log.Printf("Failed to query lighthouses by state: %v", err)
 		return nil, err
+	}
+	defer query.Close()
+
+	for query.Next() {
+		var lighthouse schemas.Lighthouse
+		err := query.Scan(&lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image)
+		if err != nil {
+			log.Printf("Failed to scan lighthouse: %v", err)
+			return nil, err
+		}
+		lighthouses = append(lighthouses, lighthouse)
 	}
 
 	return lighthouses, nil

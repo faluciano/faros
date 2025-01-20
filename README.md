@@ -4,7 +4,7 @@ Web app to track visited lighthouses around the world with a map to display visi
 
 # Functionality
 
-- [ ] Lighthouse map
+- [x] Lighthouse map
 - [ ] Login/Register
 - [ ] Visited Lighthouse map
 - [ ] Friends
@@ -17,5 +17,5 @@ Web app to track visited lighthouses around the world with a map to display visi
 - Go (Backend)
 - React (Frontend)
 - Clerk (Auth)
-- Postgress (DB)
+- Turso with embedded replica (DB)
 - Pigeon-Maps (Maps)

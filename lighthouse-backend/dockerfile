@@ -1,9 +1,9 @@
 # Use an official Golang runtime as a parent image
 FROM golang:1.22-alpine AS build
 
-ENV SUPABASE_URL=$SUPABASE_URL
-ENV SUPABASE_KEY=$SUPABASE_KEY
-ENV POERT=$PORT
+ENV TURSO_DATABASE_URL=$TURSO_DATABASE_URL
+ENV TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN
+ENV PORT=$PORT
 
 # Set the Current Working Directory inside the container
 WORKDIR /app

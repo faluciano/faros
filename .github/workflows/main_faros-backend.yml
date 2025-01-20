@@ -32,8 +32,8 @@ jobs:
       - name: Build and push container image to registry
         uses: docker/build-push-action@v3
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           PORT: ${{ secrets.PORT }}
         with:
           push: true

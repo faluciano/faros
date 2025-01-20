@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"lighthouse-backend/db"
 	"net/http"
 )
+
+var DB *sql.DB
 
 func GetLighthouses(w http.ResponseWriter, r *http.Request) {
 
