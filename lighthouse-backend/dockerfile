@@ -1,7 +1,9 @@
 # Use an official Golang runtime as a parent image
-FROM golang:1.22-alpine AS build
+FROM golang:alpine AS build
 
 ENV CGO_ENABLED=1
+
+RUN apk add build-base
 
 # Set the Current Working Directory inside the container
 WORKDIR /app
