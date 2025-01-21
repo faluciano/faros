@@ -2,7 +2,6 @@
 FROM golang:latest AS build
 
 ENV CGO_ENABLED=1
-ENV PORT=$PORT
 ENV TURSO_DATABASE_URL=$TURSO_DATABASE_URL
 ENV TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN
 
@@ -30,8 +29,7 @@ WORKDIR /root/
 # Copy the Pre-built binary file from the previous stage
 COPY --from=build /app/main .
 
-# Expose port 8080 to the outside world
-EXPOSE $PORT
+EXPOSE 8080
 
 # Command to run the executable
 CMD ["./main"]
