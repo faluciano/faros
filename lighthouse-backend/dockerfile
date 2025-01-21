@@ -3,6 +3,8 @@ FROM golang:latest AS build
 
 ENV CGO_ENABLED=1
 ENV PORT=$PORT
+ENV TURSO_DATABASE_URL=$TURSO_DATABASE_URL
+ENV TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN
 
 # Set the Current Working Directory inside the container
 WORKDIR /app
