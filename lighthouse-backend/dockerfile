@@ -2,6 +2,7 @@
 FROM golang:latest AS build
 
 ENV CGO_ENABLED=1
+ENV PORT=$PORT
 
 # Set the Current Working Directory inside the container
 WORKDIR /app
