@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Map, Marker } from "pigeon-maps";
 import { osm } from "pigeon-maps/providers";
 import { Lighthouse } from "../types";
+import { useAuth } from "@clerk/clerk-react";
 
 const dummyLighthouses = [
   {
@@ -17,17 +18,39 @@ const dummyLighthouses = [
 
 const UserMap = () => {
   const [lighthouses, setLighthouses] = useState<Lighthouse[]>([]);
+  const { getToken } = useAuth();
+  
 
   useEffect(() => {
-    let url = "https://faros-backend.azurewebsites.net/api/user/{id}";
-    if (process.env.NODE_ENV === "development") {
-      url = "http://localhost:8080/api/user/{id}";
-    }
+    const fetchData = async () => {
+      let url = "https://faros-backend.azurewebsites.net/user";
+      if (process.env.NODE_ENV === "development") {
+        url = "http://localhost:8080/user";
+      }
 
-    fetch(url)
-      .then((response) => response.json())
-      .then((data) => setLighthouses(data))
-      .catch(() => setLighthouses(dummyLighthouses));
+      try {
+        const token = await getToken();
+        
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch');
+        }
+
+        const data = await response.json();
+        setLighthouses(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setLighthouses(dummyLighthouses);
+      }
+    };
+
+    fetchData();
   }, []);
   const [selectedLighthouse, setSelectedLighthouse] =
     useState<Lighthouse | null>(null);

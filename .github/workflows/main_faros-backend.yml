@@ -35,6 +35,7 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           PORT: ${{ secrets.PORT }}
+          CLERK_AUTH_TOKEN: ${{ secrets.CLERK_AUTH_TOKEN }}
         with:
           push: true
           tags: ${{ secrets.AzureAppService_ContainerUsername_2afb8b6a9eed492d8c20c83a9ede8481 }}/faros-backend:${{ github.sha }}

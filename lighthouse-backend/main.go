@@ -2,57 +2,31 @@ package main
 
 //import and add handlers
 import (
-	"database/sql"
 	"lighthouse-backend/db"
 	"lighthouse-backend/handlers"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
-	"time"
 
+	clerkhttp "github.com/clerk/clerk-sdk-go/v2/http"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
-	"github.com/tursodatabase/go-libsql"
 )
 
 func main() {
-
 	godotenv.Load()
 
-	dbName := "local.db"
-	primaryUrl := os.Getenv("TURSO_DATABASE_URL")
-	authToken := os.Getenv("TURSO_AUTH_TOKEN")
-
-	if primaryUrl == "" || authToken == "" {
-		log.Fatal("TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be set")
+	if err := handlers.InitClerk(); err != nil {
+		log.Fatal(err)
 	}
 
-	dir, err := os.MkdirTemp("", "libsql-*")
+	db_f, err := db.InitDB()
 	if err != nil {
-		log.Fatal("Error creating temporary directory:", err)
-	}
-	defer os.RemoveAll(dir)
-
-	dbPath := filepath.Join(dir, dbName)
-
-	connector, err := libsql.NewEmbeddedReplicaConnector(dbPath, primaryUrl,
-		libsql.WithAuthToken(authToken),
-		libsql.WithSyncInterval(time.Minute*30),
-	)
-	if err != nil {
-		log.Fatal("Error creating connector:", err)
-	}
-	defer connector.Close()
-
-	db_f := sql.OpenDB(connector)
-	if err := db_f.Ping(); err != nil {
-		log.Fatal("Error connecting to database:", err)
+		log.Fatal(err)
 	}
 	defer db_f.Close()
 	handlers.DB = db_f
-	db.DB = db_f
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -60,13 +34,26 @@ func main() {
 	})
 	r.HandleFunc("/api/lighthouses", handlers.GetLighthouses).Methods("GET")
 
-	handler := cors.Default().Handler(r)
+	authHandler := clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUser))
+	r.Handle("/user", authHandler)
+
+	// Configure CORS
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://localhost:5173", "https://agreeable-pond-025c6731e.4.azurestaticapps.net"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Authorization", "Content-Type"},
+	})
+
+	handler := c.Handler(r)
 	http.Handle("/", handler)
+
 	PORT := os.Getenv("PORT")
 	if PORT == "" {
 		PORT = "8080"
 	}
+
 	log.Printf("Starting server on port %s\n", PORT)
+
 	if err := http.ListenAndServe(":"+PORT, nil); err != nil {
 		log.Fatalf("Server failed to start: %v\n", err)
 	}
