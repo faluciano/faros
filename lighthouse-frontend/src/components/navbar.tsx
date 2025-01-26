@@ -1,13 +1,11 @@
-import {
-  SignedOut,
-  SignedIn,
-  SignInButton,
-  UserButton,
-} from "@clerk/clerk-react"; // Adjust the import as necessary
+import { SignedIn, SignedOut, SignInButton, SignOutButton, useAuth, UserButton } from "@clerk/clerk-react";
+import { Link } from "react-router-dom";
 
 import Logo from "../assets/faros-logo.png";
 
 const Navbar = () => {
+  const { isSignedIn } = useAuth();
+
   return (
     <nav className="bg-gray-800 shadow-lg">
       <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
@@ -60,24 +58,32 @@ const Navbar = () => {
             </div>
             <div className="hidden sm:block sm:ml-6">
               <div className="flex space-x-4">
-                <a
-                  href="/"
+                <Link
+                  to="/"
                   className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
                 >
                   Home
-                </a>
-                <a
-                  href="/about"
+                </Link>
+                <Link
+                  to="/lighthouse"
                   className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
                 >
-                  About
-                </a>
-                <a
-                  href="/contact"
+                  Lighthouses
+                </Link>
+                {isSignedIn && (
+                  <Link
+                    to="/visited"
+                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Visited
+                  </Link>
+                )}
+                <Link
+                  to="/contact"
                   className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
                 >
                   Contact
-                </a>
+                </Link>
               </div>
             </div>
           </div>
@@ -88,9 +94,7 @@ const Navbar = () => {
               </div>
             </SignedOut>
             <SignedIn>
-              {/* <div className="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium"> */}
               <UserButton />
-              {/* </div> */}
             </SignedIn>
           </div>
         </div>

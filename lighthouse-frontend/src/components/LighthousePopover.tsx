@@ -71,7 +71,7 @@ const LighthousePopover = ({ lighthouse, position, onVisitChange, isAuthenticate
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex flex-col gap-3">
-        <h3 className="text-xl font-bold">{lighthouse.name}</h3>
+        <h3 className="text-xl text-gray-900 font-bold">{lighthouse.name}</h3>
         <img
           src={lighthouse.image}
           alt={lighthouse.name}
