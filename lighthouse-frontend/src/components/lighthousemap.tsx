@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Map, Marker } from "pigeon-maps";
 import { osm } from "pigeon-maps/providers";
 import { Lighthouse } from "../types";
+import LighthousePopover from "./LighthousePopover";
 
 const dummyLighthouses = [
   {
@@ -29,8 +30,8 @@ const LighthouseMap = () => {
       .then((data) => setLighthouses(data))
       .catch(() => setLighthouses(dummyLighthouses));
   }, []);
-  const [selectedLighthouse, setSelectedLighthouse] =
-    useState<Lighthouse | null>(null);
+
+  const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
   const [popoverPosition, setPopoverPosition] = useState<{
     top: number;
     left: number;
@@ -50,6 +51,9 @@ const LighthouseMap = () => {
     setPopoverPosition(null);
   };
 
+  // This is a no-op since unauthenticated users can't mark lighthouses
+  const handleVisitChange = () => {};
+
   return (
     <div onClick={handleMapClick} style={{ position: "relative" }}>
       <Map
@@ -62,6 +66,7 @@ const LighthouseMap = () => {
           <Marker
             key={lighthouse.id}
             anchor={[lighthouse.latitude, lighthouse.longitude]}
+            color="#EF4444"
             onClick={(markerEvent) => {
               markerEvent.event.stopPropagation();
               handleMarkerClick(lighthouse, markerEvent);
@@ -70,29 +75,12 @@ const LighthouseMap = () => {
         ))}
       </Map>
       {selectedLighthouse && popoverPosition && (
-        <div
-          className="popover"
-          style={{
-            color: "black",
-            position: "absolute",
-            top: popoverPosition.top,
-            left: popoverPosition.left,
-            transform: "translate(-50%, -100%)",
-            backgroundColor: "white",
-            padding: "10px",
-            border: "1px solid black",
-            borderRadius: "5px",
-            zIndex: 1000,
-          }}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <h3>{selectedLighthouse.name}</h3>
-          <img
-            src={selectedLighthouse.image}
-            alt={selectedLighthouse.name}
-            width={100}
-          />
-        </div>
+        <LighthousePopover
+          lighthouse={selectedLighthouse}
+          position={popoverPosition}
+          onVisitChange={handleVisitChange}
+          isAuthenticated={false}
+        />
       )}
     </div>
   );

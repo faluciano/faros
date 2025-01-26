@@ -34,10 +34,18 @@ func main() {
 	})
 	r.HandleFunc("/api/lighthouses", handlers.GetLighthouses).Methods("GET")
 
+	// User routes with authentication
 	authHandler := clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUser))
-	r.Handle("/user", authHandler)
+	r.Handle("/user", authHandler).Methods("GET")
+
 	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUserVisitedLighthouses))
-	r.Handle("/user/lighthouses", authHandler)
+	r.Handle("/user/lighthouses", authHandler).Methods("GET")
+
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.MarkLighthouseAsVisited))
+	r.Handle("/user/lighthouses", authHandler).Methods("POST")
+
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.UnmarkLighthouseAsVisited))
+	r.Handle("/user/lighthouses", authHandler).Methods("DELETE")
 
 	// Configure CORS
 	c := cors.New(cors.Options{

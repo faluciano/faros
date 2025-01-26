@@ -58,3 +58,24 @@ func GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error) {
 
 	return lighthouses, nil
 }
+
+func MarkLighthouseAsVisited(userId string, lighthouseId string) error {
+	query := `
+	INSERT INTO user_visited_lighthouse (user_id, lighthouse_id)
+	VALUES (?, ?)
+	ON CONFLICT(user_id, lighthouse_id) DO NOTHING
+	`
+
+	_, err := DB.Exec(query, userId, lighthouseId)
+	return err
+}
+
+func UnmarkLighthouseAsVisited(userId string, lighthouseId string) error {
+	query := `
+	DELETE FROM user_visited_lighthouse
+	WHERE user_id = ? AND lighthouse_id = ?
+	`
+
+	_, err := DB.Exec(query, userId, lighthouseId)
+	return err
+}

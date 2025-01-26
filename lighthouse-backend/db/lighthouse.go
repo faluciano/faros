@@ -7,7 +7,7 @@ import (
 
 func GetLighthouses() ([]schemas.Lighthouse, error) {
 	lighthouses := []schemas.Lighthouse{}
-	query, err := DB.Query("SELECT country, state, name, latitude, longitude, image FROM lighthouses")
+	query, err := DB.Query("SELECT id, country, state, name, latitude, longitude, image FROM lighthouses")
 	if err != nil {
 		log.Printf("Failed to query lighthouses: %v", err)
 		return nil, err
@@ -16,7 +16,7 @@ func GetLighthouses() ([]schemas.Lighthouse, error) {
 
 	for query.Next() {
 		var lighthouse schemas.Lighthouse
-		err := query.Scan(&lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image)
+		err := query.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image)
 		if err != nil {
 			log.Printf("Failed to scan lighthouse: %v", err)
 			return nil, err

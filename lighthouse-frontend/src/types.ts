@@ -6,6 +6,7 @@ export interface Lighthouse {
   image: string;
   state: string;
   country: string;
+  isVisited?: boolean;
 }
 
 export interface User {

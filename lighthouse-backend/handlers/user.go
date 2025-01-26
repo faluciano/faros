@@ -12,6 +12,10 @@ import (
 	"github.com/clerk/clerk-sdk-go/v2/user"
 )
 
+type VisitRequest struct {
+	LighthouseId string `json:"lighthouseId"`
+}
+
 func InitClerk() error {
 	clerkToken := os.Getenv("CLERK_AUTH_TOKEN")
 	if clerkToken == "" {
@@ -64,6 +68,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserVisitedLighthouses(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	ctx := r.Context()
 	claims, ok := clerk.SessionClaimsFromContext(ctx)
 	if !ok {
@@ -80,4 +86,58 @@ func GetUserVisitedLighthouses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(lighthouses)
+}
+
+func MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	ctx := r.Context()
+	claims, ok := clerk.SessionClaimsFromContext(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var req VisitRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request"})
+		return
+	}
+
+	if err := db.MarkLighthouseAsVisited(claims.Subject, req.LighthouseId); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+}
+
+func UnmarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	ctx := r.Context()
+	claims, ok := clerk.SessionClaimsFromContext(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var req VisitRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request"})
+		return
+	}
+
+	if err := db.UnmarkLighthouseAsVisited(claims.Subject, req.LighthouseId); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
