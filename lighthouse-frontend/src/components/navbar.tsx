@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, SignInButton, SignOutButton, useAuth, UserButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, SignInButton, useAuth, UserButton } from "@clerk/clerk-react";
 import { Link } from "react-router-dom";
 
 import Logo from "../assets/faros-logo.png";
@@ -71,12 +71,20 @@ const Navbar = () => {
                   Lighthouses
                 </Link>
                 {isSignedIn && (
-                  <Link
-                    to="/visited"
-                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Visited
-                  </Link>
+                  <>
+                    <Link
+                      to="/visited"
+                      className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Visited
+                    </Link>
+                    <Link
+                      to="/wishlist"
+                      className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Wishlist
+                    </Link>
+                  </>
                 )}
                 <Link
                   to="/contact"

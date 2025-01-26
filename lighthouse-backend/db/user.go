@@ -59,6 +59,53 @@ func GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error) {
 	return lighthouses, nil
 }
 
+func GetUserWishlistLighthouses(id string) ([]schemas.Lighthouse, error) {
+	query := `
+	SELECT l.id, l.country, l.state, l.name, l.latitude, l.longitude, l.image
+	FROM user_wishlist_lighthouse uwl
+	JOIN lighthouses l ON uwl.lighthouse_id = l.id
+	WHERE uwl.user_id = ?
+	`
+
+	rows, err := DB.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var lighthouses []schemas.Lighthouse
+	for rows.Next() {
+		var lighthouse schemas.Lighthouse
+		if err := rows.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image); err != nil {
+			return nil, err
+		}
+		lighthouses = append(lighthouses, lighthouse)
+	}
+
+	return lighthouses, nil
+}
+
+func AddToWishlist(userId string, lighthouseId string) error {
+	query := `
+	INSERT INTO user_wishlist_lighthouse (user_id, lighthouse_id)
+	VALUES (?, ?)
+	ON CONFLICT(user_id, lighthouse_id) DO NOTHING
+	`
+
+	_, err := DB.Exec(query, userId, lighthouseId)
+	return err
+}
+
+func RemoveFromWishlist(userId string, lighthouseId string) error {
+	query := `
+	DELETE FROM user_wishlist_lighthouse
+	WHERE user_id = ? AND lighthouse_id = ?
+	`
+
+	_, err := DB.Exec(query, userId, lighthouseId)
+	return err
+}
+
 func MarkLighthouseAsVisited(userId string, lighthouseId string) error {
 	query := `
 	INSERT INTO user_visited_lighthouse (user_id, lighthouse_id)

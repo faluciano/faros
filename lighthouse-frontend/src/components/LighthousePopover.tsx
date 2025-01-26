@@ -12,7 +12,9 @@ interface PopoverProps {
 const LighthousePopover = ({ lighthouse, position, onVisitChange, isAuthenticated }: PopoverProps) => {
   const { getToken } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const [optimisticIsVisited, setOptimisticIsVisited] = useState(lighthouse.isVisited);
+  const [isInWishlist, setIsInWishlist] = useState(false);
 
   const handleVisitToggle = async () => {
     if (!isAuthenticated) return;
@@ -53,6 +55,41 @@ const LighthousePopover = ({ lighthouse, position, onVisitChange, isAuthenticate
     }
   };
 
+  const handleWishlistToggle = async () => {
+    if (!isAuthenticated) return;
+    
+    setIsWishlistLoading(true);
+    const newWishlistState = !isInWishlist;
+    setIsInWishlist(newWishlistState);
+
+    try {
+      const token = await getToken();
+      let url = "https://faros-backend.azurewebsites.net/user/wishlist";
+      if (process.env.NODE_ENV === "development") {
+        url = "http://localhost:8080/user/wishlist";
+      }
+
+      const method = isInWishlist ? "DELETE" : "POST";
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ lighthouseId: lighthouse.id })
+      });
+
+      if (!response.ok) {
+        setIsInWishlist(!newWishlistState);
+        throw new Error('Failed to update wishlist status');
+      }
+    } catch (error) {
+      console.error('Error updating wishlist status:', error);
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
+
   return (
     <div
       className="popover"
@@ -82,21 +119,46 @@ const LighthousePopover = ({ lighthouse, position, onVisitChange, isAuthenticate
           <p>{lighthouse.country}</p>
         </div>
         {isAuthenticated && (
-          <button
-            onClick={handleVisitToggle}
-            disabled={isLoading}
-            className={`mt-2 px-4 py-2 rounded-md text-white font-medium transition-colors ${
-              optimisticIsVisited
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-green-500 hover:bg-green-600"
-            } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            {isLoading
-              ? "Loading..."
-              : optimisticIsVisited
-              ? "Mark as Unvisited"
-              : "Mark as Visited"}
-          </button>
+          <div className="flex flex-col gap-2">
+            {optimisticIsVisited ? (
+              <button
+                onClick={handleVisitToggle}
+                disabled={isLoading}
+                className={`px-4 py-2 rounded-md text-white font-medium transition-colors
+                  bg-red-500 hover:bg-red-600
+                  ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                {isLoading ? "Loading..." : "Remove from Visited"}
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleVisitToggle}
+                  disabled={isLoading}
+                  className={`px-4 py-2 rounded-md text-white font-medium transition-colors
+                    bg-green-500 hover:bg-green-600
+                    ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  {isLoading ? "Loading..." : "Mark as Visited"}
+                </button>
+                <button
+                  onClick={handleWishlistToggle}
+                  disabled={isWishlistLoading}
+                  className={`px-4 py-2 rounded-md text-white font-medium transition-colors ${
+                    isInWishlist
+                      ? "bg-red-500 hover:bg-red-600"
+                      : "bg-blue-500 hover:bg-blue-600"
+                  } ${isWishlistLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  {isWishlistLoading
+                    ? "Loading..."
+                    : isInWishlist
+                    ? "Remove from Wishlist"
+                    : "Add to Wishlist"}
+                </button>
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>

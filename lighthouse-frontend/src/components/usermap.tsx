@@ -1,93 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Map, Marker } from "pigeon-maps";
 import { osm } from "pigeon-maps/providers";
-import { Lighthouse, User } from "../types";
+import { Lighthouse } from "../types";
 import { useAuth } from "@clerk/clerk-react";
 import LighthousePopover from "./LighthousePopover";
-
-const dummyLighthouses = [
-  {
-    id: "1",
-    latitude: 47.7511,
-    longitude: -120.7401,
-    name: "Dummy Lighthouse",
-    image: "https://example.com/lighthouse.jpg",
-    state: "Washington",
-    country: "United States",
-  },
-];
+import { useLighthouse } from "../context/LighthouseContext";
 
 const UserMap = () => {
-  const [lighthouses, setLighthouses] = useState<Lighthouse[]>([]);
-  const [user, setUser] = useState<User | null>(null);
+  const { lighthouses, setLighthouses, isLoading } = useLighthouse();
   const { getToken, isSignedIn } = useAuth();
-
-  const fetchData = async () => {
-    let baseUrl = "https://faros-backend.azurewebsites.net";
-    if (process.env.NODE_ENV === "development") {
-      baseUrl = "http://localhost:8080";
-    }
-
-    try {
-      const token = await getToken();
-      if (!token) return;
-
-      // Fetch user data
-      const userResponse = await fetch(`${baseUrl}/user`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!userResponse.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-
-      const userData = await userResponse.json();
-      setUser(userData);
-
-      // Fetch all lighthouses
-      const lighthousesResponse = await fetch(`${baseUrl}/api/lighthouses`);
-      if (!lighthousesResponse.ok) {
-        throw new Error('Failed to fetch lighthouses');
-      }
-      const allLighthouses = await lighthousesResponse.json();
-
-      // Fetch visited lighthouses
-      const visitedResponse = await fetch(`${baseUrl}/user/lighthouses`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!visitedResponse.ok) {
-        throw new Error('Failed to fetch visited lighthouses');
-      }
-      const visitedLighthouses = await visitedResponse.json();
-
-      // Mark visited lighthouses
-      const visitedIds = new Set(visitedLighthouses.map((l: Lighthouse) => l.id));
-      const lighthousesWithVisited = allLighthouses.map((l: Lighthouse) => ({
-        ...l,
-        isVisited: visitedIds.has(l.id)
-      }));
-
-      setLighthouses(lighthousesWithVisited);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setLighthouses(dummyLighthouses);
-    }
-  };
-
-  useEffect(() => {
-    if (isSignedIn) {
-      fetchData();
-    } else {
-      setLighthouses([]);
-      setUser(null);
-    }
-  }, [isSignedIn, getToken]);
 
   const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
   const [popoverPosition, setPopoverPosition] = useState<{
@@ -114,29 +35,25 @@ const UserMap = () => {
     setLighthouses(lighthouses.map(l => 
       l.id === lighthouseId ? { ...l, isVisited } : l
     ));
-
-    // If the API call fails, revert the change
-    try {
-      await fetchData();
-    } catch (error) {
-      console.error('Error updating visit status:', error);
-      // Revert the optimistic update
-      setLighthouses(lighthouses.map(l => 
-        l.id === lighthouseId ? { ...l, isVisited: !isVisited } : l
-      ));
-    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold text-gray-800">Loading lighthouses...</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div onClick={handleMapClick} style={{ position: "relative" }}>
-      {user && (
-        <div className="absolute top-4 right-4 z-10 bg-white text-black p-4 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold">Welcome, {user.first_name}!</h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Visited Lighthouses: {lighthouses.filter(l => l.isVisited).length}
-          </p>
-        </div>
-      )}
+      <div className="absolute top-4 right-4 z-10 bg-white text-black p-4 rounded-lg shadow-md">
+        <p className="text-sm text-gray-600">
+          Visited Lighthouses: {lighthouses.filter(l => l.isVisited).length}
+        </p>
+      </div>
       <Map
         height={window.innerHeight}
         provider={osm}

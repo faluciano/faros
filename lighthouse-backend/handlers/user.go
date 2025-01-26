@@ -88,6 +88,81 @@ func GetUserVisitedLighthouses(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(lighthouses)
 }
 
+func GetUserWishlistLighthouses(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	ctx := r.Context()
+	claims, ok := clerk.SessionClaimsFromContext(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	lighthouses, err := db.GetUserWishlistLighthouses(claims.Subject)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	json.NewEncoder(w).Encode(lighthouses)
+}
+
+func AddToWishlist(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	ctx := r.Context()
+	claims, ok := clerk.SessionClaimsFromContext(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var req VisitRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request"})
+		return
+	}
+
+	if err := db.AddToWishlist(claims.Subject, req.LighthouseId); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+}
+
+func RemoveFromWishlist(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	ctx := r.Context()
+	claims, ok := clerk.SessionClaimsFromContext(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	var req VisitRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request"})
+		return
+	}
+
+	if err := db.RemoveFromWishlist(claims.Subject, req.LighthouseId); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+}
+
 func MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -111,6 +186,9 @@ func MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
+
+	// When marking as visited, remove from wishlist if it exists there
+	_ = db.RemoveFromWishlist(claims.Subject, req.LighthouseId)
 
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }

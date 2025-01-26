@@ -38,6 +38,7 @@ func main() {
 	authHandler := clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUser))
 	r.Handle("/user", authHandler).Methods("GET")
 
+	// Visited lighthouses routes
 	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUserVisitedLighthouses))
 	r.Handle("/user/lighthouses", authHandler).Methods("GET")
 
@@ -46,6 +47,16 @@ func main() {
 
 	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.UnmarkLighthouseAsVisited))
 	r.Handle("/user/lighthouses", authHandler).Methods("DELETE")
+
+	// Wishlist routes
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUserWishlistLighthouses))
+	r.Handle("/user/wishlist", authHandler).Methods("GET")
+
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.AddToWishlist))
+	r.Handle("/user/wishlist", authHandler).Methods("POST")
+
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.RemoveFromWishlist))
+	r.Handle("/user/wishlist", authHandler).Methods("DELETE")
 
 	// Configure CORS
 	c := cors.New(cors.Options{
