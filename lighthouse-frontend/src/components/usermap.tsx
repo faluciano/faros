@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Map, Marker } from "pigeon-maps";
 import { osm } from "pigeon-maps/providers";
-import { Lighthouse } from "../types";
+import { Lighthouse, User } from "../types";
 import { useAuth } from "@clerk/clerk-react";
 
 const dummyLighthouses = [
@@ -18,11 +18,11 @@ const dummyLighthouses = [
 
 const UserMap = () => {
   const [lighthouses, setLighthouses] = useState<Lighthouse[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const { getToken } = useAuth();
-  
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchUserData = async () => {
       let url = "https://faros-backend.azurewebsites.net/user";
       if (process.env.NODE_ENV === "development") {
         url = "http://localhost:8080/user";
@@ -30,7 +30,6 @@ const UserMap = () => {
 
       try {
         const token = await getToken();
-        
         const response = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -39,21 +38,23 @@ const UserMap = () => {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch');
+          throw new Error('Failed to fetch user data');
         }
 
-        const data = await response.json();
-        setLighthouses(data);
+        const userData = await response.json();
+        setUser(userData);
+        // TODO: In the future, we'll fetch user-specific lighthouses here
+        setLighthouses(dummyLighthouses);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching user data:', error);
         setLighthouses(dummyLighthouses);
       }
     };
 
-    fetchData();
-  }, []);
-  const [selectedLighthouse, setSelectedLighthouse] =
-    useState<Lighthouse | null>(null);
+    fetchUserData();
+  }, [getToken]);
+
+  const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
   const [popoverPosition, setPopoverPosition] = useState<{
     top: number;
     left: number;
@@ -75,6 +76,20 @@ const UserMap = () => {
 
   return (
     <div onClick={handleMapClick} style={{ position: "relative" }}>
+      {user && (
+        <div style={{ 
+          position: "absolute", 
+          top: 10, 
+          right: 10, 
+          zIndex: 1000,
+          backgroundColor: "white",
+          padding: "10px",
+          borderRadius: "5px",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+        }}>
+          <h3>Welcome, {user.first_name}!</h3>
+        </div>
+      )}
       <Map
         height={window.innerHeight}
         provider={osm}

@@ -60,7 +60,7 @@ const LighthouseMap = () => {
       >
         {lighthouses.map((lighthouse) => (
           <Marker
-            key={`${lighthouse.latitude},${lighthouse.longitude}`}
+            key={lighthouse.id}
             anchor={[lighthouse.latitude, lighthouse.longitude]}
             onClick={(markerEvent) => {
               markerEvent.event.stopPropagation();

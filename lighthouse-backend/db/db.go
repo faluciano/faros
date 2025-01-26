@@ -43,5 +43,25 @@ func InitDB() (*sql.DB, error) {
 	}
 
 	DB = db
+
+	// Initialize tables
+	if err := CreateUserTable(); err != nil {
+		return nil, fmt.Errorf("error creating user table: %w", err)
+	}
+
 	return db, nil
+}
+
+func CreateUserTable() error {
+	query := `
+	CREATE TABLE IF NOT EXISTS users (
+		id TEXT PRIMARY KEY,
+		first_name TEXT,
+		last_name TEXT,
+		email TEXT,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`
+
+	_, err := DB.Exec(query)
+	return err
 }

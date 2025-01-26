@@ -1,9 +1,16 @@
 export interface Lighthouse {
   id: string;
+  name: string;
   latitude: number;
   longitude: number;
-  name: string;
   image: string;
   state: string;
   country: string;
+}
+
+export interface User {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
 }
