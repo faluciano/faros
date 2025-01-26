@@ -43,8 +43,14 @@ const UserMap = () => {
 
         const userData = await response.json();
         setUser(userData);
-        // TODO: In the future, we'll fetch user-specific lighthouses here
-        setLighthouses(dummyLighthouses);
+        const lighthousesResponse = await fetch(`${url}/lighthouses`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const lighthousesData = await lighthousesResponse.json();
+        setLighthouses(lighthousesData);
       } catch (error) {
         console.error('Error fetching user data:', error);
         setLighthouses(dummyLighthouses);

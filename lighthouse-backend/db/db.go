@@ -49,7 +49,25 @@ func InitDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("error creating user table: %w", err)
 	}
 
+	if err := CreateUserVisitedLighthouseTable(); err != nil {
+		return nil, fmt.Errorf("error creating user lighthouse table: %w", err)
+	}
+
 	return db, nil
+}
+
+func CreateUserVisitedLighthouseTable() error {
+	query := `
+	CREATE TABLE IF NOT EXISTS user_visited_lighthouse (
+		user_id TEXT,
+		lighthouse_id TEXT,
+		visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (user_id, lighthouse_id),
+		FOREIGN KEY (user_id) REFERENCES users(id),
+		FOREIGN KEY (lighthouse_id) REFERENCES lighthouses(id)
+	)`
+	_, err := DB.Exec(query)
+	return err
 }
 
 func CreateUserTable() error {

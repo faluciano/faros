@@ -62,3 +62,22 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	// Return the user data
 	json.NewEncoder(w).Encode(dbUser)
 }
+
+func GetUserVisitedLighthouses(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	claims, ok := clerk.SessionClaimsFromContext(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	lighthouses, err := db.GetUserVisitedLighthouses(claims.Subject)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	json.NewEncoder(w).Encode(lighthouses)
+}

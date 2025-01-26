@@ -32,3 +32,29 @@ func GetUser(id string) (*schemas.User, error) {
 	}
 	return &user, nil
 }
+
+func GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error) {
+	query := `
+	SELECT l.id, l.country, l.state, l.name, l.latitude, l.longitude, l.image
+	FROM user_visited_lighthouse uvl
+	JOIN lighthouses l ON uvl.lighthouse_id = l.id
+	WHERE uvl.user_id = ?
+	`
+
+	rows, err := DB.Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var lighthouses []schemas.Lighthouse
+	for rows.Next() {
+		var lighthouse schemas.Lighthouse
+		if err := rows.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image); err != nil {
+			return nil, err
+		}
+		lighthouses = append(lighthouses, lighthouse)
+	}
+
+	return lighthouses, nil
+}

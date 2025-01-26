@@ -7,7 +7,7 @@ import (
 
 func GetLighthouses() ([]schemas.Lighthouse, error) {
 	lighthouses := []schemas.Lighthouse{}
-	query, err := DB.Query("SELECT country, state, lighthouse, latitude, longitude, image FROM lighthouses")
+	query, err := DB.Query("SELECT country, state, name, latitude, longitude, image FROM lighthouses")
 	if err != nil {
 		log.Printf("Failed to query lighthouses: %v", err)
 		return nil, err
@@ -29,7 +29,7 @@ func GetLighthouses() ([]schemas.Lighthouse, error) {
 
 func GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
 	lighthouses := []schemas.Lighthouse{}
-	query, err := DB.Query("SELECT country, state, lighthouse, latitude, longitude, image FROM lighthouses WHERE country = ?", country)
+	query, err := DB.Query("SELECT country, state, name, latitude, longitude, image FROM lighthouses WHERE country = ?", country)
 	if err != nil {
 		log.Printf("Failed to query lighthouses by country: %v", err)
 		return nil, err
@@ -51,7 +51,7 @@ func GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
 
 func GetLighthousesByState(state string) ([]schemas.Lighthouse, error) {
 	lighthouses := []schemas.Lighthouse{}
-	query, err := DB.Query("SELECT country, state, lighthouse, latitude, longitude, image FROM lighthouses WHERE state = ?", state)
+	query, err := DB.Query("SELECT id, country, state, name, latitude, longitude, image FROM lighthouses WHERE state = ?", state)
 	if err != nil {
 		log.Printf("Failed to query lighthouses by state: %v", err)
 		return nil, err
@@ -60,7 +60,7 @@ func GetLighthousesByState(state string) ([]schemas.Lighthouse, error) {
 
 	for query.Next() {
 		var lighthouse schemas.Lighthouse
-		err := query.Scan(&lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image)
+		err := query.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image)
 		if err != nil {
 			log.Printf("Failed to scan lighthouse: %v", err)
 			return nil, err

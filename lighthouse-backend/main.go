@@ -36,6 +36,8 @@ func main() {
 
 	authHandler := clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUser))
 	r.Handle("/user", authHandler)
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUserVisitedLighthouses))
+	r.Handle("/user/lighthouses", authHandler)
 
 	// Configure CORS
 	c := cors.New(cors.Options{
