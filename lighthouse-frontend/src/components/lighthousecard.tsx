@@ -64,7 +64,7 @@ const LighthouseCard = ({ lighthouse }: { lighthouse: Lighthouse }) => {
 
 
     return (
-        <div className="lighthouse-card" style={{ backgroundImage: `url(${lighthouse.image})` }}>
+        <div className="lighthouse-card" style={{ backgroundImage: `url(${lighthouse.image})`, backgroundColor: isVisited ? "lightgreen" : "white" }}>
             <h1>{lighthouse.name}</h1>
             <p>{lighthouse.state}</p>
             <p>{lighthouse.country}</p>

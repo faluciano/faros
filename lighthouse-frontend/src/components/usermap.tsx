@@ -8,7 +8,7 @@ import { useLighthouse } from "../context/LighthouseContext";
 
 const UserMap = () => {
   const { lighthouses, setLighthouses, isLoading } = useLighthouse();
-  const { getToken, isSignedIn } = useAuth();
+  const { isSignedIn, getToken } = useAuth();
 
   const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
   const [popoverPosition, setPopoverPosition] = useState<{
@@ -35,6 +35,36 @@ const UserMap = () => {
     setLighthouses(lighthouses.map(l => 
       l.id === lighthouseId ? { ...l, isVisited } : l
     ));
+
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      let baseUrl = "https://faros-backend.azurewebsites.net";
+      if (process.env.NODE_ENV === "development") {
+        baseUrl = "http://localhost:8080";
+      }
+
+      const method = isVisited ? "POST" : "DELETE";
+      const response = await fetch(`${baseUrl}/user/lighthouses`, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ lighthouseId })
+      });
+
+      if (!response.ok) {
+        // Revert on failure
+        setLighthouses(lighthouses.map(l => 
+          l.id === lighthouseId ? { ...l, isVisited: !isVisited } : l
+        ));
+        throw new Error('Failed to update lighthouse status');
+      }
+    } catch (error) {
+      console.error('Error updating lighthouse status:', error);
+    }
   };
 
   if (isLoading) {

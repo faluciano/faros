@@ -68,6 +68,35 @@ const VisitedLighthouses = () => {
     );
   }
 
+    const handleRemoveVisited = async (id: string) => {
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            let baseUrl = "https://faros-backend.azurewebsites.net";
+            if (process.env.NODE_ENV === "development") {
+                baseUrl = "http://localhost:8080";
+            }
+
+            const response = await fetch(`${baseUrl}/user/lighthouses`, {
+                method: "DELETE",
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ lighthouseId: id })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to remove lighthouse from visited');
+            }
+
+            setVisitedLighthouses(visitedLighthouses.filter(lighthouse => lighthouse.id !== id));
+        } catch (error) {
+            console.error('Error removing lighthouse:', error);
+        }
+    }
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
@@ -101,6 +130,12 @@ const VisitedLighthouses = () => {
                     <p>{lighthouse.state}</p>
                     <p>{lighthouse.country}</p>
                   </div>
+                  <button
+                    onClick={() => handleRemoveVisited(lighthouse.id)}
+                    className="mt-3 w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition-colors"
+                  >
+                    Remove from Visited
+                  </button>
                 </div>
               </div>
             ))}

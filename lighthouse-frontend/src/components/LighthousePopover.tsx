@@ -120,43 +120,33 @@ const LighthousePopover = ({ lighthouse, position, onVisitChange, isAuthenticate
         </div>
         {isAuthenticated && (
           <div className="flex flex-col gap-2">
-            {optimisticIsVisited ? (
+            <button
+              onClick={handleVisitToggle}
+              disabled={isLoading}
+              className={`px-4 py-2 rounded-md text-white font-medium transition-colors
+                ${optimisticIsVisited 
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "bg-green-500 hover:bg-green-600"}
+                ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {isLoading ? "Loading..." : optimisticIsVisited ? "Remove from Visited" : "Mark as Visited"}
+            </button>
+            {!optimisticIsVisited && (
               <button
-                onClick={handleVisitToggle}
-                disabled={isLoading}
-                className={`px-4 py-2 rounded-md text-white font-medium transition-colors
-                  bg-red-500 hover:bg-red-600
-                  ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                onClick={handleWishlistToggle}
+                disabled={isWishlistLoading}
+                className={`px-4 py-2 rounded-md text-white font-medium transition-colors ${
+                  isInWishlist
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-blue-500 hover:bg-blue-600"
+                } ${isWishlistLoading ? "opacity-50 cursor-not-allowed" : ""}`}
               >
-                {isLoading ? "Loading..." : "Remove from Visited"}
+                {isWishlistLoading
+                  ? "Loading..."
+                  : isInWishlist
+                  ? "Remove from Wishlist"
+                  : "Add to Wishlist"}
               </button>
-            ) : (
-              <>
-                <button
-                  onClick={handleVisitToggle}
-                  disabled={isLoading}
-                  className={`px-4 py-2 rounded-md text-white font-medium transition-colors
-                    bg-green-500 hover:bg-green-600
-                    ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {isLoading ? "Loading..." : "Mark as Visited"}
-                </button>
-                <button
-                  onClick={handleWishlistToggle}
-                  disabled={isWishlistLoading}
-                  className={`px-4 py-2 rounded-md text-white font-medium transition-colors ${
-                    isInWishlist
-                      ? "bg-red-500 hover:bg-red-600"
-                      : "bg-blue-500 hover:bg-blue-600"
-                  } ${isWishlistLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {isWishlistLoading
-                    ? "Loading..."
-                    : isInWishlist
-                    ? "Remove from Wishlist"
-                    : "Add to Wishlist"}
-                </button>
-              </>
             )}
           </div>
         )}
