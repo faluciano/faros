@@ -60,9 +60,14 @@ func main() {
 
 	// Configure CORS
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:5173", "https://agreeable-pond-025c6731e.4.azurestaticapps.net"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Authorization", "Content-Type"},
+		AllowedOrigins: []string{
+			"http://localhost:5173",
+			"https://agreeable-pond-025c6731e.5.azurestaticapps.net",
+			"https://agreeable-pond-025c6731e.4.azurestaticapps.net",
+		},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
 	})
 
 	handler := c.Handler(r)
