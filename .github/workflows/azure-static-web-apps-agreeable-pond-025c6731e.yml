@@ -29,11 +29,14 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      - name: Build And Deploy
+      - name: Install and Build
+        run: |
+          cd lighthouse-frontend
+          bun install
+          bun run build
+      - name: Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
-        env:
-          NODE_VERSION: '18'  # Specify Node.js version for Azure Static Web Apps
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AGREEABLE_POND_025C6731E }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -41,8 +44,7 @@ jobs:
           app_location: "/lighthouse-frontend"
           api_location: "api"
           output_location: "dist"
-          app_build_command: "cd lighthouse-frontend && bun install && bun run build"
-          skip_app_build: false
+          skip_app_build: true
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -55,4 +57,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AGREEABLE_POND_025C6731E }}
           action: "close"
-          app_location:
+          app_location: "/lighthouse-frontend"
