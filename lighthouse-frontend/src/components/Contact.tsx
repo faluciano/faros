@@ -5,6 +5,9 @@ const Contact = () => {
         <div className="text-center text-4xl font-bold text-gray-900 mb-8">
           Have fun
         </div>
+        <div className="text-center text-xl text-gray-900 mb-8">
+          <a href="github.com/faluciano/faros">Code</a>
+        </div>
       </div>
     </div>
   );
