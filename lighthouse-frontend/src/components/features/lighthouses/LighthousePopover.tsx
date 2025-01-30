@@ -1,4 +1,4 @@
-import { Lighthouse } from "../types";
+import { Lighthouse } from "../../../types";
 import { useAuth } from "@clerk/clerk-react";
 import { useState } from "react";
 

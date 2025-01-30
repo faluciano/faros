@@ -31,9 +31,10 @@ const WishlistLighthouses = () => {
         }
 
         const data = await response.json();
-        setWishlistLighthouses(data);
+        setWishlistLighthouses(data || []);
       } catch (error) {
         console.error('Error fetching wishlist lighthouses:', error);
+        setWishlistLighthouses([]);
       } finally {
         setIsLoading(false);
       }
@@ -101,50 +102,50 @@ const WishlistLighthouses = () => {
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">
-          Your Wishlist
+          Your Wishlist ({wishlistLighthouses?.length || 0})
         </h1>
         
-        {(!wishlistLighthouses || wishlistLighthouses.length === 0) ? (
+        {wishlistLighthouses && wishlistLighthouses.length > 0 ? (
+          <>
+            <p className="text-gray-600 text-center mb-6">
+              {wishlistLighthouses.length} {wishlistLighthouses.length === 1 ? 'lighthouse' : 'lighthouses'} in your wishlist
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {wishlistLighthouses.map((lighthouse) => (
+                <div
+                  key={lighthouse.id}
+                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                >
+                  <img
+                    src={lighthouse.image}
+                    alt={lighthouse.name}
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="p-4">
+                    <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                      {lighthouse.name}
+                    </h3>
+                    <div className="text-gray-600 mb-4">
+                      <p>{lighthouse.state}</p>
+                      <p>{lighthouse.country}</p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveFromWishlist(lighthouse.id)}
+                      className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded transition-colors"
+                    >
+                      Remove from Wishlist
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
           <div className="bg-white rounded-lg shadow-md p-6">
             <p className="text-gray-600 text-center">
               Your wishlist is empty. Start exploring the map to add lighthouses to your wishlist!
             </p>
           </div>
-        ) : (
-          <>
-            <p className="text-gray-600 text-center">
-              {wishlistLighthouses.length} {wishlistLighthouses.length === 1 ? 'lighthouse' : 'lighthouses'} in your wishlist
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {wishlistLighthouses.map((lighthouse) => (
-                <div
-                    key={lighthouse.id}
-                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-                >
-                    <img
-                    src={lighthouse.image}
-                    alt={lighthouse.name}
-                    className="w-full h-48 object-cover"
-                    />
-                        <div className="p-4">
-                        <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                            {lighthouse.name}
-                        </h3>
-                        <div className="text-gray-600 mb-4">
-                            <p>{lighthouse.state}</p>
-                            <p>{lighthouse.country}</p>
-                        </div>
-                            <button
-                                onClick={() => handleRemoveFromWishlist(lighthouse.id)}
-                                className="w-full bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded transition-colors"
-                            >
-                                Remove from Wishlist
-                            </button>
-                        </div>
-                    </div>
-                    ))}
-                </div>
-          </>
         )}
       </div>
     </div>

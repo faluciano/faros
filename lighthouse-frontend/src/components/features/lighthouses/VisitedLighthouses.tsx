@@ -31,9 +31,10 @@ const VisitedLighthouses = () => {
         }
 
         const data = await response.json();
-        setVisitedLighthouses(data);
+        setVisitedLighthouses(data || []);
       } catch (error) {
         console.error('Error fetching visited lighthouses:', error);
+        setVisitedLighthouses([]);
       } finally {
         setIsLoading(false);
       }
@@ -68,49 +69,43 @@ const VisitedLighthouses = () => {
     );
   }
 
-    const handleRemoveVisited = async (id: string) => {
-        try {
-            const token = await getToken();
-            if (!token) return;
+  const handleRemoveVisited = async (id: string) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
 
-            let baseUrl = "https://faros-backend.azurewebsites.net";
-            if (process.env.NODE_ENV === "development") {
-                baseUrl = "http://localhost:8080";
-            }
+      let baseUrl = "https://faros-backend.azurewebsites.net";
+      if (process.env.NODE_ENV === "development") {
+        baseUrl = "http://localhost:8080";
+      }
 
-            const response = await fetch(`${baseUrl}/user/lighthouses`, {
-                method: "DELETE",
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ lighthouseId: id })
-            });
+      const response = await fetch(`${baseUrl}/user/lighthouses`, {
+        method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ lighthouseId: id })
+      });
 
-            if (!response.ok) {
-                throw new Error('Failed to remove lighthouse from visited');
-            }
+      if (!response.ok) {
+        throw new Error('Failed to remove lighthouse from visited');
+      }
 
-            setVisitedLighthouses(visitedLighthouses.filter(lighthouse => lighthouse.id !== id));
-        } catch (error) {
-            console.error('Error removing lighthouse:', error);
-        }
+      setVisitedLighthouses(visitedLighthouses.filter(lighthouse => lighthouse.id !== id));
+    } catch (error) {
+      console.error('Error removing lighthouse:', error);
     }
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">
-          Your Visited Lighthouses ({visitedLighthouses.length})
+          Your Visited Lighthouses ({visitedLighthouses?.length || 0})
         </h1>
         
-        {visitedLighthouses.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <p className="text-gray-600 text-center">
-              You haven't visited any lighthouses yet. Start exploring the map to mark lighthouses as visited!
-            </p>
-          </div>
-        ) : (
+        {visitedLighthouses && visitedLighthouses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {visitedLighthouses.map((lighthouse) => (
               <div
@@ -139,6 +134,12 @@ const VisitedLighthouses = () => {
                 </div>
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <p className="text-gray-600 text-center">
+              You haven't visited any lighthouses yet. Start exploring the map to mark lighthouses as visited!
+            </p>
           </div>
         )}
       </div>

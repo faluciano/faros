@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Map, Marker } from "pigeon-maps";
 import { osm } from "pigeon-maps/providers";
-import { Lighthouse } from "../types";
-import LighthousePopover from "./LighthousePopover";
+import { Lighthouse } from "../../../types";
+import LighthousePopover from "../lighthouses/LighthousePopover";
 
 const dummyLighthouses = [
   {

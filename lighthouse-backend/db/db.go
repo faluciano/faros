@@ -57,6 +57,10 @@ func InitDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("error creating user wishlist table: %w", err)
 	}
 
+	if err := CreateFriendshipsTable(); err != nil {
+		return nil, fmt.Errorf("error creating friendships table: %w", err)
+	}
+
 	return db, nil
 }
 
@@ -98,6 +102,22 @@ func CreateUserTable() error {
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`
 
+	_, err := DB.Exec(query)
+	return err
+}
+
+func CreateFriendshipsTable() error {
+	query := `
+	CREATE TABLE IF NOT EXISTS friendships (
+		user_id TEXT,
+		friend_id TEXT,
+		status TEXT CHECK(status IN ('pending', 'accepted')),
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		PRIMARY KEY (user_id, friend_id),
+		FOREIGN KEY (user_id) REFERENCES users(id),
+		FOREIGN KEY (friend_id) REFERENCES users(id)
+	)`
 	_, err := DB.Exec(query)
 	return err
 }

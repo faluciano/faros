@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.2.10",
+    "@headlessui/react": "^2.2.0",
+    "@heroicons/react": "^2.2.0",
     "leaflet": "^1.9.4",
     "pigeon-maps": "^0.21.6",
     "react": "^18.3.1",

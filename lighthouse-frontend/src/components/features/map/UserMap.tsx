@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Map, Marker } from "pigeon-maps";
 import { osm } from "pigeon-maps/providers";
-import { Lighthouse } from "../types";
+import { Lighthouse } from "../../../types";
 import { useAuth } from "@clerk/clerk-react";
-import LighthousePopover from "./LighthousePopover";
-import { useLighthouse } from "../context/LighthouseContext";
+import LighthousePopover from "../lighthouses/LighthousePopover";
+import { useLighthouse } from "../../../context/LighthouseContext";
 
 const UserMap = () => {
   const { lighthouses, setLighthouses, isLoading } = useLighthouse();

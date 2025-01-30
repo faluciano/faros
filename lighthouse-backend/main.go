@@ -58,6 +58,28 @@ func main() {
 	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.RemoveFromWishlist))
 	r.Handle("/user/wishlist", authHandler).Methods("DELETE")
 
+	// Friend routes
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetFriends))
+	r.Handle("/user/friends", authHandler).Methods("GET")
+
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetPendingFriendRequests))
+	r.Handle("/user/friends/requests", authHandler).Methods("GET")
+
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetOutgoingFriendRequests))
+	r.Handle("/user/friends/requests/outgoing", authHandler).Methods("GET")
+
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.SendFriendRequest))
+	r.Handle("/user/friends/requests", authHandler).Methods("POST")
+
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.AcceptFriendRequest))
+	r.Handle("/user/friends/requests/accept", authHandler).Methods("POST")
+
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.RemoveFriend))
+	r.Handle("/user/friends", authHandler).Methods("DELETE")
+
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.SearchUsers))
+	r.Handle("/users/search", authHandler).Methods("GET")
+
 	// Configure CORS
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{
