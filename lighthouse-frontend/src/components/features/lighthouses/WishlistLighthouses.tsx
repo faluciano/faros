@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { Lighthouse } from "../types";
+import { Lighthouse } from "../../../types";
 
 const WishlistLighthouses = () => {
   const [wishlistLighthouses, setWishlistLighthouses] = useState<Lighthouse[]>([]);

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Tab } from '@headlessui/react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { User } from '../types';
+import { User } from '../../../types';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
