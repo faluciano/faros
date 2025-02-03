@@ -62,6 +62,9 @@ func main() {
 	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetFriends))
 	r.Handle("/user/friends", authHandler).Methods("GET")
 
+	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetFriendVisitedLighthouses))
+	r.Handle("/user/friends/lighthouses", authHandler).Methods("GET")
+
 	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetPendingFriendRequests))
 	r.Handle("/user/friends/requests", authHandler).Methods("GET")
 

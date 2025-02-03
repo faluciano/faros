@@ -219,3 +219,31 @@ func UnmarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
+
+func GetFriendVisitedLighthouses(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	ctx := r.Context()
+	claims, ok := clerk.SessionClaimsFromContext(ctx)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		return
+	}
+
+	friendId := r.URL.Query().Get("friendId")
+	if friendId == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "friendId is required"})
+		return
+	}
+
+	lighthouses, err := db.GetFriendVisitedLighthouses(claims.Subject, friendId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	json.NewEncoder(w).Encode(lighthouses)
+}

@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"lighthouse-backend/schemas"
 )
 
@@ -125,4 +126,47 @@ func UnmarkLighthouseAsVisited(userId string, lighthouseId string) error {
 
 	_, err := DB.Exec(query, userId, lighthouseId)
 	return err
+}
+
+func GetFriendVisitedLighthouses(userId string, friendId string) ([]schemas.Lighthouse, error) {
+	// First verify they are friends
+	var count int
+	err := DB.QueryRow(`
+		SELECT COUNT(*) FROM friendships 
+		WHERE ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))
+		AND status = 'accepted'
+	`, userId, friendId, friendId, userId).Scan(&count)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if count == 0 {
+		return nil, fmt.Errorf("not friends with user")
+	}
+
+	// Get friend's visited lighthouses
+	query := `
+	SELECT l.id, l.country, l.state, l.name, l.latitude, l.longitude, l.image
+	FROM user_visited_lighthouse uvl
+	JOIN lighthouses l ON uvl.lighthouse_id = l.id
+	WHERE uvl.user_id = ?
+	`
+
+	rows, err := DB.Query(query, friendId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var lighthouses []schemas.Lighthouse
+	for rows.Next() {
+		var lighthouse schemas.Lighthouse
+		if err := rows.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image); err != nil {
+			return nil, err
+		}
+		lighthouses = append(lighthouses, lighthouse)
+	}
+
+	return lighthouses, nil
 }
