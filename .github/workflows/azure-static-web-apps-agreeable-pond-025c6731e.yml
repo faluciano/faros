@@ -20,6 +20,7 @@ jobs:
     name: Build and Deploy Job
     env:
       VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+      VITE_MAPTILER_API_KEY: ${{ secrets.VITE_MAPTILER_API_KEY }}
     steps:
       - uses: actions/checkout@v3
         with:

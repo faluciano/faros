@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Map, Marker } from "pigeon-maps";
-import { osm } from "pigeon-maps/providers";
+import { maptiler } from "pigeon-maps/providers";
 import { Lighthouse, User } from "../../../types";
 import { useAuth } from "@clerk/clerk-react";
 import LighthousePopover from "../lighthouses/LighthousePopover";
 import { useLighthouse } from "../../../context/LighthouseContext";
 import { fetchWithAuth } from "../../../utils/api";
 import { getLighthouseMarkerColor, MAP_DEFAULTS, FilterState, DEFAULT_FILTERS } from "../../../utils/map";
+
+const maptilerProvider = maptiler(import.meta.env.VITE_MAPTILER_API_KEY!);
 
 interface MarkerClickEvent {
   event: React.MouseEvent;
@@ -313,7 +315,7 @@ const UserMap = () => {
       <Map
         height={window.innerHeight - MAP_DEFAULTS.NAVBAR_HEIGHT}
         width={window.innerWidth}
-        provider={osm}
+        provider={maptilerProvider}
         defaultCenter={MAP_DEFAULTS.CENTER}
         zoom={MAP_DEFAULTS.ZOOM}
       >

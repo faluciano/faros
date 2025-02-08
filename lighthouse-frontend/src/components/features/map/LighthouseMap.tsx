@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Map, Marker } from "pigeon-maps";
-import { osm } from "pigeon-maps/providers";
+import { maptiler } from "pigeon-maps/providers";
 import { Lighthouse } from "../../../types";
 import LighthousePopover from "../lighthouses/LighthousePopover";
+
+const maptilerProvider = maptiler(import.meta.env.VITE_MAPTILER_API_KEY!);
 
 const dummyLighthouses = [
   {
@@ -58,7 +60,7 @@ const LighthouseMap = () => {
     <div onClick={handleMapClick} style={{ position: "relative" }}>
       <Map
         height={window.innerHeight}
-        provider={osm}
+        provider={maptilerProvider}
         defaultCenter={[39.8283, -98.5795]}
         zoom={4}
       >
