@@ -6,7 +6,7 @@ import { useAuth } from "@clerk/clerk-react";
 import LighthousePopover from "../lighthouses/LighthousePopover";
 import { useLighthouse } from "../../../context/LighthouseContext";
 import { fetchWithAuth } from "../../../utils/api";
-import { getLighthouseMarkerColor, MAP_DEFAULTS } from "../../../utils/map";
+import { getLighthouseMarkerColor, MAP_DEFAULTS, FilterState, DEFAULT_FILTERS, MARKER_COLORS } from "../../../utils/map";
 
 interface MarkerClickEvent {
   event: React.MouseEvent;
@@ -37,6 +37,9 @@ const UserMap = () => {
     lighthouse: null,
     position: null
   });
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [wishlistLighthouses, setWishlistLighthouses] = useState<Lighthouse[]>([]);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
 
   // Fetch friends
   useEffect(() => {
@@ -111,6 +114,31 @@ const UserMap = () => {
     fetchFriendLighthouses();
   }, [selectedFriend, friends, isSignedIn, getToken]);
 
+  // Fetch wishlist lighthouses
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (!isSignedIn) return;
+      
+      setIsWishlistLoading(true);
+      try {
+        const token = await getToken();
+        if (!token) return;
+
+        const response = await fetchWithAuth('/user/wishlist', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await response.json();
+        setWishlistLighthouses(data);
+      } catch (error) {
+        console.error('Error fetching wishlist:', error);
+      } finally {
+        setIsWishlistLoading(false);
+      }
+    };
+
+    fetchWishlist();
+  }, [isSignedIn, getToken]);
+
   const handleMarkerClick = (
     lighthouse: Lighthouse,
     { event }: MarkerClickEvent
@@ -151,7 +179,29 @@ const UserMap = () => {
     }
   };
 
-  if (isLoading) {
+  const handleWishlistChange = async (lighthouseId: string, isInWishlist: boolean) => {
+    // Update optimistically
+    if (isInWishlist) {
+      setWishlistLighthouses(prev => [...prev, lighthouses.find(l => l.id === lighthouseId)!]);
+    } else {
+      setWishlistLighthouses(prev => prev.filter(l => l.id !== lighthouseId));
+    }
+  };
+
+  const isLighthouseInWishlist = (lighthouseId: string) => {
+    return wishlistLighthouses.some(l => l.id === lighthouseId);
+  };
+
+  const getFilteredLighthouses = () => {
+    return lighthouses?.filter(lighthouse => {
+      if (filters.visited && lighthouse.isVisited) return true;
+      if (filters.unvisited && !lighthouse.isVisited) return true;
+      if (filters.wishlist && isLighthouseInWishlist(lighthouse.id)) return true;
+      return false;
+    }) || [];
+  };
+
+  if (isLoading || isWishlistLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-6 rounded-lg shadow-md">
@@ -165,6 +215,61 @@ const UserMap = () => {
 
   return (
     <div onClick={handleMapClick} className="relative h-[calc(100vh-4rem)]">
+      {/* Filter Panel */}
+      <div className="absolute top-4 left-4 z-10 bg-white text-black p-4 rounded-lg shadow-md">
+        <h3 className="font-medium text-gray-800 mb-3">Filters</h3>
+        <div className="space-y-2">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={filters.visited}
+              onChange={(e) => setFilters(prev => ({ ...prev, visited: e.target.checked }))}
+              className="rounded text-green-500 focus:ring-green-500"
+            />
+            <span className="text-sm flex items-center">
+              <span className="w-3 h-3 rounded-full bg-[#10B981] inline-block mr-2"></span>
+              Visited
+            </span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={filters.unvisited}
+              onChange={(e) => setFilters(prev => ({ ...prev, unvisited: e.target.checked }))}
+              className="rounded text-red-500 focus:ring-red-500"
+            />
+            <span className="text-sm flex items-center">
+              <span className="w-3 h-3 rounded-full bg-[#EF4444] inline-block mr-2"></span>
+              Not Visited
+            </span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={filters.wishlist}
+              onChange={(e) => setFilters(prev => ({ ...prev, wishlist: e.target.checked }))}
+              className="rounded text-amber-500 focus:ring-amber-500"
+            />
+            <span className="text-sm flex items-center">
+              <span className="w-3 h-3 rounded-full bg-[#F59E0B] inline-block mr-2"></span>
+              Wishlist
+            </span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={filters.friends}
+              onChange={(e) => setFilters(prev => ({ ...prev, friends: e.target.checked }))}
+              className="rounded text-indigo-500 focus:ring-indigo-500"
+            />
+            <span className="text-sm flex items-center">
+              <span className="w-3 h-3 rounded-full bg-[#6366F1] inline-block mr-2"></span>
+              Friend's Visited
+            </span>
+          </label>
+        </div>
+      </div>
+
       {/* Stats Panel */}
       <div className="absolute top-4 right-4 z-10 bg-white text-black p-4 rounded-lg shadow-md">
         <p className="text-sm text-gray-600 mb-2">
@@ -212,12 +317,12 @@ const UserMap = () => {
         defaultCenter={MAP_DEFAULTS.CENTER}
         zoom={MAP_DEFAULTS.ZOOM}
       >
-        {/* Your visited lighthouses */}
-        {lighthouses?.map((lighthouse) => (
+        {/* Your lighthouses */}
+        {getFilteredLighthouses().map((lighthouse) => (
           <Marker
             key={lighthouse.id}
             anchor={[lighthouse.latitude, lighthouse.longitude]}
-            color={getLighthouseMarkerColor(lighthouse)}
+            color={getLighthouseMarkerColor(lighthouse, false, isLighthouseInWishlist(lighthouse.id))}
             onClick={(markerEvent) => {
               markerEvent.event.stopPropagation();
               handleMarkerClick(lighthouse, markerEvent);
@@ -226,7 +331,7 @@ const UserMap = () => {
         ))}
 
         {/* Friend's visited lighthouses */}
-        {selectedFriend && friendState.lighthouses?.map((lighthouse) => (
+        {filters.friends && selectedFriend && friendState.lighthouses?.map((lighthouse) => (
           <Marker
             key={`friend-${lighthouse.id}`}
             anchor={[lighthouse.latitude, lighthouse.longitude]}
@@ -244,7 +349,9 @@ const UserMap = () => {
           lighthouse={popover.lighthouse}
           position={popover.position}
           onVisitChange={handleVisitChange}
+          onWishlistChange={handleWishlistChange}
           isAuthenticated={isSignedIn || false}
+          isInWishlist={isLighthouseInWishlist(popover.lighthouse.id)}
         />
       )}
     </div>

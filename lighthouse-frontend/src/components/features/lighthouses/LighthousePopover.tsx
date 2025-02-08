@@ -6,15 +6,24 @@ interface PopoverProps {
   lighthouse: Lighthouse;
   position: { top: number; left: number };
   onVisitChange: (lighthouseId: string, isVisited: boolean) => void;
+  onWishlistChange?: (lighthouseId: string, isInWishlist: boolean) => void;
   isAuthenticated: boolean;
+  isInWishlist?: boolean;
 }
 
-const LighthousePopover = ({ lighthouse, position, onVisitChange, isAuthenticated }: PopoverProps) => {
+const LighthousePopover = ({ 
+  lighthouse, 
+  position, 
+  onVisitChange, 
+  onWishlistChange,
+  isAuthenticated,
+  isInWishlist: initialIsInWishlist = false
+}: PopoverProps) => {
   const { getToken } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const [optimisticIsVisited, setOptimisticIsVisited] = useState(lighthouse.isVisited);
-  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(initialIsInWishlist);
 
   const handleVisitToggle = async () => {
     if (!isAuthenticated) return;
@@ -61,6 +70,7 @@ const LighthousePopover = ({ lighthouse, position, onVisitChange, isAuthenticate
     setIsWishlistLoading(true);
     const newWishlistState = !isInWishlist;
     setIsInWishlist(newWishlistState);
+    onWishlistChange?.(lighthouse.id, newWishlistState);
 
     try {
       const token = await getToken();
@@ -81,6 +91,7 @@ const LighthousePopover = ({ lighthouse, position, onVisitChange, isAuthenticate
 
       if (!response.ok) {
         setIsInWishlist(!newWishlistState);
+        onWishlistChange?.(lighthouse.id, !newWishlistState);
         throw new Error('Failed to update wishlist status');
       }
     } catch (error) {
