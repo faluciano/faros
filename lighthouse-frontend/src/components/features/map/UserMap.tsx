@@ -6,7 +6,7 @@ import { useAuth } from "@clerk/clerk-react";
 import LighthousePopover from "../lighthouses/LighthousePopover";
 import { useLighthouse } from "../../../context/LighthouseContext";
 import { fetchWithAuth } from "../../../utils/api";
-import { getLighthouseMarkerColor, MAP_DEFAULTS, FilterState, DEFAULT_FILTERS, MARKER_COLORS } from "../../../utils/map";
+import { getLighthouseMarkerColor, MAP_DEFAULTS, FilterState, DEFAULT_FILTERS } from "../../../utils/map";
 
 interface MarkerClickEvent {
   event: React.MouseEvent;
