@@ -5,11 +5,11 @@ Web app to track visited lighthouses around the world with a map to display visi
 # Functionality
 
 - [x] Lighthouse map
-- [ ] Login/Register
-- [ ] Visited Lighthouse map
-- [ ] Friends
-- [ ] Combined friend/personal map
-- [ ] Saved Lighthouses
+- [x] Login/Register
+- [x] Visited Lighthouse map
+- [x] Friends
+- [x] Combined friend/personal map
+- [x] Saved Lighthouses
 - [ ] Lighthouse visit upload
 
 # Stack
