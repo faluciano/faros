@@ -1,8 +1,9 @@
 module lighthouse-backend
 
-go 1.22.5
+go 1.24.0
 
 require (
+	github.com/clerk/clerk-sdk-go/v2 v2.2.0
 	github.com/gorilla/mux v1.8.1
 	github.com/joho/godotenv v1.5.1
 	github.com/rs/cors v1.11.0
@@ -11,7 +12,6 @@ require (
 
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
-	github.com/clerk/clerk-sdk-go/v2 v2.2.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
 	github.com/libsql/sqlite-antlr4-parser v0.0.0-20240327125255-dbf53b6cbf06 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
