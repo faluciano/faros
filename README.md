@@ -23,6 +23,7 @@ Web app to track visited lighthouses around the world with a map to display visi
 ## Links
 
 Lightouse API:
+
 https://faros-backend.azurewebsites.net/docs/
 
 Faros webapp:
