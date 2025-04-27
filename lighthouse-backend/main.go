@@ -76,9 +76,10 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Add Swagger documentation endpoint
-	mux.Handle("/docs/", http.StripPrefix("/docs", swagger.Handler(
-		swagger.URL("/docs/doc.json"),
-	)))
+	mux.HandleFunc("/docs", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/docs/", http.StatusMovedPermanently)
+	})
+	mux.Handle("/docs/", swagger.Handler())
 
 	// Root route
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -156,12 +157,13 @@ func main() {
 			"http://localhost:5173",
 			"https://agreeable-pond-025c6731e.5.azurestaticapps.net",
 			"https://agreeable-pond-025c6731e.4.azurestaticapps.net",
+			"*", // Allow Swagger UI
 		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "Origin", "Accept"},
 		AllowCredentials: true,
-		// Allow Swagger UI
-		ExposedHeaders: []string{"Content-Length"},
+		ExposedHeaders:   []string{"Content-Length"},
+		MaxAge:           86400,
 	})
 
 	handler := c.Handler(mux)
