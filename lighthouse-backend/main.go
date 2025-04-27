@@ -1,21 +1,54 @@
 package main
 
-//import and add handlers
+// @title           Lighthouse API
+// @version         1.0
+// @description     API for managing lighthouses, user visits, and social features
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath  /
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
 import (
 	"lighthouse-backend/db"
+	"lighthouse-backend/docs"
 	"lighthouse-backend/handlers"
 	"log"
 	"net/http"
 	"os"
 
 	clerkhttp "github.com/clerk/clerk-sdk-go/v2/http"
-	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
+	swagger "github.com/swaggo/http-swagger"
 )
 
+// @Summary     Get API documentation
+// @Description Get the Swagger API documentation
+// @Tags        docs
+// @Produce     html
+// @Success     200 {string} string "HTML documentation"
+// @Router      /docs [get]
 func main() {
 	godotenv.Load()
+
+	// Programmatically set swagger info
+	docs.SwaggerInfo.Title = "Lighthouse API"
+	docs.SwaggerInfo.Description = "API for managing lighthouses, user visits, and social features"
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "localhost:8080"
+	docs.SwaggerInfo.BasePath = "/"
+	docs.SwaggerInfo.Schemes = []string{"http", "https"}
 
 	if err := handlers.InitClerk(); err != nil {
 		log.Fatal(err)
@@ -28,60 +61,92 @@ func main() {
 	defer db_f.Close()
 	handlers.DB = db_f
 
-	r := mux.NewRouter()
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+
+	// Add Swagger documentation endpoint
+	mux.HandleFunc("/docs/swagger.json", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "docs/swagger.json")
+	})
+
+	mux.HandleFunc("/docs/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/docs/" {
+			http.Redirect(w, r, "/docs/index.html", http.StatusMovedPermanently)
+			return
+		}
+		swagger.Handler(
+			swagger.URL("http://localhost:8080/docs/swagger.json"),
+		).ServeHTTP(w, r)
+	})
+
+	// Root route
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 		w.Write([]byte("Welcome to Lighthouse API"))
 	})
-	r.HandleFunc("/api/lighthouses", handlers.GetLighthouses).Methods("GET")
+
+	// Public routes
+	mux.HandleFunc("/api/lighthouses", handlers.GetLighthouses)
 
 	// User routes with authentication
-	authHandler := clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUser))
-	r.Handle("/user", authHandler).Methods("GET")
+	mux.Handle("/user", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUser)))
 
 	// Visited lighthouses routes
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUserVisitedLighthouses))
-	r.Handle("/user/lighthouses", authHandler).Methods("GET")
-
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.MarkLighthouseAsVisited))
-	r.Handle("/user/lighthouses", authHandler).Methods("POST")
-
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.UnmarkLighthouseAsVisited))
-	r.Handle("/user/lighthouses", authHandler).Methods("DELETE")
+	mux.Handle("/user/lighthouses", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetUserVisitedLighthouses(w, r)
+		case http.MethodPost:
+			handlers.MarkLighthouseAsVisited(w, r)
+		case http.MethodDelete:
+			handlers.UnmarkLighthouseAsVisited(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})))
 
 	// Wishlist routes
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUserWishlistLighthouses))
-	r.Handle("/user/wishlist", authHandler).Methods("GET")
-
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.AddToWishlist))
-	r.Handle("/user/wishlist", authHandler).Methods("POST")
-
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.RemoveFromWishlist))
-	r.Handle("/user/wishlist", authHandler).Methods("DELETE")
+	mux.Handle("/user/wishlist", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetUserWishlistLighthouses(w, r)
+		case http.MethodPost:
+			handlers.AddToWishlist(w, r)
+		case http.MethodDelete:
+			handlers.RemoveFromWishlist(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})))
 
 	// Friend routes
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetFriends))
-	r.Handle("/user/friends", authHandler).Methods("GET")
+	mux.Handle("/user/friends", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetFriends(w, r)
+		case http.MethodDelete:
+			handlers.RemoveFriend(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})))
 
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetFriendVisitedLighthouses))
-	r.Handle("/user/friends/lighthouses", authHandler).Methods("GET")
-
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetPendingFriendRequests))
-	r.Handle("/user/friends/requests", authHandler).Methods("GET")
-
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetOutgoingFriendRequests))
-	r.Handle("/user/friends/requests/outgoing", authHandler).Methods("GET")
-
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.SendFriendRequest))
-	r.Handle("/user/friends/requests", authHandler).Methods("POST")
-
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.AcceptFriendRequest))
-	r.Handle("/user/friends/requests/accept", authHandler).Methods("POST")
-
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.RemoveFriend))
-	r.Handle("/user/friends", authHandler).Methods("DELETE")
-
-	authHandler = clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.SearchUsers))
-	r.Handle("/users/search", authHandler).Methods("GET")
+	mux.Handle("/user/friends/lighthouses", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetFriendVisitedLighthouses)))
+	mux.Handle("/user/friends/requests", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetPendingFriendRequests(w, r)
+		case http.MethodPost:
+			handlers.SendFriendRequest(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})))
+	mux.Handle("/user/friends/requests/outgoing", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetOutgoingFriendRequests)))
+	mux.Handle("/user/friends/requests/accept", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.AcceptFriendRequest)))
+	mux.Handle("/users/search", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.SearchUsers)))
 
 	// Configure CORS
 	c := cors.New(cors.Options{
@@ -95,8 +160,7 @@ func main() {
 		AllowCredentials: true,
 	})
 
-	handler := c.Handler(r)
-	http.Handle("/", handler)
+	handler := c.Handler(mux)
 
 	PORT := os.Getenv("PORT")
 	if PORT == "" {
@@ -105,7 +169,7 @@ func main() {
 
 	log.Printf("Starting server on port %s\n", PORT)
 
-	if err := http.ListenAndServe(":"+PORT, nil); err != nil {
+	if err := http.ListenAndServe(":"+PORT, handler); err != nil {
 		log.Fatalf("Server failed to start: %v\n", err)
 	}
 }

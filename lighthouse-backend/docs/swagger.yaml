@@ -1,0 +1,663 @@
+basePath: /
+definitions:
+  handlers.FriendRequest:
+    properties:
+      friendId:
+        description: '@Description ID of the user to add as friend'
+        type: string
+    type: object
+  handlers.VisitRequest:
+    properties:
+      lighthouseId:
+        description: '@Description ID of the lighthouse to visit'
+        type: string
+    type: object
+  schemas.Lighthouse:
+    description: A lighthouse with its geographical information and metadata
+    properties:
+      country:
+        description: '@Description Country where the lighthouse is located'
+        type: string
+      id:
+        description: '@Description Unique identifier for the lighthouse'
+        type: string
+      image:
+        description: '@Description URL to the lighthouse image'
+        type: string
+      latitude:
+        description: '@Description Latitude coordinate of the lighthouse'
+        type: number
+      longitude:
+        description: '@Description Longitude coordinate of the lighthouse'
+        type: number
+      name:
+        description: '@Description Name of the lighthouse'
+        type: string
+      state:
+        description: '@Description State or province where the lighthouse is located'
+        type: string
+    type: object
+  schemas.User:
+    description: A user with their basic information
+    properties:
+      email:
+        description: '@Description User''s email address'
+        type: string
+      first_name:
+        description: '@Description User''s first name'
+        type: string
+      id:
+        description: '@Description Unique identifier for the user'
+        type: string
+      last_name:
+        description: '@Description User''s last name'
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API for managing lighthouses, user visits, and social features
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Lighthouse API
+  version: "1.0"
+paths:
+  /api/lighthouses:
+    get:
+      description: Get a list of all lighthouses, optionally filtered by country or
+        state
+      parameters:
+      - description: Filter by country
+        in: query
+        name: country
+        type: string
+      - description: Filter by state
+        in: query
+        name: state
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/schemas.Lighthouse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all lighthouses
+      tags:
+      - lighthouses
+  /docs:
+    get:
+      description: Get the Swagger API documentation
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML documentation
+          schema:
+            type: string
+      summary: Get API documentation
+      tags:
+      - docs
+  /user:
+    get:
+      description: Get the current authenticated user's information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.User'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get current user
+      tags:
+      - users
+  /user/friends:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a user from the current user's friends list
+      parameters:
+      - description: Friend ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.FriendRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Remove friend
+      tags:
+      - friends
+    get:
+      description: Get a list of the current user's friends
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/schemas.User'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user's friends
+      tags:
+      - friends
+  /user/friends/lighthouses:
+    get:
+      description: Get a list of lighthouses visited by a friend
+      parameters:
+      - description: Friend's user ID
+        in: query
+        name: friendId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/schemas.Lighthouse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get friend's visited lighthouses
+      tags:
+      - users
+  /user/friends/requests:
+    get:
+      description: Get a list of pending friend requests for the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/schemas.User'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get pending friend requests
+      tags:
+      - friends
+    post:
+      consumes:
+      - application/json
+      description: Send a friend request to another user
+      parameters:
+      - description: Friend ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.FriendRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Send friend request
+      tags:
+      - friends
+  /user/friends/requests/accept:
+    post:
+      consumes:
+      - application/json
+      description: Accept a pending friend request
+      parameters:
+      - description: Friend ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.FriendRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Accept friend request
+      tags:
+      - friends
+  /user/friends/requests/outgoing:
+    get:
+      description: Get a list of friend requests sent by the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/schemas.User'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get outgoing friend requests
+      tags:
+      - friends
+  /user/lighthouses:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a lighthouse from the current user's visited list
+      parameters:
+      - description: Lighthouse ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.VisitRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Unmark lighthouse as visited
+      tags:
+      - users
+    get:
+      description: Get a list of lighthouses visited by the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/schemas.Lighthouse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user's visited lighthouses
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Mark a lighthouse as visited by the current user
+      parameters:
+      - description: Lighthouse ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.VisitRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Mark lighthouse as visited
+      tags:
+      - users
+  /user/wishlist:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a lighthouse from the current user's wishlist
+      parameters:
+      - description: Lighthouse ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.VisitRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Remove lighthouse from wishlist
+      tags:
+      - users
+    get:
+      description: Get a list of lighthouses in the current user's wishlist
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/schemas.Lighthouse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get user's wishlist lighthouses
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Add a lighthouse to the current user's wishlist
+      parameters:
+      - description: Lighthouse ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.VisitRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Add lighthouse to wishlist
+      tags:
+      - users
+  /users/search:
+    get:
+      description: Search for users by name or email
+      parameters:
+      - description: Search query
+        in: query
+        name: query
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/schemas.User'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Search users
+      tags:
+      - friends
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

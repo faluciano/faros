@@ -13,9 +13,15 @@ import (
 )
 
 type VisitRequest struct {
+	// @Description ID of the lighthouse to visit
 	LighthouseId string `json:"lighthouseId"`
 }
 
+// @Summary     Initialize Clerk authentication
+// @Description Initialize the Clerk authentication service
+// @Tags        auth
+// @Success     200
+// @Failure     500 {object} map[string]string
 func InitClerk() error {
 	clerkToken := os.Getenv("CLERK_AUTH_TOKEN")
 	if clerkToken == "" {
@@ -25,6 +31,15 @@ func InitClerk() error {
 	return nil
 }
 
+// @Summary     Get current user
+// @Description Get the current authenticated user's information
+// @Tags        users
+// @Produce     json
+// @Security    ApiKeyAuth
+// @Success     200 {object} schemas.User
+// @Failure     401 {object} map[string]string
+// @Failure     500 {object} map[string]string
+// @Router      /user [get]
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -67,6 +82,15 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dbUser)
 }
 
+// @Summary     Get user's visited lighthouses
+// @Description Get a list of lighthouses visited by the current user
+// @Tags        users
+// @Produce     json
+// @Security    ApiKeyAuth
+// @Success     200 {array} schemas.Lighthouse
+// @Failure     401 {object} map[string]string
+// @Failure     500 {object} map[string]string
+// @Router      /user/lighthouses [get]
 func GetUserVisitedLighthouses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -88,6 +112,15 @@ func GetUserVisitedLighthouses(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(lighthouses)
 }
 
+// @Summary     Get user's wishlist lighthouses
+// @Description Get a list of lighthouses in the current user's wishlist
+// @Tags        users
+// @Produce     json
+// @Security    ApiKeyAuth
+// @Success     200 {array} schemas.Lighthouse
+// @Failure     401 {object} map[string]string
+// @Failure     500 {object} map[string]string
+// @Router      /user/wishlist [get]
 func GetUserWishlistLighthouses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -109,6 +142,18 @@ func GetUserWishlistLighthouses(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(lighthouses)
 }
 
+// @Summary     Add lighthouse to wishlist
+// @Description Add a lighthouse to the current user's wishlist
+// @Tags        users
+// @Accept      json
+// @Produce     json
+// @Security    ApiKeyAuth
+// @Param       request body VisitRequest true "Lighthouse ID"
+// @Success     200 {object} map[string]bool
+// @Failure     400 {object} map[string]string
+// @Failure     401 {object} map[string]string
+// @Failure     500 {object} map[string]string
+// @Router      /user/wishlist [post]
 func AddToWishlist(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -136,6 +181,18 @@ func AddToWishlist(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
+// @Summary     Remove lighthouse from wishlist
+// @Description Remove a lighthouse from the current user's wishlist
+// @Tags        users
+// @Accept      json
+// @Produce     json
+// @Security    ApiKeyAuth
+// @Param       request body VisitRequest true "Lighthouse ID"
+// @Success     200 {object} map[string]bool
+// @Failure     400 {object} map[string]string
+// @Failure     401 {object} map[string]string
+// @Failure     500 {object} map[string]string
+// @Router      /user/wishlist [delete]
 func RemoveFromWishlist(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -163,6 +220,18 @@ func RemoveFromWishlist(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
+// @Summary     Mark lighthouse as visited
+// @Description Mark a lighthouse as visited by the current user
+// @Tags        users
+// @Accept      json
+// @Produce     json
+// @Security    ApiKeyAuth
+// @Param       request body VisitRequest true "Lighthouse ID"
+// @Success     200 {object} map[string]bool
+// @Failure     400 {object} map[string]string
+// @Failure     401 {object} map[string]string
+// @Failure     500 {object} map[string]string
+// @Router      /user/lighthouses [post]
 func MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -193,6 +262,18 @@ func MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
+// @Summary     Unmark lighthouse as visited
+// @Description Remove a lighthouse from the current user's visited list
+// @Tags        users
+// @Accept      json
+// @Produce     json
+// @Security    ApiKeyAuth
+// @Param       request body VisitRequest true "Lighthouse ID"
+// @Success     200 {object} map[string]bool
+// @Failure     400 {object} map[string]string
+// @Failure     401 {object} map[string]string
+// @Failure     500 {object} map[string]string
+// @Router      /user/lighthouses [delete]
 func UnmarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -220,6 +301,17 @@ func UnmarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
+// @Summary     Get friend's visited lighthouses
+// @Description Get a list of lighthouses visited by a friend
+// @Tags        users
+// @Produce     json
+// @Security    ApiKeyAuth
+// @Param       friendId query string true "Friend's user ID"
+// @Success     200 {array} schemas.Lighthouse
+// @Failure     400 {object} map[string]string
+// @Failure     401 {object} map[string]string
+// @Failure     500 {object} map[string]string
+// @Router      /user/friends/lighthouses [get]
 func GetFriendVisitedLighthouses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

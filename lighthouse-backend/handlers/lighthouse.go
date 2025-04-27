@@ -9,6 +9,15 @@ import (
 
 var DB *sql.DB
 
+// @Summary     Get all lighthouses
+// @Description Get a list of all lighthouses, optionally filtered by country or state
+// @Tags        lighthouses
+// @Produce     json
+// @Param       country query    string false "Filter by country"
+// @Param       state   query    string false "Filter by state"
+// @Success     200     {array}  schemas.Lighthouse
+// @Failure     500     {object} map[string]string
+// @Router      /api/lighthouses [get]
 func GetLighthouses(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Query().Get("country") != "" {
