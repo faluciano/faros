@@ -76,19 +76,9 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Add Swagger documentation endpoint
-	mux.HandleFunc("/docs/swagger.json", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "docs/swagger.json")
-	})
-
-	mux.HandleFunc("/docs/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/docs/" {
-			http.Redirect(w, r, "/docs/index.html", http.StatusMovedPermanently)
-			return
-		}
-		swagger.Handler(
-			swagger.URL("/docs/swagger.json"),
-		).ServeHTTP(w, r)
-	})
+	mux.Handle("/docs/", http.StripPrefix("/docs", swagger.Handler(
+		swagger.URL("/docs/doc.json"),
+	)))
 
 	// Root route
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
