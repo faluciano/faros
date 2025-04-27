@@ -42,13 +42,25 @@ import (
 func main() {
 	godotenv.Load()
 
+	// Get the host from environment variable or use default
+	host := os.Getenv("API_HOST")
+	if host == "" {
+		host = "localhost:8080"
+	}
+
+	// Get the scheme from environment variable or use default
+	scheme := os.Getenv("API_SCHEME")
+	if scheme == "" {
+		scheme = "http"
+	}
+
 	// Programmatically set swagger info
 	docs.SwaggerInfo.Title = "Lighthouse API"
 	docs.SwaggerInfo.Description = "API for managing lighthouses, user visits, and social features"
 	docs.SwaggerInfo.Version = "1.0"
-	docs.SwaggerInfo.Host = "localhost:8080"
+	docs.SwaggerInfo.Host = host
 	docs.SwaggerInfo.BasePath = "/"
-	docs.SwaggerInfo.Schemes = []string{"http", "https"}
+	docs.SwaggerInfo.Schemes = []string{scheme}
 
 	if err := handlers.InitClerk(); err != nil {
 		log.Fatal(err)
@@ -74,7 +86,7 @@ func main() {
 			return
 		}
 		swagger.Handler(
-			swagger.URL("http://localhost:8080/docs/swagger.json"),
+			swagger.URL("/docs/swagger.json"),
 		).ServeHTTP(w, r)
 	})
 
@@ -158,6 +170,8 @@ func main() {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
+		// Allow Swagger UI
+		ExposedHeaders: []string{"Content-Length"},
 	})
 
 	handler := c.Handler(mux)
