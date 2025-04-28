@@ -1,11 +1,22 @@
 # Use an official Golang runtime as a parent image
-FROM golang:1.24-bookworm AS build
+FROM golang:1.24-bookworm AS builder
 
-ENV CGO_ENABLED=1
-ENV PORT=$PORT
-ENV TURSO_DATABASE_URL=$TURSO_DATABASE_URL
-ENV TURSO_AUTH_TOKEN=$TURSO_AUTH_TOKEN
-ENV CLERK_AUTH_TOKEN=$CLERK_AUTH_TOKEN
+# Set build arguments with defaults
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+ARG TARGETVARIANT=
+
+# Install build tools for CGO
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables
+ENV CGO_ENABLED=1 \
+    GOOS=${TARGETOS} \
+    GOARCH=${TARGETARCH} \
+    GOARM=${TARGETVARIANT} \
+    GO111MODULE=on
 
 # Set the Current Working Directory inside the container
 WORKDIR /app
@@ -14,27 +25,49 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 # Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go mod download
 
 # Copy the source from the current directory to the Working Directory inside the container
 COPY . .
 
 # Build the Go app
-RUN go build -o main .
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    go build -o main .
 
 # Start a new stage from scratch
 FROM debian:bookworm-slim
 
-# Install SSL certificates for HTTPS connections
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Add metadata
+LABEL org.opencontainers.image.source="https://github.com/felixluciano/faros"
+LABEL org.opencontainers.image.description="Lighthouse Backend API"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# Install SSL certificates and required libraries for CGO
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user
+RUN useradd -m -u 1000 appuser
 
 # Set the Current Working Directory inside the container
-WORKDIR /root/
+WORKDIR /home/appuser
 
 # Copy the Pre-built binary file from the previous stage
-COPY --from=build /app/main .
+COPY --from=builder --chown=appuser:appuser /app/main .
 
+# Switch to non-root user
+USER appuser
+
+# Expose the port the app runs on
 EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/ || exit 1
 
 # Command to run the executable
 CMD ["./main"]
