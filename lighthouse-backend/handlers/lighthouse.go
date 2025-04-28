@@ -1,13 +1,20 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
-	"lighthouse-backend/db"
+	"lighthouse-backend/interfaces"
 	"net/http"
 )
 
-var DB *sql.DB
+// LighthouseHandler handles lighthouse-related requests
+type LighthouseHandler struct {
+	db interfaces.DBInterface
+}
+
+// NewLighthouseHandler creates a new LighthouseHandler
+func NewLighthouseHandler(db interfaces.DBInterface) *LighthouseHandler {
+	return &LighthouseHandler{db: db}
+}
 
 // @Summary     Get all lighthouses
 // @Description Get a list of all lighthouses, optionally filtered by country or state
@@ -18,11 +25,15 @@ var DB *sql.DB
 // @Success     200     {array}  schemas.Lighthouse
 // @Failure     500     {object} map[string]string
 // @Router      /api/lighthouses [get]
-func GetLighthouses(w http.ResponseWriter, r *http.Request) {
+func (h *LighthouseHandler) GetLighthouses(w http.ResponseWriter, r *http.Request) {
+	if h.db == nil {
+		http.Error(w, "database connection not available", http.StatusInternalServerError)
+		return
+	}
 
 	if r.URL.Query().Get("country") != "" {
 		country := r.URL.Query().Get("country")
-		lighthousesFromdb, err := db.GetLighthousesByCountry(country)
+		lighthousesFromdb, err := h.db.GetLighthousesByCountry(country)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -33,7 +44,7 @@ func GetLighthouses(w http.ResponseWriter, r *http.Request) {
 
 	if r.URL.Query().Get("state") != "" {
 		state := r.URL.Query().Get("state")
-		lighthousesFromdb, err := db.GetLighthousesByState(state)
+		lighthousesFromdb, err := h.db.GetLighthousesByState(state)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -42,7 +53,7 @@ func GetLighthouses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lighthousesFromdb, err := db.GetLighthouses()
+	lighthousesFromdb, err := h.db.GetLighthouses()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

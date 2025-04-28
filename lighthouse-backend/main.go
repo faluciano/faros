@@ -71,7 +71,12 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db_f.Close()
-	handlers.DB = db_f
+
+	// Create database implementation
+	database := db.NewDB(db_f)
+
+	// Create lighthouse handler with database implementation
+	lighthouseHandler := handlers.NewLighthouseHandler(database)
 
 	mux := http.NewServeMux()
 
@@ -91,7 +96,7 @@ func main() {
 	})
 
 	// Public routes
-	mux.HandleFunc("/api/lighthouses", handlers.GetLighthouses)
+	mux.HandleFunc("/api/lighthouses", lighthouseHandler.GetLighthouses)
 
 	// User routes with authentication
 	mux.Handle("/user", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUser)))
