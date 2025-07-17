@@ -4,41 +4,35 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
-	"time"
 
-	"github.com/tursodatabase/go-libsql"
+	_ "github.com/tursodatabase/go-libsql"
 )
 
 var DB *sql.DB
 
 func InitDB() (*sql.DB, error) {
-	dbName := "local.db"
-	primaryUrl := os.Getenv("TURSO_DATABASE_URL")
-	authToken := os.Getenv("TURSO_AUTH_TOKEN")
+	var db *sql.DB
+	var err error
 
-	if primaryUrl == "" || authToken == "" {
-		return nil, fmt.Errorf("TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be set")
+	tursoURL := os.Getenv("TURSO_DATABASE_URL")
+	tursoAuthToken := os.Getenv("TURSO_AUTH_TOKEN")
+
+	if tursoURL != "" && tursoAuthToken != "" {
+		// Production or Docker local setup: Connect to Turso
+		dbUrl := fmt.Sprintf("%s?authToken=%s", tursoURL, tursoAuthToken)
+		db, err = sql.Open("libsql", dbUrl)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open database: %w", err)
+		}
+	} else {
+		// Local console setup: Use a local SQLite file
+		db, err = sql.Open("libsql", "lighthouse.db")
+		if err != nil {
+			return nil, fmt.Errorf("failed to open local database: %w", err)
+		}
 	}
 
-	dir, err := os.MkdirTemp("", "libsql-*")
-	if err != nil {
-		return nil, fmt.Errorf("error creating temporary directory: %w", err)
-	}
-
-	dbPath := filepath.Join(dir, dbName)
-
-	connector, err := libsql.NewEmbeddedReplicaConnector(dbPath, primaryUrl,
-		libsql.WithAuthToken(authToken),
-		libsql.WithSyncInterval(time.Minute*30),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("error creating connector: %w", err)
-	}
-
-	db := sql.OpenDB(connector)
 	if err := db.Ping(); err != nil {
-		connector.Close()
 		return nil, fmt.Errorf("error connecting to database: %w", err)
 	}
 
@@ -48,15 +42,12 @@ func InitDB() (*sql.DB, error) {
 	if err := CreateUserTable(); err != nil {
 		return nil, fmt.Errorf("error creating user table: %w", err)
 	}
-
 	if err := CreateUserVisitedLighthouseTable(); err != nil {
 		return nil, fmt.Errorf("error creating user lighthouse table: %w", err)
 	}
-
 	if err := CreateUserWishlistTable(); err != nil {
 		return nil, fmt.Errorf("error creating user wishlist table: %w", err)
 	}
-
 	if err := CreateFriendshipsTable(); err != nil {
 		return nil, fmt.Errorf("error creating friendships table: %w", err)
 	}

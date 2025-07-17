@@ -21,3 +21,5 @@ go.work.sum
 /tmp
 
 .air.toml
+
+*.db
