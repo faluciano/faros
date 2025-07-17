@@ -18,7 +18,7 @@ func NewDB(db *sql.DB) interfaces.DBInterface {
 
 // GetLighthouses returns all lighthouses
 func (d *DBImpl) GetLighthouses() ([]models.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude FROM lighthouses`)
+	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image FROM lighthouses`)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (d *DBImpl) GetLighthouses() ([]models.Lighthouse, error) {
 	var lighthouses []models.Lighthouse
 	for rows.Next() {
 		var l models.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude); err != nil {
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image); err != nil {
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
@@ -37,7 +37,7 @@ func (d *DBImpl) GetLighthouses() ([]models.Lighthouse, error) {
 
 // GetLighthousesByCountry returns lighthouses filtered by country
 func (d *DBImpl) GetLighthousesByCountry(country string) ([]models.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude FROM lighthouses WHERE country = ?`, country)
+	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image FROM lighthouses WHERE country = ?`, country)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (d *DBImpl) GetLighthousesByCountry(country string) ([]models.Lighthouse, e
 	var lighthouses []models.Lighthouse
 	for rows.Next() {
 		var l models.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude); err != nil {
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image); err != nil {
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
@@ -56,7 +56,7 @@ func (d *DBImpl) GetLighthousesByCountry(country string) ([]models.Lighthouse, e
 
 // GetLighthousesByState returns lighthouses filtered by state
 func (d *DBImpl) GetLighthousesByState(state string) ([]models.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude FROM lighthouses WHERE state = ?`, state)
+	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image FROM lighthouses WHERE state = ?`, state)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (d *DBImpl) GetLighthousesByState(state string) ([]models.Lighthouse, error
 	var lighthouses []models.Lighthouse
 	for rows.Next() {
 		var l models.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude); err != nil {
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image); err != nil {
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
