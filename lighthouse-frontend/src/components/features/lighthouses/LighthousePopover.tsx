@@ -1,6 +1,6 @@
 import { Lighthouse } from "../../../types";
 import { useState } from "react";
-import { useApi } from "../../../hooks/useApi";
+import { useMutation } from "../../../hooks/useMutation";
 import { addVisitedLighthouse, removeVisitedLighthouse, addToWishlist, removeFromWishlist } from "../../../utils/api";
 
 interface PopoverProps {
@@ -23,10 +23,10 @@ const LighthousePopover = ({
   const [optimisticIsVisited, setOptimisticIsVisited] = useState(lighthouse.isVisited);
   const [isInWishlist, setIsInWishlist] = useState(initialIsInWishlist);
 
-  const { isLoading: isVisiting, request: addVisited } = useApi(addVisitedLighthouse);
-  const { isLoading: isUnvisiting, request: removeVisited } = useApi(removeVisitedLighthouse);
-  const { isLoading: isAddingToWishlist, request: addWishlist } = useApi(addToWishlist);
-  const { isLoading: isRemovingFromWishlist, request: removeWishlist } = useApi(removeFromWishlist);
+  const { isLoading: isVisiting, mutate: addVisited } = useMutation(addVisitedLighthouse);
+  const { isLoading: isUnvisiting, mutate: removeVisited } = useMutation(removeVisitedLighthouse);
+  const { isLoading: isAddingToWishlist, mutate: addWishlist } = useMutation(addToWishlist);
+  const { isLoading: isRemovingFromWishlist, mutate: removeWishlist } = useMutation(removeFromWishlist);
 
   const handleVisitToggle = async () => {
     if (!isAuthenticated) return;

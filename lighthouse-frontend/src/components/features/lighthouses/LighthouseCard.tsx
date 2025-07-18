@@ -1,13 +1,14 @@
 import { Lighthouse } from "../../../types";
 import { useState, useEffect } from "react";
 import { useApi } from "../../../hooks/useApi";
+import { useMutation } from "../../../hooks/useMutation";
 import { addVisitedLighthouse, removeVisitedLighthouse, getVisitedLighthouses } from "../../../utils/api";
 
 const LighthouseCard = ({ lighthouse }: { lighthouse: Lighthouse }) => {
     const [isVisited, setIsVisited] = useState(false);
     const { data: visitedLighthouses, request: fetchVisited } = useApi<Lighthouse[]>(getVisitedLighthouses);
-    const { isLoading: isAdding, request: addVisited } = useApi(addVisitedLighthouse);
-    const { isLoading: isRemoving, request: removeVisited } = useApi(removeVisitedLighthouse);
+    const { isLoading: isAdding, mutate: addVisited } = useMutation(addVisitedLighthouse);
+    const { isLoading: isRemoving, mutate: removeVisited } = useMutation(removeVisitedLighthouse);
 
     useEffect(() => {
         fetchVisited();

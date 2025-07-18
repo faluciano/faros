@@ -3,13 +3,14 @@ import { useAuth } from "@clerk/clerk-react";
 import { Lighthouse } from "../../../types";
 import LighthouseList from "./LighthouseList";
 import { useApi } from "../../../hooks/useApi";
+import { useMutation } from "../../../hooks/useMutation";
 import { getWishlist, removeFromWishlist } from "../../../utils/api";
 import Error from "../../layout/Error";
 
 const WishlistLighthouses = () => {
   const { isSignedIn } = useAuth();
   const { data, isLoading, error, request: fetchWishlist } = useApi<Lighthouse[]>(getWishlist);
-  const { request: removeWishlist } = useApi(removeFromWishlist);
+  const { mutate: removeWishlist } = useMutation(removeFromWishlist);
   const [lighthouses, setLighthouses] = useState<Lighthouse[]>([]);
 
   useEffect(() => {
