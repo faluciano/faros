@@ -1,89 +1,68 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Map, Marker } from "pigeon-maps";
 import { maptiler } from "pigeon-maps/providers";
 import { Lighthouse } from "../../../types";
 import LighthousePopover from "../lighthouses/LighthousePopover";
+import { useLighthouse } from "../../../context/LighthouseContext";
+import { useAuth } from "@clerk/clerk-react";
 
 const maptilerProvider = maptiler(import.meta.env.VITE_MAPTILER_API_KEY!);
 
-const dummyLighthouses = [
-  {
-    id: "1",
-    latitude: 47.7511,
-    longitude: -120.7401,
-    name: "Dummy Lighthouse",
-    image: "https://example.com/lighthouse.jpg",
-    state: "Washington",
-    country: "United States",
-  },
-];
-
 const LighthouseMap = () => {
-  const [lighthouses, setLighthouses] = useState<Lighthouse[]>([]);
-
-  useEffect(() => {
-    let url = "https://faros-backend.azurewebsites.net/api/lighthouses";
-    if (process.env.NODE_ENV === "development") {
-      url = "http://localhost:8080/api/lighthouses";
-    }
-
-    fetch(url)
-      .then((response) => response.json())
-      .then((data) => setLighthouses(data))
-      .catch(() => setLighthouses(dummyLighthouses));
-  }, []);
-
+  const { lighthouses, refetchLighthouses } = useLighthouse();
+  const { isSignedIn } = useAuth();
   const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
+  const [popoverAnchor, setPopoverAnchor] = useState<[number, number] | undefined>(undefined);
+  const mapRef = useRef<any>(null);
 
-  const handleMarkerClick = (
-    lighthouse: Lighthouse,
-    { event }: { event: React.MouseEvent }
-  ) => {
-    const { clientX, clientY } = event;
+  const handleMarkerClick = (lighthouse: Lighthouse, anchor: [number, number]) => {
     setSelectedLighthouse(lighthouse);
-    setPopoverPosition({ top: clientY, left: clientX });
+    setPopoverAnchor(anchor);
   };
 
   const handleMapClick = () => {
     setSelectedLighthouse(null);
-    setPopoverPosition(null);
+    setPopoverAnchor(undefined);
   };
 
-  // This is a no-op since unauthenticated users can't mark lighthouses
-  const handleVisitChange = () => {};
+  const handleVisitChange = () => {
+    refetchLighthouses();
+  };
+
+  const [height, setHeight] = useState(window.innerHeight);
+
+  useEffect(() => {
+    const handleResize = () => setHeight(window.innerHeight);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
-    <div onClick={handleMapClick} style={{ position: "relative" }}>
+    <div style={{ position: "relative", height: 'calc(100vh - 4rem)' }}>
       <Map
-        height={window.innerHeight}
+        ref={mapRef}
         provider={maptilerProvider}
         defaultCenter={[39.8283, -98.5795]}
-        zoom={4}
+        defaultZoom={4}
+        onClick={handleMapClick}
       >
         {lighthouses.map((lighthouse) => (
           <Marker
             key={lighthouse.id}
             anchor={[lighthouse.latitude, lighthouse.longitude]}
-            color="#EF4444"
-            onClick={(markerEvent) => {
-              markerEvent.event.stopPropagation();
-              handleMarkerClick(lighthouse, markerEvent);
-            }}
+            color={lighthouse.isVisited ? "#10B981" : "#EF4444"}
+            onClick={({ anchor }) => handleMarkerClick(lighthouse, anchor)}
           />
         ))}
+        {selectedLighthouse && popoverAnchor && (
+          <LighthousePopover
+            lighthouse={selectedLighthouse}
+            position={{ top: mapRef.current.latLngToPixel(popoverAnchor)[1], left: mapRef.current.latLngToPixel(popoverAnchor)[0] }}
+            onVisitChange={handleVisitChange}
+            isAuthenticated={!!isSignedIn}
+          />
+        )}
       </Map>
-      {selectedLighthouse && popoverPosition && (
-        <LighthousePopover
-          lighthouse={selectedLighthouse}
-          position={popoverPosition}
-          onVisitChange={handleVisitChange}
-          isAuthenticated={false}
-        />
-      )}
     </div>
   );
 };

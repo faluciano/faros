@@ -1,6 +1,7 @@
 import { Lighthouse } from "../../../types";
-import { useAuth } from "@clerk/clerk-react";
 import { useState } from "react";
+import { useApi } from "../../../hooks/useApi";
+import { addVisitedLighthouse, removeVisitedLighthouse, addToWishlist, removeFromWishlist } from "../../../utils/api";
 
 interface PopoverProps {
   lighthouse: Lighthouse;
@@ -11,95 +12,63 @@ interface PopoverProps {
   isInWishlist?: boolean;
 }
 
-const LighthousePopover = ({ 
-  lighthouse, 
-  position, 
-  onVisitChange, 
+const LighthousePopover = ({
+  lighthouse,
+  position,
+  onVisitChange,
   onWishlistChange,
   isAuthenticated,
   isInWishlist: initialIsInWishlist = false
 }: PopoverProps) => {
-  const { getToken } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
   const [optimisticIsVisited, setOptimisticIsVisited] = useState(lighthouse.isVisited);
   const [isInWishlist, setIsInWishlist] = useState(initialIsInWishlist);
+
+  const { isLoading: isVisiting, request: addVisited } = useApi(addVisitedLighthouse);
+  const { isLoading: isUnvisiting, request: removeVisited } = useApi(removeVisitedLighthouse);
+  const { isLoading: isAddingToWishlist, request: addWishlist } = useApi(addToWishlist);
+  const { isLoading: isRemovingFromWishlist, request: removeWishlist } = useApi(removeFromWishlist);
 
   const handleVisitToggle = async () => {
     if (!isAuthenticated) return;
     
-    // Optimistically update the UI
     const newVisitedState = !optimisticIsVisited;
     setOptimisticIsVisited(newVisitedState);
-    setIsLoading(true);
 
     try {
-      const token = await getToken();
-      let url = "https://faros-backend.azurewebsites.net/user/lighthouses";
-      if (process.env.NODE_ENV === "development") {
-        url = "http://localhost:8080/user/lighthouses";
+      if (newVisitedState) {
+        await addVisited(lighthouse.id);
+      } else {
+        await removeVisited(lighthouse.id);
       }
-
-      const method = lighthouse.isVisited ? "DELETE" : "POST";
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ lighthouseId: lighthouse.id })
-      });
-
-      if (!response.ok) {
-        // Revert optimistic update if request fails
-        setOptimisticIsVisited(!newVisitedState);
-        throw new Error('Failed to update visit status');
-      }
-
       onVisitChange(lighthouse.id, newVisitedState);
     } catch (error) {
+      setOptimisticIsVisited(!newVisitedState);
       console.error('Error updating visit status:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleWishlistToggle = async () => {
     if (!isAuthenticated) return;
     
-    setIsWishlistLoading(true);
     const newWishlistState = !isInWishlist;
     setIsInWishlist(newWishlistState);
     onWishlistChange?.(lighthouse.id, newWishlistState);
 
     try {
-      const token = await getToken();
-      let url = "https://faros-backend.azurewebsites.net/user/wishlist";
-      if (process.env.NODE_ENV === "development") {
-        url = "http://localhost:8080/user/wishlist";
-      }
-
-      const method = isInWishlist ? "DELETE" : "POST";
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ lighthouseId: lighthouse.id })
-      });
-
-      if (!response.ok) {
-        setIsInWishlist(!newWishlistState);
-        onWishlistChange?.(lighthouse.id, !newWishlistState);
-        throw new Error('Failed to update wishlist status');
+      if (newWishlistState) {
+        await addWishlist(lighthouse.id);
+      } else {
+        await removeWishlist(lighthouse.id);
       }
     } catch (error) {
+      setIsInWishlist(!newWishlistState);
+      onWishlistChange?.(lighthouse.id, !newWishlistState);
       console.error('Error updating wishlist status:', error);
-    } finally {
-      setIsWishlistLoading(false);
     }
   };
+
+  const isLoading = isVisiting || isUnvisiting;
+  const isWishlistLoading = isAddingToWishlist || isRemovingFromWishlist;
 
   return (
     <div
@@ -135,7 +104,7 @@ const LighthousePopover = ({
               onClick={handleVisitToggle}
               disabled={isLoading}
               className={`px-4 py-2 rounded-md text-white font-medium transition-colors
-                ${optimisticIsVisited 
+                ${optimisticIsVisited
                   ? "bg-red-500 hover:bg-red-600"
                   : "bg-green-500 hover:bg-green-600"}
                 ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}

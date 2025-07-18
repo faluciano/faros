@@ -4,20 +4,13 @@ export const getBaseUrl = () => {
     : "https://faros-backend.azurewebsites.net";
 };
 
-export const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
-  const headers = options.headers as Record<string, string>;
-  const token = headers?.Authorization?.replace('Bearer ', '') || headers?.['Authorization']?.replace('Bearer ', '');
-  
-  if (!token) {
-    throw new Error('No auth token provided');
-  }
-
+export const fetchWithAuth = async (token: string, endpoint: string, options: RequestInit = {}) => {
   const response = await fetch(`${getBaseUrl()}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
-      ...headers,
+      ...options.headers,
     },
   });
 
@@ -26,5 +19,23 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
     throw new Error(errorText || `HTTP error! status: ${response.status}`);
   }
 
-  return response;
-}; 
+  return response.json();
+};
+
+export const getLighthouses = async () => {
+  const response = await fetch(`${getBaseUrl()}/api/lighthouses`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch lighthouses');
+  }
+  return response.json();
+};
+
+export const getVisitedLighthouses = (token: string) => fetchWithAuth(token, '/user/lighthouses');
+export const addVisitedLighthouse = (token: string, lighthouseId: string) => fetchWithAuth(token, '/user/lighthouses', { method: 'POST', body: JSON.stringify({ lighthouseId }) });
+export const removeVisitedLighthouse = (token: string, lighthouseId: string) => fetchWithAuth(token, '/user/lighthouses', { method: 'DELETE', body: JSON.stringify({ lighthouseId }) });
+
+export const getWishlist = (token: string) => fetchWithAuth(token, '/user/wishlist');
+export const addToWishlist = (token: string, lighthouseId: string) => fetchWithAuth(token, '/user/wishlist', { method: 'POST', body: JSON.stringify({ lighthouseId }) });
+export const removeFromWishlist = (token: string, lighthouseId: string) => fetchWithAuth(token, '/user/wishlist', { method: 'DELETE', body: JSON.stringify({ lighthouseId }) });
+
+export const registerUser = (token: string) => fetchWithAuth(token, '/user', { method: 'GET' });

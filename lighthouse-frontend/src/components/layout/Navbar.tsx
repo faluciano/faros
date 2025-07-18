@@ -116,11 +116,10 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Navigation */}
-        <div 
+        <div
           className={`${isOpen ? 'block' : 'hidden'} sm:hidden absolute left-0 right-0 top-16 bg-gray-800 shadow-lg`}
-          onClick={() => setIsOpen(false)}
         >
-          <div className="px-2 pt-2 pb-3 space-y-1 border-t border-gray-700">
+          <div className="px-2 pt-2 pb-3 space-y-1 border-t border-gray-700" onClick={() => setIsOpen(false)}>
             <Link
               to="/"
               className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"

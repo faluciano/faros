@@ -1,80 +1,63 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Lighthouse } from '../types';
+import { useApi } from '../hooks/useApi';
+import { getLighthouses, getVisitedLighthouses } from '../utils/api';
 
 interface LighthouseContextType {
   lighthouses: Lighthouse[];
-  setLighthouses: (lighthouses: Lighthouse[]) => void;
   isLoading: boolean;
-  refetchLighthouses: () => Promise<void>;
+  refetchLighthouses: () => void;
+  error: Error | null;
 }
 
 const LighthouseContext = createContext<LighthouseContextType | undefined>(undefined);
 
 export const LighthouseProvider = ({ children }: { children: ReactNode }) => {
-  const [lighthouses, setLighthouses] = useState<Lighthouse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { getToken, isSignedIn } = useAuth();
+  const { isSignedIn } = useAuth();
+  const [combinedLighthouses, setCombinedLighthouses] = useState<Lighthouse[]>([]);
 
-  const fetchLighthouses = async () => {
-    setIsLoading(true);
-    try {
-      let baseUrl = "https://faros-backend.azurewebsites.net";
-      if (process.env.NODE_ENV === "development") {
-        baseUrl = "http://localhost:8080";
-      }
+  const { data: allLighthouses, isLoading: isLoadingAll, error: errorAll, request: fetchAllLighthouses } = useApi<Lighthouse[]>(getLighthouses);
+  const { data: visitedLighthouses, isLoading: isLoadingVisited, error: errorVisited, request: fetchVisitedLighthouses } = useApi<Lighthouse[]>(getVisitedLighthouses);
 
-      // Fetch all lighthouses
-      const lighthousesResponse = await fetch(`${baseUrl}/api/lighthouses`);
-      if (!lighthousesResponse.ok) {
-        throw new Error('Failed to fetch lighthouses');
-      }
-      const allLighthouses = await lighthousesResponse.json();
+  useEffect(() => {
+    fetchAllLighthouses();
+    if (isSignedIn) {
+      fetchVisitedLighthouses();
+    }
+  }, [isSignedIn, fetchAllLighthouses, fetchVisitedLighthouses]);
 
-      if (isSignedIn) {
-        const token = await getToken();
-        if (!token) return;
-
-        // Fetch visited lighthouses
-        const visitedResponse = await fetch(`${baseUrl}/user/lighthouses`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!visitedResponse.ok) {
-          throw new Error('Failed to fetch visited lighthouses');
-        }
-        const visitedLighthouses = await visitedResponse.json();
-
-        // Mark visited lighthouses
+  useEffect(() => {
+    if (allLighthouses) {
+      if (isSignedIn && visitedLighthouses) {
         const visitedIds = new Set(visitedLighthouses.map((l: Lighthouse) => l.id));
         const lighthousesWithVisited = allLighthouses.map((l: Lighthouse) => ({
           ...l,
           isVisited: visitedIds.has(l.id)
         }));
-
-        setLighthouses(lighthousesWithVisited);
+        setCombinedLighthouses(lighthousesWithVisited);
       } else {
-        setLighthouses(allLighthouses);
+        setCombinedLighthouses(allLighthouses);
       }
-    } catch (error) {
-      console.error('Error fetching lighthouses:', error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [allLighthouses, visitedLighthouses, isSignedIn]);
 
-  useEffect(() => {
-    fetchLighthouses();
-  }, [isSignedIn]);
+  const refetchLighthouses = useCallback(() => {
+    fetchAllLighthouses();
+    if (isSignedIn) {
+      fetchVisitedLighthouses();
+    }
+  }, [fetchAllLighthouses, fetchVisitedLighthouses, isSignedIn]);
+
+  const isLoading = isLoadingAll || isLoadingVisited;
+  const error = errorAll || errorVisited;
 
   return (
-    <LighthouseContext.Provider value={{ 
-      lighthouses, 
-      setLighthouses, 
+    <LighthouseContext.Provider value={{
+      lighthouses: combinedLighthouses,
       isLoading,
-      refetchLighthouses: fetchLighthouses 
+      refetchLighthouses,
+      error
     }}>
       {children}
     </LighthouseContext.Provider>

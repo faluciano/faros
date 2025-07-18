@@ -1,114 +1,37 @@
 import { Lighthouse } from "../../../types";
 import { useState, useEffect } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useApi } from "../../../hooks/useApi";
+import { addVisitedLighthouse, removeVisitedLighthouse, getVisitedLighthouses } from "../../../utils/api";
 
 const LighthouseCard = ({ lighthouse }: { lighthouse: Lighthouse }) => {
     const [isVisited, setIsVisited] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const { getToken } = useAuth();
-
-    const handleVisit = async () => {
-        setIsLoading(true);
-        try {
-            const token = await getToken();
-            if (!token) return;
-
-            let baseUrl = "https://faros-backend.azurewebsites.net";
-            if (process.env.NODE_ENV === "development") {
-                baseUrl = "http://localhost:8080";
-            }
-
-            const response = await fetch(`${baseUrl}/user/lighthouses`, {
-                method: "POST",
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ lighthouseId: lighthouse.id })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to mark lighthouse as visited');
-            }
-
-            setIsVisited(true);
-        } catch (error) {
-            console.error('Error marking lighthouse as visited:', error);
-            setIsVisited(false);
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
-    const handleUnvisit = async () => {
-        setIsLoading(true);
-        try {
-            const token = await getToken();
-            if (!token) return;
-
-            let baseUrl = "https://faros-backend.azurewebsites.net";
-            if (process.env.NODE_ENV === "development") {
-                baseUrl = "http://localhost:8080";
-            }
-
-            const response = await fetch(`${baseUrl}/user/lighthouses`, {
-                method: "DELETE",
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ lighthouseId: lighthouse.id })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to unmark lighthouse as visited');
-            }
-
-            setIsVisited(false);
-        } catch (error) {
-            console.error('Error unmarking lighthouse as visited:', error);
-            setIsVisited(true);
-        } finally {
-            setIsLoading(false);
-        }
-    }
+    const { data: visitedLighthouses, request: fetchVisited } = useApi<Lighthouse[]>(getVisitedLighthouses);
+    const { isLoading: isAdding, request: addVisited } = useApi(addVisitedLighthouse);
+    const { isLoading: isRemoving, request: removeVisited } = useApi(removeVisitedLighthouse);
 
     useEffect(() => {
-        const fetchVisitedLighthouses = async () => {
-            try {
-                const token = await getToken();
-                if (!token) return;
+        fetchVisited();
+    }, [fetchVisited]);
 
-                let baseUrl = "https://faros-backend.azurewebsites.net";
-                if (process.env.NODE_ENV === "development") {
-                    baseUrl = "http://localhost:8080";
-                }
+    useEffect(() => {
+        if (visitedLighthouses) {
+            setIsVisited(visitedLighthouses.some((l: Lighthouse) => l.id === lighthouse.id));
+        }
+    }, [visitedLighthouses, lighthouse.id]);
 
-                const response = await fetch(`${baseUrl}/user/lighthouses`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch visited lighthouses');
-                }
-
-                const data = await response.json();
-                setIsVisited(data.some((l: Lighthouse) => l.id === lighthouse.id));
-            } catch (error) {
-                console.error('Error fetching visited lighthouses:', error);
-            }
-        };
-
-        fetchVisitedLighthouses();
-    }, [lighthouse.id, getToken]);
+    const handleToggleVisit = async () => {
+        if (isVisited) {
+            await removeVisited(lighthouse.id);
+        } else {
+            await addVisited(lighthouse.id);
+        }
+        fetchVisited();
+    };
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div 
-                className="h-48 bg-cover bg-center" 
+            <div
+                className="h-48 bg-cover bg-center"
                 style={{ backgroundImage: `url(${lighthouse.image})` }}
             />
             <div className="p-4">
@@ -116,18 +39,18 @@ const LighthouseCard = ({ lighthouse }: { lighthouse: Lighthouse }) => {
                 <p className="text-gray-600">{lighthouse.state}, {lighthouse.country}</p>
                 <div className="mt-4">
                     <button
-                        onClick={isVisited ? handleUnvisit : handleVisit}
-                        disabled={isLoading}
+                        onClick={handleToggleVisit}
+                        disabled={isAdding || isRemoving}
                         className={`w-full py-2 px-4 rounded-md text-white font-medium transition-colors ${
-                            isVisited 
-                                ? 'bg-red-500 hover:bg-red-600' 
+                            isVisited
+                                ? 'bg-red-500 hover:bg-red-600'
                                 : 'bg-green-500 hover:bg-green-600'
-                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        } ${(isAdding || isRemoving) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                        {isLoading 
-                            ? "Loading..." 
-                            : isVisited 
-                                ? "Remove from Visited" 
+                        {(isAdding || isRemoving)
+                            ? "Loading..."
+                            : isVisited
+                                ? "Remove from Visited"
                                 : "Mark as Visited"
                         }
                     </button>
