@@ -4,7 +4,7 @@ import { maptiler } from "pigeon-maps/providers";
 import { Lighthouse, User } from "../../../types";
 import { useAuth } from "@clerk/clerk-react";
 import LighthousePopover from "../lighthouses/LighthousePopover";
-import { useLighthouse } from "../../../context/LighthouseContext";
+import { useLighthouse } from "../../../hooks/useLighthouse";
 import { fetchWithAuth } from "../../../utils/api";
 import { getLighthouseMarkerColor, MAP_DEFAULTS, FilterState, DEFAULT_FILTERS } from "../../../utils/map";
 
@@ -52,10 +52,7 @@ const UserMap = () => {
         const token = await getToken();
         if (!token) return;
 
-        const response = await fetchWithAuth('/user/friends', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await response.json();
+        const data = await fetchWithAuth(token, '/user/friends');
         setFriends(data);
       } catch (error) {
         console.error('Error fetching friends:', error);
@@ -75,10 +72,7 @@ const UserMap = () => {
         const token = await getToken();
         if (!token) return;
 
-        const response = await fetchWithAuth(`/user/friends/lighthouses?friendId=${selectedFriend}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await response.json();
+        const data = await fetchWithAuth(token, `/user/friends/lighthouses?friendId=${selectedFriend}`);
         const friend = friends.find(f => f.id === selectedFriend);
         
         if (!friend) {
@@ -126,10 +120,7 @@ const UserMap = () => {
         const token = await getToken();
         if (!token) return;
 
-        const response = await fetchWithAuth('/user/wishlist', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await response.json();
+        const data = await fetchWithAuth(token, '/user/wishlist');
         setWishlistLighthouses(data);
       } catch (error) {
         console.error('Error fetching wishlist:', error);
@@ -167,9 +158,8 @@ const UserMap = () => {
       if (!token) return;
 
       const method = isVisited ? "POST" : "DELETE";
-      await fetchWithAuth('/user/lighthouses', {
+      await fetchWithAuth(token, '/user/lighthouses', {
         method,
-        headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify({ lighthouseId })
       });
     } catch (error) {

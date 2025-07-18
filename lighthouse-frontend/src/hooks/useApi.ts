@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 
-type ApiFunction<T> = (token: string, ...args: any[]) => Promise<T>;
+type ApiFunction<T> = (token: string, ...args: unknown[]) => Promise<T>;
 
 interface UseApiResult<T> {
   data: T | null;
   error: Error | null;
   isLoading: boolean;
-  request: (...args: any[]) => Promise<void>;
+  request: (...args: unknown[]) => Promise<void>;
 }
 
 export const useApi = <T>(apiFunc: ApiFunction<T>): UseApiResult<T> => {
@@ -16,7 +16,7 @@ export const useApi = <T>(apiFunc: ApiFunction<T>): UseApiResult<T> => {
   const [isLoading, setIsLoading] = useState(false);
   const { getToken } = useAuth();
 
-  const request = useCallback(async (...args: any[]) => {
+  const request = useCallback(async (...args: unknown[]) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -26,8 +26,12 @@ export const useApi = <T>(apiFunc: ApiFunction<T>): UseApiResult<T> => {
       }
       const result = await apiFunc(token, ...args);
       setData(result);
-    } catch (err: any) {
-      setError(err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err);
+      } else {
+        setError(new Error(String(err)));
+      }
     } finally {
       setIsLoading(false);
     }

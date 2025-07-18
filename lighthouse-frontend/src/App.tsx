@@ -14,8 +14,8 @@ import WishlistLighthouses from "./components/features/lighthouses/WishlistLight
 import Friends from './components/features/friends/Friends';
 
 // Context
-import { LighthouseProvider } from "./context/LighthouseContext";
-import { UserProvider } from "./context/UserContext";
+import { LighthouseProvider } from "./context/LighthouseContextProvider";
+import { UserProvider } from "./context/UserContextProvider";
 
 function App() {
   return (

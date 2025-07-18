@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Tab } from '@headlessui/react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
@@ -27,7 +27,7 @@ export default function Friends() {
     return baseUrl;
   };
 
-  const fetchFriends = async () => {
+  const fetchFriends = useCallback(async () => {
     if (!isSignedIn) return;
     
     try {
@@ -47,9 +47,9 @@ export default function Friends() {
       console.error(err);
       setFriends([]);
     }
-  };
+  }, [getToken, isSignedIn]);
 
-  const fetchPendingRequests = async () => {
+  const fetchPendingRequests = useCallback(async () => {
     if (!isSignedIn) return;
     
     try {
@@ -69,9 +69,9 @@ export default function Friends() {
       console.error(err);
       setPendingRequests([]);
     }
-  };
+  }, [getToken, isSignedIn]);
 
-  const fetchOutgoingRequests = async () => {
+  const fetchOutgoingRequests = useCallback(async () => {
     if (!isSignedIn) return;
     
     try {
@@ -91,9 +91,9 @@ export default function Friends() {
       console.error(err);
       setOutgoingRequests([]);
     }
-  };
+  }, [getToken, isSignedIn]);
 
-  const searchUsers = async (query: string) => {
+  const searchUsers = useCallback(async (query: string) => {
     if (!query.trim() || !isSignedIn) {
       setSearchResults([]);
       setIsSearching(false);
@@ -141,7 +141,7 @@ export default function Friends() {
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [getToken, isSignedIn, friends, pendingRequests, outgoingRequests]);
 
   const sendFriendRequest = async (friendId: string) => {
     if (!isSignedIn) return;
@@ -233,7 +233,7 @@ export default function Friends() {
       Promise.all([fetchFriends(), fetchPendingRequests(), fetchOutgoingRequests()])
         .finally(() => setIsLoading(false));
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, fetchFriends, fetchPendingRequests, fetchOutgoingRequests]);
 
   // Update debounce effect
   useEffect(() => {
@@ -251,7 +251,7 @@ export default function Friends() {
       clearTimeout(timeoutId);
       setIsSearching(false);
     };
-  }, [searchQuery, friends, pendingRequests, outgoingRequests]); // Added dependencies to update results when lists change
+  }, [searchQuery, friends, pendingRequests, outgoingRequests, searchUsers]); // Added dependencies to update results when lists change
 
   if (!isSignedIn) {
     return (

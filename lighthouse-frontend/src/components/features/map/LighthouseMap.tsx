@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Map, Marker } from "pigeon-maps";
 import { maptiler } from "pigeon-maps/providers";
 import { Lighthouse } from "../../../types";
 import LighthousePopover from "../lighthouses/LighthousePopover";
-import { useLighthouse } from "../../../context/LighthouseContext";
+import { useLighthouse } from "../../../hooks/useLighthouse";
 import { useAuth } from "@clerk/clerk-react";
 
 const maptilerProvider = maptiler(import.meta.env.VITE_MAPTILER_API_KEY!);
@@ -13,7 +13,7 @@ const LighthouseMap = () => {
   const { isSignedIn } = useAuth();
   const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
   const [popoverAnchor, setPopoverAnchor] = useState<[number, number] | undefined>(undefined);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<Map>(null);
 
   const handleMarkerClick = (lighthouse: Lighthouse, anchor: [number, number]) => {
     setSelectedLighthouse(lighthouse);
@@ -28,14 +28,6 @@ const LighthouseMap = () => {
   const handleVisitChange = () => {
     refetchLighthouses();
   };
-
-  const [height, setHeight] = useState(window.innerHeight);
-
-  useEffect(() => {
-    const handleResize = () => setHeight(window.innerHeight);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   return (
     <div style={{ position: "relative", height: 'calc(100vh - 4rem)' }}>
@@ -54,7 +46,7 @@ const LighthouseMap = () => {
             onClick={({ anchor }) => handleMarkerClick(lighthouse, anchor)}
           />
         ))}
-        {selectedLighthouse && popoverAnchor && (
+        {selectedLighthouse && popoverAnchor && mapRef.current && (
           <LighthousePopover
             lighthouse={selectedLighthouse}
             position={{ top: mapRef.current.latLngToPixel(popoverAnchor)[1], left: mapRef.current.latLngToPixel(popoverAnchor)[0] }}

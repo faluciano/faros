@@ -1,73 +1,12 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { createContext, Dispatch, SetStateAction } from 'react';
 import { Lighthouse } from '../types';
-import { useApi } from '../hooks/useApi';
-import { getLighthouses, getVisitedLighthouses } from '../utils/api';
 
-interface LighthouseContextType {
+export interface LighthouseContextType {
   lighthouses: Lighthouse[];
+  setLighthouses: Dispatch<SetStateAction<Lighthouse[]>>;
   isLoading: boolean;
   refetchLighthouses: () => void;
   error: Error | null;
 }
 
-const LighthouseContext = createContext<LighthouseContextType | undefined>(undefined);
-
-export const LighthouseProvider = ({ children }: { children: ReactNode }) => {
-  const { isSignedIn } = useAuth();
-  const [combinedLighthouses, setCombinedLighthouses] = useState<Lighthouse[]>([]);
-
-  const { data: allLighthouses, isLoading: isLoadingAll, error: errorAll, request: fetchAllLighthouses } = useApi<Lighthouse[]>(getLighthouses);
-  const { data: visitedLighthouses, isLoading: isLoadingVisited, error: errorVisited, request: fetchVisitedLighthouses } = useApi<Lighthouse[]>(getVisitedLighthouses);
-
-  useEffect(() => {
-    fetchAllLighthouses();
-    if (isSignedIn) {
-      fetchVisitedLighthouses();
-    }
-  }, [isSignedIn, fetchAllLighthouses, fetchVisitedLighthouses]);
-
-  useEffect(() => {
-    if (allLighthouses) {
-      if (isSignedIn && visitedLighthouses) {
-        const visitedIds = new Set(visitedLighthouses.map((l: Lighthouse) => l.id));
-        const lighthousesWithVisited = allLighthouses.map((l: Lighthouse) => ({
-          ...l,
-          isVisited: visitedIds.has(l.id)
-        }));
-        setCombinedLighthouses(lighthousesWithVisited);
-      } else {
-        setCombinedLighthouses(allLighthouses);
-      }
-    }
-  }, [allLighthouses, visitedLighthouses, isSignedIn]);
-
-  const refetchLighthouses = useCallback(() => {
-    fetchAllLighthouses();
-    if (isSignedIn) {
-      fetchVisitedLighthouses();
-    }
-  }, [fetchAllLighthouses, fetchVisitedLighthouses, isSignedIn]);
-
-  const isLoading = isLoadingAll || isLoadingVisited;
-  const error = errorAll || errorVisited;
-
-  return (
-    <LighthouseContext.Provider value={{
-      lighthouses: combinedLighthouses,
-      isLoading,
-      refetchLighthouses,
-      error
-    }}>
-      {children}
-    </LighthouseContext.Provider>
-  );
-};
-
-export const useLighthouse = () => {
-  const context = useContext(LighthouseContext);
-  if (context === undefined) {
-    throw new Error('useLighthouse must be used within a LighthouseProvider');
-  }
-  return context;
-}; 
+export const LighthouseContext = createContext<LighthouseContextType | undefined>(undefined);
