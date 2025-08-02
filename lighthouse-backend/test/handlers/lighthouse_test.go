@@ -3,7 +3,7 @@ package handlers_test
 import (
 	"encoding/json"
 	"lighthouse-backend/handlers"
-	"lighthouse-backend/models"
+	"lighthouse-backend/schemas"
 	"lighthouse-backend/test/mocks"
 	"net/http"
 	"net/http/httptest"
@@ -70,7 +70,7 @@ func TestGetLighthouses(t *testing.T) {
 
 			// Check response format and count
 			if tt.expectedStatus == http.StatusOK {
-				var response []models.Lighthouse
+				var response []schemas.Lighthouse
 				if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
 					t.Errorf("handler returned invalid JSON: %v", err)
 				}

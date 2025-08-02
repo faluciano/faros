@@ -2,18 +2,18 @@ package mocks
 
 import (
 	"lighthouse-backend/interfaces"
-	"lighthouse-backend/models"
+	"lighthouse-backend/schemas"
 )
 
 // MockDB implements interfaces.DBInterface for testing
 type MockDB struct {
-	lighthouses []models.Lighthouse
+	lighthouses []schemas.Lighthouse
 }
 
 // NewMockDB creates a new MockDB instance with test data
 func NewMockDB() interfaces.DBInterface {
 	return &MockDB{
-		lighthouses: []models.Lighthouse{
+		lighthouses: []schemas.Lighthouse{
 			{
 				ID:        "1",
 				Name:      "Test Lighthouse 1",
@@ -21,6 +21,7 @@ func NewMockDB() interfaces.DBInterface {
 				State:     "California",
 				Latitude:  37.7749,
 				Longitude: -122.4194,
+				Image:     "https://example.com/lighthouse1.jpg",
 			},
 			{
 				ID:        "2",
@@ -29,6 +30,7 @@ func NewMockDB() interfaces.DBInterface {
 				State:     "New York",
 				Latitude:  40.7128,
 				Longitude: -74.0060,
+				Image:     "https://example.com/lighthouse2.jpg",
 			},
 			{
 				ID:        "3",
@@ -37,19 +39,20 @@ func NewMockDB() interfaces.DBInterface {
 				State:     "British Columbia",
 				Latitude:  49.2827,
 				Longitude: -123.1207,
+				Image:     "https://example.com/lighthouse3.jpg",
 			},
 		},
 	}
 }
 
 // GetLighthouses returns all lighthouses
-func (m *MockDB) GetLighthouses() ([]models.Lighthouse, error) {
+func (m *MockDB) GetLighthouses() ([]schemas.Lighthouse, error) {
 	return m.lighthouses, nil
 }
 
 // GetLighthousesByCountry returns lighthouses filtered by country
-func (m *MockDB) GetLighthousesByCountry(country string) ([]models.Lighthouse, error) {
-	var filtered []models.Lighthouse
+func (m *MockDB) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
+	var filtered []schemas.Lighthouse
 	for _, l := range m.lighthouses {
 		if l.Country == country {
 			filtered = append(filtered, l)
@@ -59,8 +62,8 @@ func (m *MockDB) GetLighthousesByCountry(country string) ([]models.Lighthouse, e
 }
 
 // GetLighthousesByState returns lighthouses filtered by state
-func (m *MockDB) GetLighthousesByState(state string) ([]models.Lighthouse, error) {
-	var filtered []models.Lighthouse
+func (m *MockDB) GetLighthousesByState(state string) ([]schemas.Lighthouse, error) {
+	var filtered []schemas.Lighthouse
 	for _, l := range m.lighthouses {
 		if l.State == state {
 			filtered = append(filtered, l)

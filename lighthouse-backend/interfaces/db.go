@@ -1,10 +1,10 @@
 package interfaces
 
-import "lighthouse-backend/models"
+import "lighthouse-backend/schemas"
 
 // DBInterface defines the database operations we need
 type DBInterface interface {
-	GetLighthouses() ([]models.Lighthouse, error)
-	GetLighthousesByCountry(country string) ([]models.Lighthouse, error)
-	GetLighthousesByState(state string) ([]models.Lighthouse, error)
+	GetLighthouses() ([]schemas.Lighthouse, error)
+	GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error)
+	GetLighthousesByState(state string) ([]schemas.Lighthouse, error)
 }
