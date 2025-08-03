@@ -2,11 +2,14 @@
 
 ## Public Endpoints
 
+These endpoints are accessible without authentication and provide public lighthouse data.
+
 ### Lighthouses
 
 #### Get All Lighthouses
 - **Endpoint**: `GET /api/lighthouses`
 - **Description**: Retrieve all lighthouses, with optional filtering by country and/or state
+- **Authentication**: None required (public access)
 - **Query Parameters**:
   - `country` (optional): Filter by country name
   - `state` (optional): Filter by state name
@@ -22,7 +25,7 @@
 
 ## Authenticated Endpoints
 
-All endpoints below require authentication via Clerk.
+All endpoints below require authentication via Clerk. These provide personalized features and user-specific data.
 
 ### User Management
 

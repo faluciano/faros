@@ -105,40 +105,57 @@ src/
 
 ## Data Flow
 
+### Public Lighthouse Access Flow
+```
+1. User visits application (no authentication required)
+2. Frontend requests lighthouse data from public API
+3. Backend serves lighthouse data without authentication
+4. Map displays all lighthouses to any visitor
+5. Interactive features require authentication
+```
+
 ### User Authentication Flow
 ```
-1. User logs in via Clerk
+1. User logs in via Clerk for personalized features
 2. Frontend receives JWT token
-3. Token included in API requests
-4. Backend validates token with Clerk
-5. User context extracted from claims
+3. Token included in authenticated API requests
+4. Backend validates token with Clerk for protected routes
+5. User context extracted from claims for personalized data
 ```
 
 ### API Request Flow
 ```
 1. Frontend component triggers action
 2. Custom hook handles API call
-3. API client adds authentication headers
-4. Backend handler receives request
-5. Middleware validates authentication
-6. Handler processes business logic
-7. Database layer executes queries
-8. Response sent back to frontend
-9. Context/state updated
-10. UI re-renders with new data
+3. Public routes: Direct API call (no auth headers)
+4. Protected routes: API client adds authentication headers
+5. Backend handler receives request
+6. Public routes: Process immediately
+7. Protected routes: Middleware validates authentication
+8. Handler processes business logic
+9. Database layer executes queries
+10. Response sent back to frontend
+11. Context/state updated
+12. UI re-renders with new data
 ```
 
 ## Security Architecture
 
+### Public Access
+- **Lighthouse Data**: Publicly accessible without authentication
+- **Map Visualization**: Available to all visitors
+- **Basic Browse Functionality**: No login required
+
 ### Authentication
-- **Clerk Integration**: External authentication service
-- **JWT Tokens**: Stateless authentication
+- **Clerk Integration**: External authentication service for personalized features
+- **JWT Tokens**: Stateless authentication for protected routes
 - **Header-based Auth**: Bearer token in Authorization header
 
 ### Authorization
-- **Route Protection**: Authentication middleware on protected endpoints
+- **Public Routes**: Lighthouse data accessible to everyone
+- **Protected Routes**: Authentication middleware on user-specific endpoints
 - **User Context**: Access control based on authenticated user
-- **Data Isolation**: Users can only access their own data
+- **Data Isolation**: Users can only access their own personal data (visits, wishlist, friends)
 
 ### Data Protection
 - **Input Validation**: Query parameter validation and sanitization
@@ -151,8 +168,14 @@ src/
 ```
 Developer Machine
 ├── Frontend (localhost:5173)
+│   ├── Public: Lighthouse map and data
+│   └── Protected: User features (login required)
 ├── Backend (localhost:8080)
+│   ├── Public API: /api/lighthouses
+│   └── Protected API: /user/* endpoints
 └── Database (SQLite file)
+    ├── Public: Lighthouse data
+    └── Private: User data, visits, friendships
 ```
 
 ### Production
@@ -161,22 +184,32 @@ Developer Machine
 │   Azure Static  │    │   Cloud Host    │    │     Turso       │
 │   Web Apps      │◄──►│   (Backend)     │◄──►│   Database      │
 │   (Frontend)    │    │                 │    │                 │
+│                 │    │ Public Routes:  │    │ Public Data:    │
+│ - Public Map    │    │ /api/lighthouses│    │ - Lighthouses   │
+│ - Auth Features │    │                 │    │                 │
+│                 │    │ Protected:      │    │ Private Data:   │
+│                 │    │ /user/*         │    │ - User profiles │
+│                 │    │ /users/search   │    │ - Visits        │
+│                 │    │                 │    │ - Friendships   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 ## Database Schema
 
-### Core Tables
-- **users**: User profiles and metadata
-- **lighthouses**: Lighthouse information and locations
-- **user_visited_lighthouses**: User visit tracking
-- **user_wishlist**: User wishlist management
-- **friends**: Friend relationships
-- **friend_requests**: Pending friend requests
+### Public Tables
+- **lighthouses**: Lighthouse information and locations (publicly accessible)
+
+### Private Tables  
+- **users**: User profiles and metadata (authentication required)
+- **user_visited_lighthouses**: User visit tracking (user-specific)
+- **user_wishlist**: User wishlist management (user-specific)
+- **friends**: Friend relationships (user-specific)
+- **friend_requests**: Pending friend requests (user-specific)
 
 ### Relationships
-- One-to-many: User → Visits, User → Wishlist
-- Many-to-many: Users ↔ Friends (via friend relationships)
+- Public: No user relationships required for lighthouse data
+- Private: One-to-many: User → Visits, User → Wishlist
+- Private: Many-to-many: Users ↔ Friends (via friend relationships)
 
 ## Performance Considerations
 

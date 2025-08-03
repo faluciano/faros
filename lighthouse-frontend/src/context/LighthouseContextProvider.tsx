@@ -2,6 +2,7 @@ import { useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Lighthouse } from '../types';
 import { useApi } from '../hooks/useApi';
+import { usePublicApi } from '../hooks/usePublicApi';
 import { getLighthouses, getVisitedLighthouses } from '../utils/api';
 import { LighthouseContext } from './LighthouseContext';
 
@@ -9,7 +10,7 @@ export const LighthouseProvider = ({ children }: { children: ReactNode }) => {
   const { isSignedIn } = useAuth();
   const [combinedLighthouses, setCombinedLighthouses] = useState<Lighthouse[]>([]);
 
-  const { data: allLighthouses, isLoading: isLoadingAll, error: errorAll, request: fetchAllLighthouses } = useApi<Lighthouse[]>(getLighthouses);
+  const { data: allLighthouses, isLoading: isLoadingAll, error: errorAll, request: fetchAllLighthouses } = usePublicApi<Lighthouse[]>(getLighthouses);
   const { data: visitedLighthouses, isLoading: isLoadingVisited, error: errorVisited, request: fetchVisitedLighthouses } = useApi<Lighthouse[]>(getVisitedLighthouses);
 
   useEffect(() => {

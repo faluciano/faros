@@ -3,7 +3,6 @@
 ## Prerequisites
 
 - Go 1.24.0 or later
-- Bun (latest version)
 - Git
 - A Turso database account (for production) or SQLite for local development
 
@@ -69,10 +68,14 @@ The API will be available at `http://localhost:8080`
 ```bash
 cd ../lighthouse-frontend
 
-# Install dependencies with Bun
+# Install dependencies
+npm install
+# or
 bun install
 
 # Start development server
+npm run dev
+# or
 bun dev
 ```
 
@@ -119,16 +122,16 @@ go vet ./...
 
 ```bash
 # Development server
-bun dev
+npm run dev
 
 # Build for production
-bun run build
+npm run build
 
 # Preview production build
-bun run preview
+npm run preview
 
 # Run linting
-bun run lint
+npm run lint
 ```
 
 ## Project Structure
@@ -171,4 +174,3 @@ faros/
 
 - **API connection failed**: Ensure the backend is running on the correct port
 - **Authentication not working**: Check Clerk configuration in both frontend and backend
-- **Bun installation issues**: Make sure you have the latest version of Bun installed

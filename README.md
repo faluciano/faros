@@ -15,7 +15,7 @@ Web app to track visited lighthouses around the world with a map to display visi
 ## 🏗️ Architecture
 
 - **Backend**: Go REST API with clean architecture
-- **Frontend**: React with TypeScript, Vite, and Bun
+- **Frontend**: React with TypeScript and Vite
 - **Authentication**: Clerk for secure user management
 - **Database**: Turso (SQLite) with embedded replica
 - **Maps**: Pigeon-Maps for interactive map visualization
@@ -31,7 +31,7 @@ Web app to track visited lighthouses around the world with a map to display visi
 
 ### Prerequisites
 - Go 1.24.0+
-- Bun (latest version)
+- Node.js 18+
 - Git
 
 ### Local Development
@@ -54,8 +54,8 @@ Web app to track visited lighthouses around the world with a map to display visi
 3. **Setup Frontend**
    ```bash
    cd lighthouse-frontend
-   bun install
-   bun dev
+   npm install
+   npm run dev
    ```
 
 4. **Access the application**
