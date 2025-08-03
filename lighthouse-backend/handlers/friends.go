@@ -3,15 +3,53 @@ package handlers
 import (
 	"encoding/json"
 	"lighthouse-backend/db"
+	"lighthouse-backend/interfaces"
+	"lighthouse-backend/utils"
 	"net/http"
 	"strings"
 
 	clerk "github.com/clerk/clerk-sdk-go/v2"
 )
 
+// FriendsHandler handles friend-related requests
+type FriendsHandler struct {
+	db interfaces.DBInterface
+}
+
+// NewFriendsHandler creates a new FriendsHandler
+func NewFriendsHandler(db interfaces.DBInterface) *FriendsHandler {
+	return &FriendsHandler{db: db}
+}
+
 type FriendRequest struct {
 	// @Description ID of the user to add as friend
 	FriendId string `json:"friendId"`
+}
+
+// HandleFriends handles all friend-related operations
+func (h *FriendsHandler) HandleFriends(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		GetFriends(w, r)
+	case http.MethodDelete:
+		RemoveFriend(w, r)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
+	}
+}
+
+// HandleFriendRequests handles friend request operations
+func (h *FriendsHandler) HandleFriendRequests(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		GetPendingFriendRequests(w, r)
+	case http.MethodPost:
+		SendFriendRequest(w, r)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
+	}
 }
 
 // @Summary     Search users
@@ -28,10 +66,24 @@ type FriendRequest struct {
 func SearchUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	query := r.URL.Query().Get("query")
+	// Use utility function for query parameter handling
+	query := utils.GetStringParam(r, "query", "")
 	if query == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "search query is required"})
+		return
+	}
+
+	// Validate query length
+	if len(query) < 2 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "search query must be at least 2 characters"})
+		return
+	}
+
+	if len(query) > 100 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "search query must be less than 100 characters"})
 		return
 	}
 

@@ -39,6 +39,12 @@ func TestGetLighthouses(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedCount:  1,
 		},
+		{
+			name:           "Get lighthouses by country and state",
+			queryParams:    map[string]string{"country": "USA", "state": "California"},
+			expectedStatus: http.StatusOK,
+			expectedCount:  1,
+		},
 	}
 
 	for _, tt := range tests {

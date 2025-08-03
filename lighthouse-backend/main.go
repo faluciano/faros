@@ -75,8 +75,10 @@ func main() {
 	// Create database implementation
 	database := db.NewDB(db_f)
 
-	// Create lighthouse handler with database implementation
+	// Create handlers with database implementation
 	lighthouseHandler := handlers.NewLighthouseHandler(database)
+	userHandler := handlers.NewUserHandler(database)
+	friendsHandler := handlers.NewFriendsHandler(database)
 
 	mux := http.NewServeMux()
 
@@ -102,56 +104,15 @@ func main() {
 	mux.Handle("/user", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUser)))
 
 	// Visited lighthouses routes
-	mux.Handle("/user/lighthouses", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handlers.GetUserVisitedLighthouses(w, r)
-		case http.MethodPost:
-			handlers.MarkLighthouseAsVisited(w, r)
-		case http.MethodDelete:
-			handlers.UnmarkLighthouseAsVisited(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})))
+	mux.Handle("/user/lighthouses", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(userHandler.HandleLighthouses)))
 
 	// Wishlist routes
-	mux.Handle("/user/wishlist", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handlers.GetUserWishlistLighthouses(w, r)
-		case http.MethodPost:
-			handlers.AddToWishlist(w, r)
-		case http.MethodDelete:
-			handlers.RemoveFromWishlist(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})))
+	mux.Handle("/user/wishlist", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(userHandler.HandleWishlist)))
 
 	// Friend routes
-	mux.Handle("/user/friends", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handlers.GetFriends(w, r)
-		case http.MethodDelete:
-			handlers.RemoveFriend(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})))
-
+	mux.Handle("/user/friends", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(friendsHandler.HandleFriends)))
 	mux.Handle("/user/friends/lighthouses", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetFriendVisitedLighthouses)))
-	mux.Handle("/user/friends/requests", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handlers.GetPendingFriendRequests(w, r)
-		case http.MethodPost:
-			handlers.SendFriendRequest(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})))
+	mux.Handle("/user/friends/requests", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(friendsHandler.HandleFriendRequests)))
 	mux.Handle("/user/friends/requests/outgoing", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetOutgoingFriendRequests)))
 	mux.Handle("/user/friends/requests/accept", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.AcceptFriendRequest)))
 	mux.Handle("/users/search", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.SearchUsers)))

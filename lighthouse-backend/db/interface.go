@@ -72,3 +72,22 @@ func (d *DBImpl) GetLighthousesByState(state string) ([]schemas.Lighthouse, erro
 	}
 	return lighthouses, nil
 }
+
+// GetLighthousesByCountryAndState returns lighthouses filtered by both country and state
+func (d *DBImpl) GetLighthousesByCountryAndState(country string, state string) ([]schemas.Lighthouse, error) {
+	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image FROM lighthouses WHERE country = ? AND state = ?`, country, state)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var lighthouses []schemas.Lighthouse
+	for rows.Next() {
+		var l schemas.Lighthouse
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image); err != nil {
+			return nil, err
+		}
+		lighthouses = append(lighthouses, l)
+	}
+	return lighthouses, nil
+}

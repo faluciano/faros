@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"lighthouse-backend/interfaces"
+	"lighthouse-backend/schemas"
 	"net/http"
 )
 
@@ -17,46 +18,51 @@ func NewLighthouseHandler(db interfaces.DBInterface) *LighthouseHandler {
 }
 
 // @Summary     Get all lighthouses
-// @Description Get a list of all lighthouses, optionally filtered by country or state
+// @Description Get a list of all lighthouses, optionally filtered by country and/or state
 // @Tags        lighthouses
 // @Produce     json
-// @Param       country query    string false "Filter by country"
-// @Param       state   query    string false "Filter by state"
+// @Param       country query    string false "Filter by country name"
+// @Param       state   query    string false "Filter by state name (can be combined with country)"
 // @Success     200     {array}  schemas.Lighthouse
+// @Failure     400     {object} map[string]string
 // @Failure     500     {object} map[string]string
 // @Router      /api/lighthouses [get]
 func (h *LighthouseHandler) GetLighthouses(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	if h.db == nil {
-		http.Error(w, "database connection not available", http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "database connection not available"})
 		return
 	}
 
-	if r.URL.Query().Get("country") != "" {
-		country := r.URL.Query().Get("country")
-		lighthousesFromdb, err := h.db.GetLighthousesByCountry(country)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		json.NewEncoder(w).Encode(lighthousesFromdb)
-		return
+	query := r.URL.Query()
+	country := query.Get("country")
+	state := query.Get("state")
+
+	var lighthousesFromdb []schemas.Lighthouse
+	var err error
+
+	switch {
+	case country != "" && state != "":
+		// Filter by both country and state
+		lighthousesFromdb, err = h.db.GetLighthousesByCountryAndState(country, state)
+	case country != "":
+		// Filter by country only
+		lighthousesFromdb, err = h.db.GetLighthousesByCountry(country)
+	case state != "":
+		// Filter by state only
+		lighthousesFromdb, err = h.db.GetLighthousesByState(state)
+	default:
+		// No filters - return all lighthouses
+		lighthousesFromdb, err = h.db.GetLighthouses()
 	}
 
-	if r.URL.Query().Get("state") != "" {
-		state := r.URL.Query().Get("state")
-		lighthousesFromdb, err := h.db.GetLighthousesByState(state)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		json.NewEncoder(w).Encode(lighthousesFromdb)
-		return
-	}
-
-	lighthousesFromdb, err := h.db.GetLighthouses()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
+
 	json.NewEncoder(w).Encode(lighthousesFromdb)
 }

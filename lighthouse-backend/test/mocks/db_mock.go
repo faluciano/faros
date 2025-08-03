@@ -71,3 +71,14 @@ func (m *MockDB) GetLighthousesByState(state string) ([]schemas.Lighthouse, erro
 	}
 	return filtered, nil
 }
+
+// GetLighthousesByCountryAndState returns lighthouses filtered by both country and state
+func (m *MockDB) GetLighthousesByCountryAndState(country string, state string) ([]schemas.Lighthouse, error) {
+	var filtered []schemas.Lighthouse
+	for _, l := range m.lighthouses {
+		if l.Country == country && l.State == state {
+			filtered = append(filtered, l)
+		}
+	}
+	return filtered, nil
+}

@@ -7,4 +7,5 @@ type DBInterface interface {
 	GetLighthouses() ([]schemas.Lighthouse, error)
 	GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error)
 	GetLighthousesByState(state string) ([]schemas.Lighthouse, error)
+	GetLighthousesByCountryAndState(country string, state string) ([]schemas.Lighthouse, error)
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"lighthouse-backend/db"
+	"lighthouse-backend/interfaces"
 	"lighthouse-backend/schemas"
 	"net/http"
 	"os"
@@ -12,9 +13,49 @@ import (
 	"github.com/clerk/clerk-sdk-go/v2/user"
 )
 
+// UserHandler handles user-related requests
+type UserHandler struct {
+	db interfaces.DBInterface
+}
+
+// NewUserHandler creates a new UserHandler
+func NewUserHandler(db interfaces.DBInterface) *UserHandler {
+	return &UserHandler{db: db}
+}
+
 type VisitRequest struct {
 	// @Description ID of the lighthouse to visit
 	LighthouseId string `json:"lighthouseId"`
+}
+
+// HandleLighthouses handles all lighthouse-related operations for a user
+func (h *UserHandler) HandleLighthouses(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		GetUserVisitedLighthouses(w, r)
+	case http.MethodPost:
+		MarkLighthouseAsVisited(w, r)
+	case http.MethodDelete:
+		UnmarkLighthouseAsVisited(w, r)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
+	}
+}
+
+// HandleWishlist handles all wishlist-related operations for a user
+func (h *UserHandler) HandleWishlist(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		GetUserWishlistLighthouses(w, r)
+	case http.MethodPost:
+		AddToWishlist(w, r)
+	case http.MethodDelete:
+		RemoveFromWishlist(w, r)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
+	}
 }
 
 // @Summary     Initialize Clerk authentication
