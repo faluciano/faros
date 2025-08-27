@@ -32,9 +32,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy the source from the current directory to the Working Directory inside the container
 COPY . .
 
-# Build the Go app
+# Build the Go app, stripping debug info
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    go build -o main .
+    go build -ldflags="-s -w" -o main .
 
 # Start a new stage from scratch
 FROM debian:bookworm-slim

@@ -29,16 +29,34 @@ jobs:
         with:
           submodules: true
           lfs: false
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      - name: Install and Build
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: lighthouse-frontend/node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install
+        working-directory: lighthouse-frontend
+
+      - name: Lint
+        run: bun run lint
+        working-directory: lighthouse-frontend
+
+      - name: Build
         run: |
-          cd lighthouse-frontend
-          bun install
           bun run build
           cp staticwebapp.config.json dist/
+        working-directory: lighthouse-frontend
+
       - name: Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1

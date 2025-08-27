@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.24.2'
+          go-version: "1.24.2"
 
       - name: Cache Go modules
         uses: actions/cache@v3
@@ -53,7 +53,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-${{ github.ref_name }}
           restore-keys: |
             ${{ runner.os }}-buildx-
 
@@ -66,18 +66,13 @@ jobs:
 
       - name: Build and push container image to registry
         uses: docker/build-push-action@v4
-        env:
-          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
-          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          PORT: ${{ secrets.PORT }}
-          CLERK_AUTH_TOKEN: ${{ secrets.CLERK_AUTH_TOKEN }}
         with:
           push: true
           tags: ${{ secrets.AzureAppService_ContainerUsername_2afb8b6a9eed492d8c20c83a9ede8481 }}/faros-backend:${{ github.sha }}
           file: lighthouse-backend/dockerfile
           context: ./lighthouse-backend
           cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           platforms: linux/amd64
 
       - name: Move cache
