@@ -8,6 +8,7 @@ import (
 // MockDB implements interfaces.DBInterface for testing
 type MockDB struct {
 	lighthouses []schemas.Lighthouse
+	users       []schemas.User
 }
 
 // NewMockDB creates a new MockDB instance with test data
@@ -81,4 +82,24 @@ func (m *MockDB) GetLighthousesByCountryAndState(country string, state string) (
 		}
 	}
 	return filtered, nil
+}
+
+// Mocked user and friend methods
+func (m *MockDB) CreateUser(user schemas.User) error                                 { return nil }
+func (m *MockDB) GetUser(id string) (*schemas.User, error)                           { return nil, nil }
+func (m *MockDB) GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error)  { return nil, nil }
+func (m *MockDB) MarkLighthouseAsVisited(userId, lhId string) error                  { return nil }
+func (m *MockDB) UnmarkLighthouseAsVisited(userId, lhId string) error                { return nil }
+func (m *MockDB) GetUserWishlistLighthouses(id string) ([]schemas.Lighthouse, error) { return nil, nil }
+func (m *MockDB) AddToWishlist(userId, lhId string) error                            { return nil }
+func (m *MockDB) RemoveFromWishlist(userId, lhId string) error                       { return nil }
+func (m *MockDB) SearchUsers(q, id string) ([]schemas.User, error)                   { return nil, nil }
+func (m *MockDB) SendFriendRequest(userId, friendId string) error                    { return nil }
+func (m *MockDB) AcceptFriendRequest(userId, friendId string) error                  { return nil }
+func (m *MockDB) RemoveFriend(userId, friendId string) error                         { return nil }
+func (m *MockDB) GetFriends(userId string) ([]schemas.User, error)                   { return nil, nil }
+func (m *MockDB) GetPendingFriendRequests(userId string) ([]schemas.User, error)     { return nil, nil }
+func (m *MockDB) GetOutgoingFriendRequests(userId string) ([]schemas.User, error)    { return nil, nil }
+func (m *MockDB) GetFriendVisitedLighthouses(userId, fId string) ([]schemas.Lighthouse, error) {
+	return nil, nil
 }

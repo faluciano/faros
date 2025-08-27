@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"lighthouse-backend/interfaces"
 	"lighthouse-backend/schemas"
+	"lighthouse-backend/utils"
 	"net/http"
 )
 
@@ -31,8 +32,7 @@ func (h *LighthouseHandler) GetLighthouses(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 
 	if h.db == nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "database connection not available"})
+		utils.WriteError(w, http.StatusInternalServerError, "database connection not available")
 		return
 	}
 
@@ -59,8 +59,7 @@ func (h *LighthouseHandler) GetLighthouses(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve lighthouses")
 		return
 	}
 

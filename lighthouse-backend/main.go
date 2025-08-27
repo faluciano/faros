@@ -73,9 +73,11 @@ func main() {
 	defer db_f.Close()
 
 	// Create database implementation
+
 	database := db.NewDB(db_f)
 
 	// Create handlers with database implementation
+
 	lighthouseHandler := handlers.NewLighthouseHandler(database)
 	userHandler := handlers.NewUserHandler(database)
 	friendsHandler := handlers.NewFriendsHandler(database)
@@ -83,39 +85,39 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Add Swagger documentation endpoint
-	mux.HandleFunc("/docs", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/docs/", http.StatusMovedPermanently)
-	})
-	mux.Handle("/docs/", swagger.Handler())
+	mux.HandleFunc("GET /docs/", swagger.Handler())
 
 	// Root route
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Welcome to Lighthouse API"))
 	})
 
 	// Public routes
-	mux.HandleFunc("/api/lighthouses", lighthouseHandler.GetLighthouses)
+	mux.HandleFunc("GET /api/lighthouses", lighthouseHandler.GetLighthouses)
 
 	// User routes with authentication
-	mux.Handle("/user", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetUser)))
+	authMiddleware := clerkhttp.WithHeaderAuthorization()
+	mux.Handle("GET /user", authMiddleware(http.HandlerFunc(userHandler.GetUser)))
 
 	// Visited lighthouses routes
-	mux.Handle("/user/lighthouses", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(userHandler.HandleLighthouses)))
+	mux.Handle("GET /user/lighthouses", authMiddleware(http.HandlerFunc(userHandler.GetUserVisitedLighthouses)))
+	mux.Handle("POST /user/lighthouses", authMiddleware(http.HandlerFunc(userHandler.MarkLighthouseAsVisited)))
+	mux.Handle("DELETE /user/lighthouses", authMiddleware(http.HandlerFunc(userHandler.UnmarkLighthouseAsVisited)))
 
 	// Wishlist routes
-	mux.Handle("/user/wishlist", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(userHandler.HandleWishlist)))
+	mux.Handle("GET /user/wishlist", authMiddleware(http.HandlerFunc(userHandler.GetUserWishlistLighthouses)))
+	mux.Handle("POST /user/wishlist", authMiddleware(http.HandlerFunc(userHandler.AddToWishlist)))
+	mux.Handle("DELETE /user/wishlist", authMiddleware(http.HandlerFunc(userHandler.RemoveFromWishlist)))
 
 	// Friend routes
-	mux.Handle("/user/friends", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(friendsHandler.HandleFriends)))
-	mux.Handle("/user/friends/lighthouses", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetFriendVisitedLighthouses)))
-	mux.Handle("/user/friends/requests", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(friendsHandler.HandleFriendRequests)))
-	mux.Handle("/user/friends/requests/outgoing", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.GetOutgoingFriendRequests)))
-	mux.Handle("/user/friends/requests/accept", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.AcceptFriendRequest)))
-	mux.Handle("/users/search", clerkhttp.WithHeaderAuthorization()(http.HandlerFunc(handlers.SearchUsers)))
+	mux.Handle("GET /user/friends", authMiddleware(http.HandlerFunc(friendsHandler.GetFriends)))
+	mux.Handle("DELETE /user/friends", authMiddleware(http.HandlerFunc(friendsHandler.RemoveFriend)))
+	mux.Handle("GET /user/friends/lighthouses", authMiddleware(http.HandlerFunc(userHandler.GetFriendVisitedLighthouses)))
+	mux.Handle("GET /user/friends/requests", authMiddleware(http.HandlerFunc(friendsHandler.GetPendingFriendRequests)))
+	mux.Handle("POST /user/friends/requests", authMiddleware(http.HandlerFunc(friendsHandler.SendFriendRequest)))
+	mux.Handle("GET /user/friends/requests/outgoing", authMiddleware(http.HandlerFunc(friendsHandler.GetOutgoingFriendRequests)))
+	mux.Handle("POST /user/friends/requests/accept", authMiddleware(http.HandlerFunc(friendsHandler.AcceptFriendRequest)))
+	mux.Handle("GET /users/search", authMiddleware(http.HandlerFunc(friendsHandler.SearchUsers)))
 
 	// Configure CORS
 	c := cors.New(cors.Options{

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"lighthouse-backend/db"
 	"lighthouse-backend/interfaces"
 	"lighthouse-backend/utils"
 	"net/http"
@@ -26,32 +25,6 @@ type FriendRequest struct {
 	FriendId string `json:"friendId"`
 }
 
-// HandleFriends handles all friend-related operations
-func (h *FriendsHandler) HandleFriends(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		GetFriends(w, r)
-	case http.MethodDelete:
-		RemoveFriend(w, r)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
-	}
-}
-
-// HandleFriendRequests handles friend request operations
-func (h *FriendsHandler) HandleFriendRequests(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		GetPendingFriendRequests(w, r)
-	case http.MethodPost:
-		SendFriendRequest(w, r)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
-	}
-}
-
 // @Summary     Search users
 // @Description Search for users by name or email
 // @Tags        friends
@@ -63,43 +36,33 @@ func (h *FriendsHandler) HandleFriendRequests(w http.ResponseWriter, r *http.Req
 // @Failure     401 {object} map[string]string
 // @Failure     500 {object} map[string]string
 // @Router      /users/search [get]
-func SearchUsers(w http.ResponseWriter, r *http.Request) {
+func (h *FriendsHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// Use utility function for query parameter handling
 	query := utils.GetStringParam(r, "query", "")
 	if query == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "search query is required"})
+		utils.WriteError(w, http.StatusBadRequest, "search query is required")
 		return
 	}
-
-	// Validate query length
 	if len(query) < 2 {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "search query must be at least 2 characters"})
+		utils.WriteError(w, http.StatusBadRequest, "search query must be at least 2 characters")
 		return
 	}
-
 	if len(query) > 100 {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "search query must be less than 100 characters"})
+		utils.WriteError(w, http.StatusBadRequest, "search query must be less than 100 characters")
 		return
 	}
 
 	ctx := r.Context()
 	claims, ok := clerk.SessionClaimsFromContext(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	// Search users by name or email
-	users, err := db.SearchUsers(strings.ToLower(query), claims.Subject)
+	users, err := h.db.SearchUsers(strings.ToLower(query), claims.Subject)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to search users")
 		return
 	}
 
@@ -115,21 +78,19 @@ func SearchUsers(w http.ResponseWriter, r *http.Request) {
 // @Failure     401 {object} map[string]string
 // @Failure     500 {object} map[string]string
 // @Router      /user/friends [get]
-func GetFriends(w http.ResponseWriter, r *http.Request) {
+func (h *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	ctx := r.Context()
 	claims, ok := clerk.SessionClaimsFromContext(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	friends, err := db.GetFriends(claims.Subject)
+	friends, err := h.db.GetFriends(claims.Subject)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve friends")
 		return
 	}
 
@@ -145,17 +106,17 @@ func GetFriends(w http.ResponseWriter, r *http.Request) {
 // @Failure     401 {object} map[string]string
 // @Failure     500 {object} map[string]string
 // @Router      /user/friends/requests [get]
-func GetPendingFriendRequests(w http.ResponseWriter, r *http.Request) {
+func (h *FriendsHandler) GetPendingFriendRequests(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := clerk.SessionClaimsFromContext(ctx)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	requests, err := db.GetPendingFriendRequests(claims.Subject)
+	requests, err := h.db.GetPendingFriendRequests(claims.Subject)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve pending friend requests")
 		return
 	}
 
@@ -171,17 +132,17 @@ func GetPendingFriendRequests(w http.ResponseWriter, r *http.Request) {
 // @Failure     401 {object} map[string]string
 // @Failure     500 {object} map[string]string
 // @Router      /user/friends/requests/outgoing [get]
-func GetOutgoingFriendRequests(w http.ResponseWriter, r *http.Request) {
+func (h *FriendsHandler) GetOutgoingFriendRequests(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := clerk.SessionClaimsFromContext(ctx)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	requests, err := db.GetOutgoingFriendRequests(claims.Subject)
+	requests, err := h.db.GetOutgoingFriendRequests(claims.Subject)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve outgoing friend requests")
 		return
 	}
 
@@ -200,27 +161,24 @@ func GetOutgoingFriendRequests(w http.ResponseWriter, r *http.Request) {
 // @Failure     401 {object} map[string]string
 // @Failure     500 {object} map[string]string
 // @Router      /user/friends/requests [post]
-func SendFriendRequest(w http.ResponseWriter, r *http.Request) {
+func (h *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	ctx := r.Context()
 	claims, ok := clerk.SessionClaimsFromContext(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var req FriendRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request"})
+		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
-	if err := db.SendFriendRequest(claims.Subject, req.FriendId); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+	if err := h.db.SendFriendRequest(claims.Subject, req.FriendId); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to send friend request")
 		return
 	}
 
@@ -239,27 +197,24 @@ func SendFriendRequest(w http.ResponseWriter, r *http.Request) {
 // @Failure     401 {object} map[string]string
 // @Failure     500 {object} map[string]string
 // @Router      /user/friends/requests/accept [post]
-func AcceptFriendRequest(w http.ResponseWriter, r *http.Request) {
+func (h *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	ctx := r.Context()
 	claims, ok := clerk.SessionClaimsFromContext(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var req FriendRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request"})
+		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
-	if err := db.AcceptFriendRequest(claims.Subject, req.FriendId); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+	if err := h.db.AcceptFriendRequest(claims.Subject, req.FriendId); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to accept friend request")
 		return
 	}
 
@@ -278,27 +233,24 @@ func AcceptFriendRequest(w http.ResponseWriter, r *http.Request) {
 // @Failure     401 {object} map[string]string
 // @Failure     500 {object} map[string]string
 // @Router      /user/friends [delete]
-func RemoveFriend(w http.ResponseWriter, r *http.Request) {
+func (h *FriendsHandler) RemoveFriend(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	ctx := r.Context()
 	claims, ok := clerk.SessionClaimsFromContext(ctx)
 	if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
+		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	var req FriendRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid request"})
+		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
-	if err := db.RemoveFriend(claims.Subject, req.FriendId); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+	if err := h.db.RemoveFriend(claims.Subject, req.FriendId); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to remove friend")
 		return
 	}
 
