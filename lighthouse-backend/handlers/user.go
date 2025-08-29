@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	json "encoding/json/v2"
 	"fmt"
 	"lighthouse-backend/interfaces"
 	"lighthouse-backend/schemas"
@@ -86,7 +86,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return the user data
-	json.NewEncoder(w).Encode(dbUser)
+	json.MarshalWrite(w, dbUser)
 }
 
 // @Summary     Get user's visited lighthouses
@@ -114,7 +114,7 @@ func (h *UserHandler) GetUserVisitedLighthouses(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	json.NewEncoder(w).Encode(lighthouses)
+	json.MarshalWrite(w, lighthouses)
 }
 
 // @Summary     Get user's wishlist lighthouses
@@ -142,7 +142,7 @@ func (h *UserHandler) GetUserWishlistLighthouses(w http.ResponseWriter, r *http.
 		return
 	}
 
-	json.NewEncoder(w).Encode(lighthouses)
+	json.MarshalWrite(w, lighthouses)
 }
 
 // @Summary     Add lighthouse to wishlist
@@ -168,7 +168,7 @@ func (h *UserHandler) AddToWishlist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req VisitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
@@ -178,7 +178,7 @@ func (h *UserHandler) AddToWishlist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	json.MarshalWrite(w, map[string]bool{"success": true})
 }
 
 // @Summary     Remove lighthouse from wishlist
@@ -204,7 +204,7 @@ func (h *UserHandler) RemoveFromWishlist(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req VisitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
@@ -214,7 +214,7 @@ func (h *UserHandler) RemoveFromWishlist(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	json.MarshalWrite(w, map[string]bool{"success": true})
 }
 
 // @Summary     Mark lighthouse as visited
@@ -240,7 +240,7 @@ func (h *UserHandler) MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Req
 	}
 
 	var req VisitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
@@ -253,7 +253,7 @@ func (h *UserHandler) MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Req
 	// When marking as visited, remove from wishlist if it exists there
 	_ = h.db.RemoveFromWishlist(claims.Subject, req.LighthouseId)
 
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	json.MarshalWrite(w, map[string]bool{"success": true})
 }
 
 // @Summary     Unmark lighthouse as visited
@@ -279,7 +279,7 @@ func (h *UserHandler) UnmarkLighthouseAsVisited(w http.ResponseWriter, r *http.R
 	}
 
 	var req VisitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.UnmarshalRead(r.Body, &req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
@@ -289,7 +289,7 @@ func (h *UserHandler) UnmarkLighthouseAsVisited(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	json.MarshalWrite(w, map[string]bool{"success": true})
 }
 
 // @Summary     Get friend's visited lighthouses
@@ -325,5 +325,5 @@ func (h *UserHandler) GetFriendVisitedLighthouses(w http.ResponseWriter, r *http
 		return
 	}
 
-	json.NewEncoder(w).Encode(lighthouses)
+	json.MarshalWrite(w, lighthouses)
 }
