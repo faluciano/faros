@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	json "encoding/json/v2"
+	"encoding/json"
 	"lighthouse-backend/interfaces"
 	"lighthouse-backend/utils"
 	"net/http"
@@ -66,7 +66,7 @@ func (h *FriendsHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.MarshalWrite(w, users)
+	json.NewEncoder(w).Encode(users)
 }
 
 // @Summary     Get user's friends
@@ -94,7 +94,7 @@ func (h *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.MarshalWrite(w, friends)
+	json.NewEncoder(w).Encode(friends)
 }
 
 // @Summary     Get pending friend requests
@@ -120,7 +120,7 @@ func (h *FriendsHandler) GetPendingFriendRequests(w http.ResponseWriter, r *http
 		return
 	}
 
-	json.MarshalWrite(w, requests)
+	json.NewEncoder(w).Encode(requests)
 }
 
 // @Summary     Get outgoing friend requests
@@ -146,7 +146,7 @@ func (h *FriendsHandler) GetOutgoingFriendRequests(w http.ResponseWriter, r *htt
 		return
 	}
 
-	json.MarshalWrite(w, requests)
+	json.NewEncoder(w).Encode(requests)
 }
 
 // @Summary     Send friend request
@@ -172,7 +172,7 @@ func (h *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Reques
 	}
 
 	var req FriendRequest
-	if err := json.UnmarshalRead(r.Body, &req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
@@ -208,7 +208,7 @@ func (h *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Requ
 	}
 
 	var req FriendRequest
-	if err := json.UnmarshalRead(r.Body, &req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
@@ -244,7 +244,7 @@ func (h *FriendsHandler) RemoveFriend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req FriendRequest
-	if err := json.UnmarshalRead(r.Body, &req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	json "encoding/json/v2"
+	"encoding/json"
 	"lighthouse-backend/interfaces"
 	"lighthouse-backend/schemas"
 	"lighthouse-backend/utils"
@@ -63,5 +63,5 @@ func (h *LighthouseHandler) GetLighthouses(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	json.MarshalWrite(w, lighthousesFromdb)
+	json.NewEncoder(w).Encode(lighthousesFromdb)
 }
