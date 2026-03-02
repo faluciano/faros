@@ -13,6 +13,11 @@ type DBInterface interface {
 	// User operations
 	CreateUser(user schemas.User) error
 	GetUser(id string) (*schemas.User, error)
+
+	// Auth operations
+	GetUserByEmail(email string) (*schemas.User, error)
+	CreateUserWithPassword(user schemas.User) error
+
 	GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error)
 	MarkLighthouseAsVisited(userId string, lighthouseId string) error
 	UnmarkLighthouseAsVisited(userId string, lighthouseId string) error

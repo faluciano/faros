@@ -103,3 +103,7 @@ func (m *MockDB) GetOutgoingFriendRequests(userId string) ([]schemas.User, error
 func (m *MockDB) GetFriendVisitedLighthouses(userId, fId string) ([]schemas.Lighthouse, error) {
 	return nil, nil
 }
+
+// Auth operations
+func (m *MockDB) GetUserByEmail(email string) (*schemas.User, error) { return nil, nil }
+func (m *MockDB) CreateUserWithPassword(user schemas.User) error     { return nil }

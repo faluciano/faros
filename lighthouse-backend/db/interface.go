@@ -120,6 +120,31 @@ func (d *DBImpl) GetUser(id string) (*schemas.User, error) {
 	return &user, nil
 }
 
+func (d *DBImpl) GetUserByEmail(email string) (*schemas.User, error) {
+	var user schemas.User
+	err := d.db.QueryRow(
+		"SELECT id, first_name, last_name, email, password_hash FROM users WHERE email = ?",
+		email,
+	).Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.PasswordHash)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (d *DBImpl) CreateUserWithPassword(user schemas.User) error {
+	query := `
+	INSERT INTO users (id, first_name, last_name, email, password_hash)
+	VALUES (?, ?, ?, ?, ?)
+	`
+	_, err := d.db.Exec(query, user.ID, user.FirstName, user.LastName, user.Email, user.PasswordHash)
+	return err
+}
+
 func (d *DBImpl) GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error) {
 	query := `
 	SELECT l.id, l.country, l.state, l.name, l.latitude, l.longitude, l.image

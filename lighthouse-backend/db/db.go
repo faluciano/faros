@@ -49,6 +49,7 @@ func createAllTables(db *sql.DB) error {
 			first_name TEXT,
 			last_name TEXT,
 			email TEXT,
+			password_hash TEXT DEFAULT '',
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`,
 		`CREATE TABLE IF NOT EXISTS user_wishlist_lighthouse (
@@ -81,6 +82,7 @@ func createAllTables(db *sql.DB) error {
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_friendships_friend_id_status ON friendships(friend_id, status);`,
 		`CREATE INDEX IF NOT EXISTS idx_lighthouses_country_state ON lighthouses(country, state);`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);`,
 	}
 
 	for _, query := range queries {
@@ -88,5 +90,9 @@ func createAllTables(db *sql.DB) error {
 			return err
 		}
 	}
+
+	// Add password_hash column to existing tables (ignore error if column already exists)
+	_, _ = db.Exec("ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT ''")
+
 	return nil
 }
