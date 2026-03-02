@@ -24,7 +24,7 @@ func (d *DBImpl) GetLighthouses() ([]schemas.Lighthouse, error) {
 	}
 	defer rows.Close()
 
-	var lighthouses []schemas.Lighthouse
+	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var l schemas.Lighthouse
 		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image); err != nil {
@@ -43,7 +43,7 @@ func (d *DBImpl) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, 
 	}
 	defer rows.Close()
 
-	var lighthouses []schemas.Lighthouse
+	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var l schemas.Lighthouse
 		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image); err != nil {
@@ -62,7 +62,7 @@ func (d *DBImpl) GetLighthousesByState(state string) ([]schemas.Lighthouse, erro
 	}
 	defer rows.Close()
 
-	var lighthouses []schemas.Lighthouse
+	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var l schemas.Lighthouse
 		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image); err != nil {
@@ -81,7 +81,7 @@ func (d *DBImpl) GetLighthousesByCountryAndState(country string, state string) (
 	}
 	defer rows.Close()
 
-	var lighthouses []schemas.Lighthouse
+	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var l schemas.Lighthouse
 		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image); err != nil {
@@ -159,7 +159,7 @@ func (d *DBImpl) GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, err
 	}
 	defer rows.Close()
 
-	var lighthouses []schemas.Lighthouse
+	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var lighthouse schemas.Lighthouse
 		if err := rows.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image); err != nil {
@@ -185,7 +185,7 @@ func (d *DBImpl) GetUserWishlistLighthouses(id string) ([]schemas.Lighthouse, er
 	}
 	defer rows.Close()
 
-	var lighthouses []schemas.Lighthouse
+	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var lighthouse schemas.Lighthouse
 		if err := rows.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image); err != nil {
@@ -258,7 +258,7 @@ func (d *DBImpl) GetFriendVisitedLighthouses(userId string, friendId string) ([]
 	}
 	defer rows.Close()
 
-	var lighthouses []schemas.Lighthouse
+	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var lighthouse schemas.Lighthouse
 		if err := rows.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image); err != nil {
@@ -323,7 +323,7 @@ func (d *DBImpl) SearchUsers(query string, currentUserId string) ([]schemas.User
 	}
 	defer rows.Close()
 
-	var users []schemas.User
+	users := make([]schemas.User, 0)
 	for rows.Next() {
 		var user schemas.User
 		err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email)
@@ -389,7 +389,7 @@ func (d *DBImpl) GetFriends(userId string) ([]schemas.User, error) {
 	}
 	defer rows.Close()
 
-	var friends []schemas.User
+	friends := make([]schemas.User, 0)
 	for rows.Next() {
 		var friend schemas.User
 		err := rows.Scan(&friend.ID, &friend.FirstName, &friend.LastName, &friend.Email)
@@ -416,7 +416,7 @@ func (d *DBImpl) GetPendingFriendRequests(userId string) ([]schemas.User, error)
 	}
 	defer rows.Close()
 
-	var requests []schemas.User
+	requests := make([]schemas.User, 0)
 	for rows.Next() {
 		var request schemas.User
 		err := rows.Scan(&request.ID, &request.FirstName, &request.LastName, &request.Email)
@@ -443,7 +443,7 @@ func (d *DBImpl) GetOutgoingFriendRequests(userId string) ([]schemas.User, error
 	}
 	defer rows.Close()
 
-	var requests []schemas.User
+	requests := make([]schemas.User, 0)
 	for rows.Next() {
 		var request schemas.User
 		err := rows.Scan(&request.ID, &request.FirstName, &request.LastName, &request.Email)

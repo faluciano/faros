@@ -87,7 +87,7 @@ export default function Friends() {
   }, [isSignedIn, getToken]);
 
   const searchUsers = useCallback(async (query: string) => {
-    if (!query.trim() || !isSignedIn) {
+    if (!query.trim() || query.trim().length < 2 || !isSignedIn) {
       setSearchResults([]);
       setIsSearching(false);
       return;
