@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"lighthouse-backend/auth"
 	"lighthouse-backend/interfaces"
+	"lighthouse-backend/schemas"
 	"lighthouse-backend/utils"
 	"net/http"
 	"strings"
@@ -64,6 +65,9 @@ func (h *FriendsHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if users == nil {
+		users = []schemas.User{}
+	}
 	json.NewEncoder(w).Encode(users)
 }
 
@@ -91,6 +95,9 @@ func (h *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if friends == nil {
+		friends = []schemas.User{}
+	}
 	json.NewEncoder(w).Encode(friends)
 }
 
@@ -116,6 +123,9 @@ func (h *FriendsHandler) GetPendingFriendRequests(w http.ResponseWriter, r *http
 		return
 	}
 
+	if requests == nil {
+		requests = []schemas.User{}
+	}
 	json.NewEncoder(w).Encode(requests)
 }
 
@@ -141,6 +151,9 @@ func (h *FriendsHandler) GetOutgoingFriendRequests(w http.ResponseWriter, r *htt
 		return
 	}
 
+	if requests == nil {
+		requests = []schemas.User{}
+	}
 	json.NewEncoder(w).Encode(requests)
 }
 

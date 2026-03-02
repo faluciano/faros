@@ -53,7 +53,7 @@ const UserMap = () => {
         if (!token) return;
 
         const data = await fetchWithAuth(token, '/user/friends');
-        setFriends(data);
+        setFriends(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching friends:', error);
       }
@@ -121,7 +121,7 @@ const UserMap = () => {
         if (!token) return;
 
         const data = await fetchWithAuth(token, '/user/wishlist');
-        setWishlistLighthouses(data);
+        setWishlistLighthouses(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching wishlist:', error);
       } finally {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"lighthouse-backend/auth"
 	"lighthouse-backend/interfaces"
+	"lighthouse-backend/schemas"
 	"lighthouse-backend/utils"
 	"net/http"
 )
@@ -78,6 +79,9 @@ func (h *UserHandler) GetUserVisitedLighthouses(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	if lighthouses == nil {
+		lighthouses = []schemas.Lighthouse{}
+	}
 	json.NewEncoder(w).Encode(lighthouses)
 }
 
@@ -105,6 +109,9 @@ func (h *UserHandler) GetUserWishlistLighthouses(w http.ResponseWriter, r *http.
 		return
 	}
 
+	if lighthouses == nil {
+		lighthouses = []schemas.Lighthouse{}
+	}
 	json.NewEncoder(w).Encode(lighthouses)
 }
 
@@ -283,5 +290,8 @@ func (h *UserHandler) GetFriendVisitedLighthouses(w http.ResponseWriter, r *http
 		return
 	}
 
+	if lighthouses == nil {
+		lighthouses = []schemas.Lighthouse{}
+	}
 	json.NewEncoder(w).Encode(lighthouses)
 }
