@@ -132,13 +132,11 @@ func main() {
 			"http://localhost:5173",
 			"https://agreeable-pond-025c6731e.5.azurestaticapps.net",
 			"https://agreeable-pond-025c6731e.4.azurestaticapps.net",
-			"*", // Allow Swagger UI
 		},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type", "Origin", "Accept"},
-		AllowCredentials: true,
-		ExposedHeaders:   []string{"Content-Length"},
-		MaxAge:           86400,
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Authorization", "Content-Type", "Origin", "Accept"},
+		ExposedHeaders: []string{"Content-Length"},
+		MaxAge:         86400,
 	})
 
 	handler := c.Handler(mux)
