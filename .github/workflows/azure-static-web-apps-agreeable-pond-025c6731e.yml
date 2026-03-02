@@ -22,7 +22,6 @@ jobs:
       name: production
       url: ${{ steps.builddeploy.outputs.static_web_app_url }}
     env:
-      VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
       VITE_MAPTILER_API_KEY: ${{ secrets.VITE_MAPTILER_API_KEY }}
     steps:
       - uses: actions/checkout@v3
