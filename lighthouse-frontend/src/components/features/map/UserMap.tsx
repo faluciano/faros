@@ -1,28 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { Map, Marker } from "pigeon-maps";
-import { maptiler } from "pigeon-maps/providers";
+import { useState, useEffect } from "react";
+import { Map, Marker, Popup } from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { Lighthouse, User } from "../../../types";
 import { useAuth } from "../../../hooks/useAuth";
-import LighthousePopover from "../lighthouses/LighthousePopover";
+import LighthousePopoverContent from "../lighthouses/LighthousePopover";
 import { useLighthouse } from "../../../hooks/useLighthouse";
 import { fetchWithAuth } from "../../../utils/api";
-import { getLighthouseMarkerColor, MAP_DEFAULTS, FilterState, DEFAULT_FILTERS } from "../../../utils/map";
-
-const maptilerProvider = maptiler(import.meta.env.VITE_MAPTILER_API_KEY!);
-
-interface MarkerClickEvent {
-  event: React.MouseEvent;
-}
+import { getLighthouseMarkerColor, getMapTilerStyleUrl, MAP_DEFAULTS, FilterState, DEFAULT_FILTERS } from "../../../utils/map";
+import MapPin from "./MapPin";
 
 interface FriendState {
   isLoading: boolean;
   error: string | null;
   lighthouses: Lighthouse[] | null;
-}
-
-interface PopoverState {
-  lighthouse: Lighthouse | null;
-  position: { top: number; left: number; } | null;
 }
 
 const UserMap = () => {
@@ -35,10 +25,7 @@ const UserMap = () => {
     error: null,
     lighthouses: null
   });
-  const [popover, setPopover] = useState<PopoverState>({
-    lighthouse: null,
-    position: null
-  });
+  const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [wishlistLighthouses, setWishlistLighthouses] = useState<Lighthouse[]>([]);
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
@@ -132,19 +119,12 @@ const UserMap = () => {
     fetchWishlist();
   }, [isSignedIn, getToken]);
 
-  const handleMarkerClick = (
-    lighthouse: Lighthouse,
-    { event }: MarkerClickEvent
-  ) => {
-    const { clientX, clientY } = event;
-    setPopover({
-      lighthouse,
-      position: { top: clientY, left: clientX }
-    });
+  const handleMarkerClick = (lighthouse: Lighthouse) => {
+    setSelectedLighthouse(lighthouse);
   };
 
   const handleMapClick = () => {
-    setPopover({ lighthouse: null, position: null });
+    setSelectedLighthouse(null);
   };
 
   const handleVisitChange = async (lighthouseId: string, isVisited: boolean) => {
@@ -206,7 +186,7 @@ const UserMap = () => {
   const selectedFriendName = friends.find(f => f.id === selectedFriend)?.first_name;
 
   return (
-    <div onClick={handleMapClick} className="relative h-[calc(100vh-4rem)]">
+    <div className="relative h-[calc(100vh-4rem)]">
       {/* Filter Panel */}
       <div className="absolute top-4 left-4 z-10 bg-white text-black p-4 rounded-lg shadow-md">
         <h3 className="font-medium text-gray-800 mb-3">Filters</h3>
@@ -303,49 +283,73 @@ const UserMap = () => {
       </div>
 
       <Map
-        height={window.innerHeight - MAP_DEFAULTS.NAVBAR_HEIGHT}
-        width={window.innerWidth}
-        provider={maptilerProvider}
-        defaultCenter={MAP_DEFAULTS.CENTER}
-        zoom={MAP_DEFAULTS.ZOOM}
+        mapStyle={getMapTilerStyleUrl()}
+        initialViewState={{
+          latitude: MAP_DEFAULTS.CENTER.latitude,
+          longitude: MAP_DEFAULTS.CENTER.longitude,
+          zoom: MAP_DEFAULTS.ZOOM,
+        }}
+        style={{ width: "100%", height: "100%" }}
+        onClick={handleMapClick}
       >
         {/* Your lighthouses */}
         {getFilteredLighthouses().map((lighthouse) => (
           <Marker
             key={lighthouse.id}
-            anchor={[lighthouse.latitude, lighthouse.longitude]}
-            color={getLighthouseMarkerColor(lighthouse, false, isLighthouseInWishlist(lighthouse.id))}
-            onClick={(markerEvent) => {
-              markerEvent.event.stopPropagation();
-              handleMarkerClick(lighthouse, markerEvent);
-            }}
-          />
+            longitude={lighthouse.longitude}
+            latitude={lighthouse.latitude}
+          >
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkerClick(lighthouse);
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              <MapPin color={getLighthouseMarkerColor(lighthouse, false, isLighthouseInWishlist(lighthouse.id))} />
+            </div>
+          </Marker>
         ))}
 
         {/* Friend's visited lighthouses */}
         {filters.friends && selectedFriend && friendState.lighthouses?.map((lighthouse) => (
           <Marker
             key={`friend-${lighthouse.id}`}
-            anchor={[lighthouse.latitude, lighthouse.longitude]}
-            color={getLighthouseMarkerColor(lighthouse, true)}
-            onClick={(markerEvent) => {
-              markerEvent.event.stopPropagation();
-              handleMarkerClick({ ...lighthouse, isVisited: true }, markerEvent);
-            }}
-          />
+            longitude={lighthouse.longitude}
+            latitude={lighthouse.latitude}
+          >
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkerClick({ ...lighthouse, isVisited: true });
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              <MapPin color={getLighthouseMarkerColor(lighthouse, true)} />
+            </div>
+          </Marker>
         ))}
-      </Map>
 
-      {popover.lighthouse && popover.position && (
-        <LighthousePopover
-          lighthouse={popover.lighthouse}
-          position={popover.position}
-          onVisitChange={handleVisitChange}
-          onWishlistChange={handleWishlistChange}
-          isAuthenticated={isSignedIn || false}
-          isInWishlist={isLighthouseInWishlist(popover.lighthouse.id)}
-        />
-      )}
+        {selectedLighthouse && (
+          <Popup
+            longitude={selectedLighthouse.longitude}
+            latitude={selectedLighthouse.latitude}
+            anchor="bottom"
+            onClose={() => setSelectedLighthouse(null)}
+            closeButton={true}
+            closeOnClick={false}
+            maxWidth="300px"
+          >
+            <LighthousePopoverContent
+              lighthouse={selectedLighthouse}
+              onVisitChange={handleVisitChange}
+              onWishlistChange={handleWishlistChange}
+              isAuthenticated={isSignedIn || false}
+              isInWishlist={isLighthouseInWishlist(selectedLighthouse.id)}
+            />
+          </Popup>
+        )}
+      </Map>
     </div>
   );
 };

@@ -8,9 +8,8 @@ export const MARKER_COLORS = {
 } as const;
 
 export const MAP_DEFAULTS = {
-  CENTER: [39.8283, -98.5795] as [number, number],
+  CENTER: { latitude: 39.8283, longitude: -98.5795 },
   ZOOM: 4,
-  NAVBAR_HEIGHT: 64, // 4rem
 } as const;
 
 export type FilterType = 'all' | 'visited' | 'unvisited' | 'wishlist' | 'friends';
@@ -29,6 +28,9 @@ export const DEFAULT_FILTERS: FilterState = {
   friends: true,
 };
 
+export const getMapTilerStyleUrl = () =>
+  `https://api.maptiler.com/maps/streets-v2/style.json?key=${import.meta.env.VITE_MAPTILER_API_KEY}`;
+
 export const getLighthouseMarkerColor = (
   lighthouse: Lighthouse, 
   isFriendLighthouse: boolean = false,
@@ -37,4 +39,4 @@ export const getLighthouseMarkerColor = (
   if (isFriendLighthouse) return MARKER_COLORS.FRIEND;
   if (isWishlist) return MARKER_COLORS.WISHLIST;
   return lighthouse.isVisited ? MARKER_COLORS.VISITED : MARKER_COLORS.UNVISITED;
-}; 
+};

@@ -1,28 +1,24 @@
-import { useState, useRef } from "react";
-import { Map, Marker } from "pigeon-maps";
-import { maptiler } from "pigeon-maps/providers";
+import { useState } from "react";
+import { Map, Marker, Popup } from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { Lighthouse } from "../../../types";
-import LighthousePopover from "../lighthouses/LighthousePopover";
+import LighthousePopoverContent from "../lighthouses/LighthousePopover";
 import { useLighthouse } from "../../../hooks/useLighthouse";
 import { useAuth } from "../../../hooks/useAuth";
-
-const maptilerProvider = maptiler(import.meta.env.VITE_MAPTILER_API_KEY!);
+import { getMapTilerStyleUrl, MAP_DEFAULTS } from "../../../utils/map";
+import MapPin from "./MapPin";
 
 const LighthouseMap = () => {
   const { lighthouses, refetchLighthouses } = useLighthouse();
   const { isSignedIn } = useAuth();
   const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
-  const [popoverAnchor, setPopoverAnchor] = useState<[number, number] | undefined>(undefined);
-  const mapRef = useRef<Map>(null);
 
-  const handleMarkerClick = (lighthouse: Lighthouse, anchor: [number, number]) => {
+  const handleMarkerClick = (lighthouse: Lighthouse) => {
     setSelectedLighthouse(lighthouse);
-    setPopoverAnchor(anchor);
   };
 
   const handleMapClick = () => {
     setSelectedLighthouse(null);
-    setPopoverAnchor(undefined);
   };
 
   const handleVisitChange = () => {
@@ -30,29 +26,50 @@ const LighthouseMap = () => {
   };
 
   return (
-    <div style={{ position: "relative", height: 'calc(100vh - 4rem)' }}>
+    <div style={{ position: "relative", height: "calc(100vh - 4rem)" }}>
       <Map
-        ref={mapRef}
-        provider={maptilerProvider}
-        defaultCenter={[39.8283, -98.5795]}
-        defaultZoom={4}
+        mapStyle={getMapTilerStyleUrl()}
+        initialViewState={{
+          latitude: MAP_DEFAULTS.CENTER.latitude,
+          longitude: MAP_DEFAULTS.CENTER.longitude,
+          zoom: MAP_DEFAULTS.ZOOM,
+        }}
+        style={{ width: "100%", height: "100%" }}
         onClick={handleMapClick}
       >
         {lighthouses.map((lighthouse) => (
           <Marker
             key={lighthouse.id}
-            anchor={[lighthouse.latitude, lighthouse.longitude]}
-            color={lighthouse.isVisited ? "#10B981" : "#EF4444"}
-            onClick={({ anchor }) => handleMarkerClick(lighthouse, anchor)}
-          />
+            longitude={lighthouse.longitude}
+            latitude={lighthouse.latitude}
+          >
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkerClick(lighthouse);
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              <MapPin color={lighthouse.isVisited ? "#10B981" : "#EF4444"} />
+            </div>
+          </Marker>
         ))}
-        {selectedLighthouse && popoverAnchor && mapRef.current && (
-          <LighthousePopover
-            lighthouse={selectedLighthouse}
-            position={{ top: mapRef.current.latLngToPixel(popoverAnchor)[1], left: mapRef.current.latLngToPixel(popoverAnchor)[0] }}
-            onVisitChange={handleVisitChange}
-            isAuthenticated={!!isSignedIn}
-          />
+        {selectedLighthouse && (
+          <Popup
+            longitude={selectedLighthouse.longitude}
+            latitude={selectedLighthouse.latitude}
+            anchor="bottom"
+            onClose={() => setSelectedLighthouse(null)}
+            closeButton={true}
+            closeOnClick={false}
+            maxWidth="300px"
+          >
+            <LighthousePopoverContent
+              lighthouse={selectedLighthouse}
+              onVisitChange={handleVisitChange}
+              isAuthenticated={!!isSignedIn}
+            />
+          </Popup>
         )}
       </Map>
     </div>
