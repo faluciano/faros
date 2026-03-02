@@ -1,7 +1,7 @@
 export const getBaseUrl = () => {
   return import.meta.env.DEV
     ? "http://localhost:8080"
-    : "https://faros-backend.azurewebsites.net";
+    : "https://faros-backend.thankfulmoss-a3acc927.westus2.azurecontainerapps.io";
 };
 
 export const fetchWithAuth = async (token: string, endpoint: string, options: RequestInit = {}) => {
