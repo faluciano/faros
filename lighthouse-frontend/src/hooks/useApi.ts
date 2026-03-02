@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from './useAuth';
 
 type ApiFunction<T> = (token: string, ...args: unknown[]) => Promise<T>;
 
@@ -20,7 +20,7 @@ export const useApi = <T>(apiFunc: ApiFunction<T>): UseApiResult<T> => {
     setIsLoading(true);
     setError(null);
     try {
-      const token = await getToken();
+      const token = getToken();
       if (!token) {
         throw new Error("User is not authenticated.");
       }

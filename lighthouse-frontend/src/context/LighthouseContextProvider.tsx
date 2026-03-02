@@ -1,5 +1,5 @@
 import { useState, useEffect, ReactNode, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '../hooks/useAuth';
 import { Lighthouse } from '../types';
 import { useApi } from '../hooks/useApi';
 import { usePublicApi } from '../hooks/usePublicApi';

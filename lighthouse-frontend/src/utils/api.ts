@@ -1,5 +1,5 @@
 export const getBaseUrl = () => {
-  return process.env.NODE_ENV === "development"
+  return import.meta.env.DEV
     ? "http://localhost:8080"
     : "https://faros-backend.azurewebsites.net";
 };
@@ -37,5 +37,3 @@ export const removeVisitedLighthouse = (token: string, lighthouseId: string) => 
 export const getWishlist = (token: string) => fetchWithAuth(token, '/user/wishlist');
 export const addToWishlist = (token: string, lighthouseId: string) => fetchWithAuth(token, '/user/wishlist', { method: 'POST', body: JSON.stringify({ lighthouseId }) });
 export const removeFromWishlist = (token: string, lighthouseId: string) => fetchWithAuth(token, '/user/wishlist', { method: 'DELETE', body: JSON.stringify({ lighthouseId }) });
-
-export const registerUser = (token: string) => fetchWithAuth(token, '/user', { method: 'GET' });

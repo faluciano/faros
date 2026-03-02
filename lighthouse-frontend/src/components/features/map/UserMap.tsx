@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Map, Marker } from "pigeon-maps";
 import { maptiler } from "pigeon-maps/providers";
 import { Lighthouse, User } from "../../../types";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../../hooks/useAuth";
 import LighthousePopover from "../lighthouses/LighthousePopover";
 import { useLighthouse } from "../../../hooks/useLighthouse";
 import { fetchWithAuth } from "../../../utils/api";
@@ -49,7 +49,7 @@ const UserMap = () => {
       if (!isSignedIn) return;
       
       try {
-        const token = await getToken();
+        const token = getToken();
         if (!token) return;
 
         const data = await fetchWithAuth(token, '/user/friends');
@@ -69,7 +69,7 @@ const UserMap = () => {
       
       setFriendState(prev => ({ ...prev, isLoading: true, error: null }));
       try {
-        const token = await getToken();
+        const token = getToken();
         if (!token) return;
 
         const data = await fetchWithAuth(token, `/user/friends/lighthouses?friendId=${selectedFriend}`);
@@ -117,7 +117,7 @@ const UserMap = () => {
       
       setIsWishlistLoading(true);
       try {
-        const token = await getToken();
+        const token = getToken();
         if (!token) return;
 
         const data = await fetchWithAuth(token, '/user/wishlist');
@@ -154,7 +154,7 @@ const UserMap = () => {
     ));
 
     try {
-      const token = await getToken();
+      const token = getToken();
       if (!token) return;
 
       const method = isVisited ? "POST" : "DELETE";

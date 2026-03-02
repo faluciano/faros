@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '../../../hooks/useAuth';
 import { Tab } from '@headlessui/react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { User } from '../../../types';
+import { getBaseUrl } from '../../../utils/api';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
@@ -19,19 +20,11 @@ export default function Friends() {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getBaseUrl = () => {
-    let baseUrl = "https://faros-backend.azurewebsites.net";
-    if (process.env.NODE_ENV === "development") {
-      baseUrl = "http://localhost:8080";
-    }
-    return baseUrl;
-  };
-
   const fetchFriends = useCallback(async () => {
     if (!isSignedIn) return;
     
     try {
-      const token = await getToken();
+      const token = getToken();
       if (!token) return;
 
       const response = await fetch(`${getBaseUrl()}/user/friends`, {
@@ -47,13 +40,13 @@ export default function Friends() {
       console.error(err);
       setFriends([]);
     }
-  }, [getToken, isSignedIn]);
+  }, [isSignedIn, getToken]);
 
   const fetchPendingRequests = useCallback(async () => {
     if (!isSignedIn) return;
     
     try {
-      const token = await getToken();
+      const token = getToken();
       if (!token) return;
 
       const response = await fetch(`${getBaseUrl()}/user/friends/requests`, {
@@ -69,13 +62,13 @@ export default function Friends() {
       console.error(err);
       setPendingRequests([]);
     }
-  }, [getToken, isSignedIn]);
+  }, [isSignedIn, getToken]);
 
   const fetchOutgoingRequests = useCallback(async () => {
     if (!isSignedIn) return;
     
     try {
-      const token = await getToken();
+      const token = getToken();
       if (!token) return;
 
       const response = await fetch(`${getBaseUrl()}/user/friends/requests/outgoing`, {
@@ -91,7 +84,7 @@ export default function Friends() {
       console.error(err);
       setOutgoingRequests([]);
     }
-  }, [getToken, isSignedIn]);
+  }, [isSignedIn, getToken]);
 
   const searchUsers = useCallback(async (query: string) => {
     if (!query.trim() || !isSignedIn) {
@@ -104,7 +97,7 @@ export default function Friends() {
     setError(null);
     
     try {
-      const token = await getToken();
+      const token = getToken();
       if (!token) {
         setIsSearching(false);
         return;
@@ -141,13 +134,13 @@ export default function Friends() {
     } finally {
       setIsSearching(false);
     }
-  }, [getToken, isSignedIn, friends, pendingRequests, outgoingRequests]);
+  }, [isSignedIn, getToken, friends, pendingRequests, outgoingRequests]);
 
   const sendFriendRequest = async (friendId: string) => {
     if (!isSignedIn) return;
     
     try {
-      const token = await getToken();
+      const token = getToken();
       if (!token) return;
 
       const response = await fetch(`${getBaseUrl()}/user/friends/requests`, {
@@ -178,7 +171,7 @@ export default function Friends() {
     if (!isSignedIn) return;
     
     try {
-      const token = await getToken();
+      const token = getToken();
       if (!token) return;
 
       const response = await fetch(`${getBaseUrl()}/user/friends/requests/accept`, {
@@ -204,7 +197,7 @@ export default function Friends() {
     if (!isSignedIn) return;
     
     try {
-      const token = await getToken();
+      const token = getToken();
       if (!token) return;
 
       const response = await fetch(`${getBaseUrl()}/user/friends`, {

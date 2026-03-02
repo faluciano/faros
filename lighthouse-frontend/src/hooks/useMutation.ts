@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from './useAuth';
 
 type MutationFunction<T, U> = (token: string, args: T) => Promise<U>;
 
@@ -20,7 +20,7 @@ export const useMutation = <T, U>(mutationFunc: MutationFunction<T, U>): UseMuta
     setIsLoading(true);
     setError(null);
     try {
-      const token = await getToken();
+      const token = getToken();
       if (!token) {
         throw new Error("User is not authenticated.");
       }

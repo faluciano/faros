@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../../hooks/useAuth";
 import { Lighthouse } from "../../../types";
 import LighthouseList from "./LighthouseList";
 import { useApi } from "../../../hooks/useApi";

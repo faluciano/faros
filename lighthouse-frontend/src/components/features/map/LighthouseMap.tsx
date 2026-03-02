@@ -4,7 +4,7 @@ import { maptiler } from "pigeon-maps/providers";
 import { Lighthouse } from "../../../types";
 import LighthousePopover from "../lighthouses/LighthousePopover";
 import { useLighthouse } from "../../../hooks/useLighthouse";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../../hooks/useAuth";
 
 const maptilerProvider = maptiler(import.meta.env.VITE_MAPTILER_API_KEY!);
 

@@ -1,11 +1,11 @@
-import { SignedIn, SignedOut, SignInButton, useAuth, UserButton } from "@clerk/clerk-react";
+import { useAuth } from "../../hooks/useAuth";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 
 import Logo from "../../assets/faros-logo.png";
 
 const Navbar = () => {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -104,14 +104,26 @@ const Navbar = () => {
 
           {/* Auth Buttons */}
           <div className="flex items-center z-10">
-            <SignedOut>
-              <div className="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium">
-                <SignInButton />
+            {!isSignedIn ? (
+              <Link
+                to="/login"
+                className="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
+              >
+                Sign In
+              </Link>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <span className="text-gray-300 text-sm font-medium hidden sm:block">
+                  {user?.first_name} {user?.last_name}
+                </span>
+                <button
+                  onClick={logout}
+                  className="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
+                >
+                  Sign Out
+                </button>
               </div>
-            </SignedOut>
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
+            )}
           </div>
         </div>
 
