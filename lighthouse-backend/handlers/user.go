@@ -2,15 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
+	"lighthouse-backend/auth"
 	"lighthouse-backend/interfaces"
-	"lighthouse-backend/schemas"
 	"lighthouse-backend/utils"
 	"net/http"
-	"os"
-
-	"github.com/clerk/clerk-sdk-go/v2"
-	"github.com/clerk/clerk-sdk-go/v2/user"
 )
 
 // UserHandler handles user-related requests
@@ -28,20 +23,6 @@ type VisitRequest struct {
 	LighthouseId string `json:"lighthouseId"`
 }
 
-// @Summary     Initialize Clerk authentication
-// @Description Initialize the Clerk authentication service
-// @Tags        auth
-// @Success     200
-// @Failure     500 {object} map[string]string
-func InitClerk() error {
-	clerkToken := os.Getenv("CLERK_AUTH_TOKEN")
-	if clerkToken == "" {
-		return fmt.Errorf("CLERK_AUTH_TOKEN must be set")
-	}
-	clerk.SetKey(clerkToken)
-	return nil
-}
-
 // @Summary     Get current user
 // @Description Get the current authenticated user's information
 // @Tags        users
@@ -54,39 +35,23 @@ func InitClerk() error {
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	clerkUser, err := user.Get(ctx, claims.Subject)
+	user, err := h.db.GetUser(userID)
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve user from Clerk")
+		utils.WriteError(w, http.StatusInternalServerError, "failed to retrieve user")
 		return
 	}
-
-	if clerkUser == nil {
+	if user == nil {
 		utils.WriteError(w, http.StatusNotFound, "user not found")
 		return
 	}
 
-	// Create or update user in our database
-	dbUser := schemas.User{
-		ID:        clerkUser.ID,
-		FirstName: *clerkUser.FirstName,
-		LastName:  *clerkUser.LastName,
-		Email:     clerkUser.EmailAddresses[0].EmailAddress,
-	}
-
-	if err := h.db.CreateUser(dbUser); err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, "failed to save user")
-		return
-	}
-
-	// Return the user data
-	json.NewEncoder(w).Encode(dbUser)
+	json.NewEncoder(w).Encode(user)
 }
 
 // @Summary     Get user's visited lighthouses
@@ -101,14 +66,13 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) GetUserVisitedLighthouses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	lighthouses, err := h.db.GetUserVisitedLighthouses(claims.Subject)
+	lighthouses, err := h.db.GetUserVisitedLighthouses(userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve visited lighthouses")
 		return
@@ -129,14 +93,13 @@ func (h *UserHandler) GetUserVisitedLighthouses(w http.ResponseWriter, r *http.R
 func (h *UserHandler) GetUserWishlistLighthouses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	lighthouses, err := h.db.GetUserWishlistLighthouses(claims.Subject)
+	lighthouses, err := h.db.GetUserWishlistLighthouses(userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve wishlist")
 		return
@@ -160,9 +123,8 @@ func (h *UserHandler) GetUserWishlistLighthouses(w http.ResponseWriter, r *http.
 func (h *UserHandler) AddToWishlist(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
@@ -173,7 +135,7 @@ func (h *UserHandler) AddToWishlist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.db.AddToWishlist(claims.Subject, req.LighthouseId); err != nil {
+	if err := h.db.AddToWishlist(userID, req.LighthouseId); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to add to wishlist")
 		return
 	}
@@ -196,9 +158,8 @@ func (h *UserHandler) AddToWishlist(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) RemoveFromWishlist(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
@@ -209,7 +170,7 @@ func (h *UserHandler) RemoveFromWishlist(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.db.RemoveFromWishlist(claims.Subject, req.LighthouseId); err != nil {
+	if err := h.db.RemoveFromWishlist(userID, req.LighthouseId); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to remove from wishlist")
 		return
 	}
@@ -232,9 +193,8 @@ func (h *UserHandler) RemoveFromWishlist(w http.ResponseWriter, r *http.Request)
 func (h *UserHandler) MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
@@ -245,13 +205,13 @@ func (h *UserHandler) MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := h.db.MarkLighthouseAsVisited(claims.Subject, req.LighthouseId); err != nil {
+	if err := h.db.MarkLighthouseAsVisited(userID, req.LighthouseId); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to mark as visited")
 		return
 	}
 
 	// When marking as visited, remove from wishlist if it exists there
-	_ = h.db.RemoveFromWishlist(claims.Subject, req.LighthouseId)
+	_ = h.db.RemoveFromWishlist(userID, req.LighthouseId)
 
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
@@ -271,9 +231,8 @@ func (h *UserHandler) MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Req
 func (h *UserHandler) UnmarkLighthouseAsVisited(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
@@ -284,7 +243,7 @@ func (h *UserHandler) UnmarkLighthouseAsVisited(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := h.db.UnmarkLighthouseAsVisited(claims.Subject, req.LighthouseId); err != nil {
+	if err := h.db.UnmarkLighthouseAsVisited(userID, req.LighthouseId); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to unmark as visited")
 		return
 	}
@@ -306,9 +265,8 @@ func (h *UserHandler) UnmarkLighthouseAsVisited(w http.ResponseWriter, r *http.R
 func (h *UserHandler) GetFriendVisitedLighthouses(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
@@ -319,7 +277,7 @@ func (h *UserHandler) GetFriendVisitedLighthouses(w http.ResponseWriter, r *http
 		return
 	}
 
-	lighthouses, err := h.db.GetFriendVisitedLighthouses(claims.Subject, friendId)
+	lighthouses, err := h.db.GetFriendVisitedLighthouses(userID, friendId)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve friend visited lighthouses")
 		return

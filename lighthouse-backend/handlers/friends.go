@@ -2,12 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"lighthouse-backend/auth"
 	"lighthouse-backend/interfaces"
 	"lighthouse-backend/utils"
 	"net/http"
 	"strings"
-
-	clerk "github.com/clerk/clerk-sdk-go/v2"
 )
 
 // FriendsHandler handles friend-related requests
@@ -53,14 +52,13 @@ func (h *FriendsHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	users, err := h.db.SearchUsers(strings.ToLower(query), claims.Subject)
+	users, err := h.db.SearchUsers(strings.ToLower(query), userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to search users")
 		return
@@ -81,14 +79,13 @@ func (h *FriendsHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 func (h *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	friends, err := h.db.GetFriends(claims.Subject)
+	friends, err := h.db.GetFriends(userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve friends")
 		return
@@ -107,14 +104,13 @@ func (h *FriendsHandler) GetFriends(w http.ResponseWriter, r *http.Request) {
 // @Failure     500 {object} map[string]string
 // @Router      /user/friends/requests [get]
 func (h *FriendsHandler) GetPendingFriendRequests(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	requests, err := h.db.GetPendingFriendRequests(claims.Subject)
+	requests, err := h.db.GetPendingFriendRequests(userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve pending friend requests")
 		return
@@ -133,14 +129,13 @@ func (h *FriendsHandler) GetPendingFriendRequests(w http.ResponseWriter, r *http
 // @Failure     500 {object} map[string]string
 // @Router      /user/friends/requests/outgoing [get]
 func (h *FriendsHandler) GetOutgoingFriendRequests(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	requests, err := h.db.GetOutgoingFriendRequests(claims.Subject)
+	requests, err := h.db.GetOutgoingFriendRequests(userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve outgoing friend requests")
 		return
@@ -164,9 +159,8 @@ func (h *FriendsHandler) GetOutgoingFriendRequests(w http.ResponseWriter, r *htt
 func (h *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
@@ -177,7 +171,7 @@ func (h *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.db.SendFriendRequest(claims.Subject, req.FriendId); err != nil {
+	if err := h.db.SendFriendRequest(userID, req.FriendId); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to send friend request")
 		return
 	}
@@ -200,9 +194,8 @@ func (h *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Reques
 func (h *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
@@ -213,7 +206,7 @@ func (h *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.db.AcceptFriendRequest(claims.Subject, req.FriendId); err != nil {
+	if err := h.db.AcceptFriendRequest(userID, req.FriendId); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to accept friend request")
 		return
 	}
@@ -236,9 +229,8 @@ func (h *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Requ
 func (h *FriendsHandler) RemoveFriend(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	ctx := r.Context()
-	claims, ok := clerk.SessionClaimsFromContext(ctx)
-	if !ok {
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
@@ -249,7 +241,7 @@ func (h *FriendsHandler) RemoveFriend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.db.RemoveFriend(claims.Subject, req.FriendId); err != nil {
+	if err := h.db.RemoveFriend(userID, req.FriendId); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to remove friend")
 		return
 	}
