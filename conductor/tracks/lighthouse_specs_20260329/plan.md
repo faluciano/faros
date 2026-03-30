@@ -30,8 +30,8 @@
     - [x] Update components to display new lighthouse specifications
 - [x] Task: Conductor - User Manual Verification 'Frontend Integration' (Protocol in workflow.md)
 
-## Phase 4: Data Population
+## Phase 4: Data Population [checkpoint: a5554ef]
 - [x] Task: Populate Lighthouse Metadata (31b94cd)
     - [x] Create a script to populate height, year, and characteristics for existing lighthouses
     - [x] Execute the population script on the database
-- [~] Task: Conductor - User Manual Verification 'Data Population' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Data Population' (Protocol in workflow.md)
