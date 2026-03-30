@@ -30,6 +30,22 @@ export const getLighthouses = async () => {
   return response.json();
 };
 
+export const getLighthousesSummary = async () => {
+  const response = await fetch(`${getBaseUrl()}/api/lighthouses?summary=true`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch lighthouse summaries');
+  }
+  return response.json();
+};
+
+export const getLighthouseByID = async (id: string) => {
+  const response = await fetch(`${getBaseUrl()}/api/lighthouses/${id}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch lighthouse details');
+  }
+  return response.json();
+};
+
 export const getVisitedLighthouses = (token: string) => fetchWithAuth(token, '/user/lighthouses');
 export const addVisitedLighthouse = (token: string, lighthouseId: string) => fetchWithAuth(token, '/user/lighthouses', { method: 'POST', body: JSON.stringify({ lighthouseId }) });
 export const removeVisitedLighthouse = (token: string, lighthouseId: string) => fetchWithAuth(token, '/user/lighthouses', { method: 'DELETE', body: JSON.stringify({ lighthouseId }) });

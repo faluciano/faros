@@ -63,6 +63,30 @@ func (m *MockDB) GetLighthouses() ([]schemas.Lighthouse, error) {
 	return m.lighthouses, nil
 }
 
+// GetLighthouseByID returns a single lighthouse by its ID
+func (m *MockDB) GetLighthouseByID(id string) (*schemas.Lighthouse, error) {
+	for _, l := range m.lighthouses {
+		if l.ID == id {
+			return &l, nil
+		}
+	}
+	return nil, nil
+}
+
+// GetLighthousesSummary returns lightweight lighthouses for map rendering
+func (m *MockDB) GetLighthousesSummary() ([]schemas.LighthouseSummary, error) {
+	summaries := make([]schemas.LighthouseSummary, len(m.lighthouses))
+	for i, l := range m.lighthouses {
+		summaries[i] = schemas.LighthouseSummary{
+			ID:        l.ID,
+			Name:      l.Name,
+			Latitude:  l.Latitude,
+			Longitude: l.Longitude,
+		}
+	}
+	return summaries, nil
+}
+
 // GetLighthousesByCountry returns lighthouses filtered by country
 func (m *MockDB) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
 	var filtered []schemas.Lighthouse

@@ -26,3 +26,12 @@ type Lighthouse struct {
 	// @Description Brief historical description of the lighthouse
 	Description string `json:"description"`
 }
+
+// LighthouseSummary represents a lightweight lighthouse for map markers
+// @Description A minimal lighthouse object for high-performance map rendering
+type LighthouseSummary struct {
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}

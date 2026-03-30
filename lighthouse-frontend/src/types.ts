@@ -13,6 +13,14 @@ export interface Lighthouse {
   isVisited?: boolean;
 }
 
+export interface LighthouseSummary {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  isVisited?: boolean;
+}
+
 export interface User {
   id: string;
   first_name: string;

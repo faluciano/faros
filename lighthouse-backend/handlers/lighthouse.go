@@ -39,6 +39,17 @@ func (h *LighthouseHandler) GetLighthouses(w http.ResponseWriter, r *http.Reques
 	query := r.URL.Query()
 	country := query.Get("country")
 	state := query.Get("state")
+	summary := query.Get("summary") == "true"
+
+	if summary {
+		lighthouses, err := h.db.GetLighthousesSummary()
+		if err != nil {
+			utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve lighthouse summaries")
+			return
+		}
+		json.NewEncoder(w).Encode(lighthouses)
+		return
+	}
 
 	var lighthousesFromdb []schemas.Lighthouse
 	var err error
@@ -64,4 +75,36 @@ func (h *LighthouseHandler) GetLighthouses(w http.ResponseWriter, r *http.Reques
 	}
 
 	json.NewEncoder(w).Encode(lighthousesFromdb)
+}
+
+// @Summary     Get a single lighthouse
+// @Description Get details for a specific lighthouse by ID
+// @Tags        lighthouses
+// @Produce     json
+// @Param       id   path      string  true  "Lighthouse ID"
+// @Success     200  {object}  schemas.Lighthouse
+// @Failure     404  {object}  map[string]string
+// @Failure     500  {object}  map[string]string
+// @Router      /api/lighthouses/{id} [get]
+func (h *LighthouseHandler) GetLighthouseByID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	id := r.PathValue("id")
+	if id == "" {
+		utils.WriteError(w, http.StatusBadRequest, "ID is required")
+		return
+	}
+
+	lighthouse, err := h.db.GetLighthouseByID(id)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to retrieve lighthouse")
+		return
+	}
+
+	if lighthouse == nil {
+		utils.WriteError(w, http.StatusNotFound, "Lighthouse not found")
+		return
+	}
+
+	json.NewEncoder(w).Encode(lighthouse)
 }

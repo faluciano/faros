@@ -97,6 +97,7 @@ func main() {
 
 	// Public routes
 	mux.HandleFunc("GET /api/lighthouses", lighthouseHandler.GetLighthouses)
+	mux.HandleFunc("GET /api/lighthouses/{id}", lighthouseHandler.GetLighthouseByID)
 
 	// Auth routes
 	mux.HandleFunc("POST /auth/register", authHandler.Register)

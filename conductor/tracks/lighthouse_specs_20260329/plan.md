@@ -44,3 +44,10 @@
     - [x] Update population script to handle the full dataset
     - [x] Execute the full population on the database
 - [x] Task: Conductor - User Manual Verification 'Full Population' (Protocol in workflow.md)
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions (8007111 and subsequent)
+    - [x] Optimize API with summary and detail endpoints
+    - [x] Optimize Frontend Map with clustering and GeoJSON layers
+    - [x] Restore persistent backend unit tests
+

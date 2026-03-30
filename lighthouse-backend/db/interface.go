@@ -38,6 +38,43 @@ func (d *DBImpl) GetLighthouses() ([]schemas.Lighthouse, error) {
 	return lighthouses, nil
 }
 
+// GetLighthouseByID returns a single lighthouse by its ID
+func (d *DBImpl) GetLighthouseByID(id string) (*schemas.Lighthouse, error) {
+	var l schemas.Lighthouse
+	err := d.db.QueryRow(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description FROM lighthouses WHERE id = ?`, id).
+		Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &l, nil
+}
+
+// GetLighthousesSummary returns lightweight lighthouses for map rendering
+func (d *DBImpl) GetLighthousesSummary() ([]schemas.LighthouseSummary, error) {
+	rows, err := d.db.Query(`SELECT id, name, latitude, longitude FROM lighthouses`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	lighthouses := make([]schemas.LighthouseSummary, 0)
+	for rows.Next() {
+		var l schemas.LighthouseSummary
+		if err := rows.Scan(&l.ID, &l.Name, &l.Latitude, &l.Longitude); err != nil {
+			return nil, err
+		}
+		lighthouses = append(lighthouses, l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return lighthouses, nil
+}
+
 // GetLighthousesByCountry returns lighthouses filtered by country
 func (d *DBImpl) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
 	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description FROM lighthouses WHERE country = ?`, country)

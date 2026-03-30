@@ -6,6 +6,8 @@ import "lighthouse-backend/schemas"
 type DBInterface interface {
 	// Lighthouse operations
 	GetLighthouses() ([]schemas.Lighthouse, error)
+	GetLighthouseByID(id string) (*schemas.Lighthouse, error)
+	GetLighthousesSummary() ([]schemas.LighthouseSummary, error)
 	GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error)
 	GetLighthousesByState(state string) ([]schemas.Lighthouse, error)
 	GetLighthousesByCountryAndState(country string, state string) ([]schemas.Lighthouse, error)
