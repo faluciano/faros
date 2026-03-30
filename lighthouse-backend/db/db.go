@@ -44,6 +44,19 @@ func InitDB() (*sql.DB, error) {
 
 func createAllTables(db *sql.DB) error {
 	queries := []string{
+		`CREATE TABLE IF NOT EXISTS lighthouses (
+			id TEXT PRIMARY KEY,
+			name TEXT,
+			country TEXT,
+			state TEXT,
+			latitude REAL,
+			longitude REAL,
+			image TEXT,
+			height REAL,
+			year_built INTEGER,
+			light_characteristics TEXT,
+			description TEXT
+		);`,
 		`CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
 			first_name TEXT,
