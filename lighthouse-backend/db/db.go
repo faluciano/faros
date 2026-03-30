@@ -24,7 +24,9 @@ func InitDB() (*sql.DB, error) {
 		}
 	} else {
 		// Local console setup: Use a local SQLite file
-		db, err = sql.Open("libsql", "lighthouse.db")
+		dbPath := "file:lighthouse.db"
+		log.Printf("Opening local database at: %s", dbPath)
+		db, err = sql.Open("libsql", dbPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open local database: %w", err)
 		}

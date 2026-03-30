@@ -35,3 +35,12 @@
     - [x] Create a script to populate height, year, and characteristics for existing lighthouses
     - [x] Execute the population script on the database
 - [x] Task: Conductor - User Manual Verification 'Data Population' (Protocol in workflow.md)
+
+## Phase 5: Full Data Sourcing and Population [checkpoint: 568b174]
+- [x] Task: Sourcing Lighthouse Dataset (568b174)
+    - [x] Identify a comprehensive global lighthouse dataset (CSV/JSON/API)
+    - [x] Prepare the dataset for import (mapping fields to our schema)
+- [x] Task: Full Data Import (568b174)
+    - [x] Update population script to handle the full dataset
+    - [x] Execute the full population on the database
+- [x] Task: Conductor - User Manual Verification 'Full Population' (Protocol in workflow.md)

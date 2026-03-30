@@ -28,10 +28,16 @@ func (d *DBImpl) GetLighthouses() ([]schemas.Lighthouse, error) {
 	for rows.Next() {
 		var l schemas.Lighthouse
 		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description); err != nil {
+			log.Printf("Error scanning lighthouse row: %v", err)
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
 	}
+	if err := rows.Err(); err != nil {
+		log.Printf("Error during rows iteration: %v", err)
+		return nil, err
+	}
+	log.Printf("Successfully retrieved %d lighthouses", len(lighthouses))
 	return lighthouses, nil
 }
 
@@ -47,10 +53,16 @@ func (d *DBImpl) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, 
 	for rows.Next() {
 		var l schemas.Lighthouse
 		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description); err != nil {
+			log.Printf("Error scanning lighthouse row: %v", err)
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
 	}
+	if err := rows.Err(); err != nil {
+		log.Printf("Error during rows iteration: %v", err)
+		return nil, err
+	}
+	log.Printf("Successfully retrieved %d lighthouses", len(lighthouses))
 	return lighthouses, nil
 }
 
@@ -66,10 +78,16 @@ func (d *DBImpl) GetLighthousesByState(state string) ([]schemas.Lighthouse, erro
 	for rows.Next() {
 		var l schemas.Lighthouse
 		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description); err != nil {
+			log.Printf("Error scanning lighthouse row: %v", err)
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
 	}
+	if err := rows.Err(); err != nil {
+		log.Printf("Error during rows iteration: %v", err)
+		return nil, err
+	}
+	log.Printf("Successfully retrieved %d lighthouses", len(lighthouses))
 	return lighthouses, nil
 }
 
@@ -85,10 +103,16 @@ func (d *DBImpl) GetLighthousesByCountryAndState(country string, state string) (
 	for rows.Next() {
 		var l schemas.Lighthouse
 		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description); err != nil {
+			log.Printf("Error scanning lighthouse row: %v", err)
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
 	}
+	if err := rows.Err(); err != nil {
+		log.Printf("Error during rows iteration: %v", err)
+		return nil, err
+	}
+	log.Printf("Successfully retrieved %d lighthouses", len(lighthouses))
 	return lighthouses, nil
 }
 
