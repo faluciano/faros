@@ -51,3 +51,11 @@
     - [x] Optimize Frontend Map with clustering and GeoJSON layers
     - [x] Restore persistent backend unit tests
 
+## Phase 6: Image Sourcing
+- [x] Task: Integrate Wikimedia Commons API (7693630 and subsequent)
+    - [x] Create a script to fetch image URLs from Wikimedia Commons based on lighthouse names
+    - [x] Update population script to prioritize real images over placeholders
+- [x] Task: Execute Image Sourcing (7693630 and subsequent)
+    - [x] Run the sourcing script (handling rate limits)
+    - [x] Verify image coverage in the database
+- [x] Task: Conductor - User Manual Verification 'Image Sourcing' (Protocol in workflow.md)
