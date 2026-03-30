@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useMemo, useRef } from "react";
-import { Map, Source, Layer, Popup, MapRef } from "react-map-gl/maplibre";
+import { Map, Source, Layer, Popup, MapRef, CircleLayerSpecification, SymbolLayerSpecification, MapLayerMouseEvent } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Lighthouse } from "../../../types";
 import LighthousePopoverContent from "../lighthouses/LighthousePopover";
@@ -9,9 +8,10 @@ import { useAuth } from "../../../hooks/useAuth";
 import { getMapTilerStyleUrl, MAP_DEFAULTS } from "../../../utils/map";
 import { isWebGLSupported } from "../../../utils/webgl";
 import { getLighthouseByID } from "../../../utils/api";
-import { FeatureCollection } from "geojson";
+import { FeatureCollection, Point } from "geojson";
+import { GeoJSONSource } from "maplibre-gl";
 
-const clusterLayer: any = {
+const clusterLayer: CircleLayerSpecification = {
   id: 'clusters',
   type: 'circle',
   source: 'lighthouses',
@@ -22,7 +22,7 @@ const clusterLayer: any = {
   }
 };
 
-const clusterCountLayer: any = {
+const clusterCountLayer: SymbolLayerSpecification = {
   id: 'cluster-count',
   type: 'symbol',
   source: 'lighthouses',
@@ -34,7 +34,7 @@ const clusterCountLayer: any = {
   }
 };
 
-const unclusteredPointLayer: any = {
+const unclusteredPointLayer: CircleLayerSpecification = {
   id: 'unclustered-point',
   type: 'circle',
   source: 'lighthouses',
@@ -86,7 +86,7 @@ const LighthouseMap = () => {
     );
   }
 
-  const handleMapClick = async (event: any) => {
+  const handleMapClick = async (event: MapLayerMouseEvent) => {
     const feature = event.features?.[0];
     if (feature && feature.layer.id === 'unclustered-point') {
       const id = feature.properties?.id;
@@ -106,14 +106,17 @@ const LighthouseMap = () => {
         const clusterId = feature.properties?.cluster_id;
         const map = mapRef.current?.getMap();
         if (map) {
-            const source: any = map.getSource('lighthouses');
-            source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
-                if (err) return;
-                map.easeTo({
-                    center: (feature.geometry as any).coordinates,
-                    zoom: zoom
+            const source = map.getSource('lighthouses') as GeoJSONSource;
+            if (source) {
+                source.getClusterExpansionZoom(clusterId).then((zoom) => {
+                    map.easeTo({
+                        center: (feature.geometry as Point).coordinates as [number, number],
+                        zoom: zoom
+                    });
+                }).catch(err => {
+                    console.error("Failed to get cluster expansion zoom:", err);
                 });
-            });
+            }
         }
     } else {
       setSelectedLighthouse(null);
@@ -141,7 +144,7 @@ const LighthouseMap = () => {
         <Source
           id="lighthouses"
           type="geojson"
-          data={geojson as any}
+          data={geojson}
           cluster={true}
           clusterMaxZoom={14}
           clusterRadius={50}
