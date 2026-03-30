@@ -99,7 +99,7 @@ func createAllTables(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_lighthouses_country_state ON lighthouses(country, state);`,
 		`CREATE INDEX IF NOT EXISTS idx_lighthouses_lat_long ON lighthouses(latitude, longitude);`,
 		`CREATE INDEX IF NOT EXISTS idx_lighthouses_source ON lighthouses(source);`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);`,,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);`,
 	}
 
 	for _, query := range queries {

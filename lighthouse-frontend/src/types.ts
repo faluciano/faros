@@ -18,6 +18,9 @@ export interface LighthouseSummary {
   name: string;
   latitude: number;
   longitude: number;
+  image: string;
+  state: string;
+  country: string;
   isVisited?: boolean;
 }
 

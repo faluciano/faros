@@ -55,7 +55,7 @@ func (d *DBImpl) GetLighthouseByID(id string) (*schemas.Lighthouse, error) {
 
 // GetLighthousesSummary returns lightweight lighthouses for map rendering
 func (d *DBImpl) GetLighthousesSummary() ([]schemas.LighthouseSummary, error) {
-	rows, err := d.db.Query(`SELECT id, name, latitude, longitude FROM lighthouses`)
+	rows, err := d.db.Query(`SELECT id, name, latitude, longitude, image, state, country FROM lighthouses`)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (d *DBImpl) GetLighthousesSummary() ([]schemas.LighthouseSummary, error) {
 	lighthouses := make([]schemas.LighthouseSummary, 0)
 	for rows.Next() {
 		var l schemas.LighthouseSummary
-		if err := rows.Scan(&l.ID, &l.Name, &l.Latitude, &l.Longitude); err != nil {
+		if err := rows.Scan(&l.ID, &l.Name, &l.Latitude, &l.Longitude, &l.Image, &l.State, &l.Country); err != nil {
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)

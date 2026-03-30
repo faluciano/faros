@@ -103,7 +103,7 @@ func TestDBImplGetLighthousesSummary(t *testing.T) {
 		description TEXT
 	)`)
 	
-	_, err = db_f.Exec(`INSERT INTO lighthouses (id, name, latitude, longitude) VALUES (?, ?, ?, ?)`, "1", "LH 1", 10.0, 20.0)
+	_, err = db_f.Exec(`INSERT INTO lighthouses (id, name, latitude, longitude, image, state, country) VALUES (?, ?, ?, ?, ?, ?, ?)`, "1", "LH 1", 10.0, 20.0, "img.jpg", "FL", "USA")
 
 	d := NewDB(db_f)
 	summaries, err := d.GetLighthousesSummary()

@@ -82,6 +82,9 @@ func (m *MockDB) GetLighthousesSummary() ([]schemas.LighthouseSummary, error) {
 			Name:      l.Name,
 			Latitude:  l.Latitude,
 			Longitude: l.Longitude,
+			Image:     l.Image,
+			State:     l.State,
+			Country:   l.Country,
 		}
 	}
 	return summaries, nil
