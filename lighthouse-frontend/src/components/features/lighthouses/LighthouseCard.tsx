@@ -38,6 +38,22 @@ const LighthouseCard = ({ lighthouse }: { lighthouse: Lighthouse }) => {
             <div className="p-4">
                 <h2 className="text-xl font-semibold text-gray-900">{lighthouse.name}</h2>
                 <p className="text-gray-600">{lighthouse.state}, {lighthouse.country}</p>
+                
+                <div className="mt-2 text-sm text-gray-500 grid grid-cols-2 gap-x-4">
+                    {lighthouse.height > 0 && <p><span className="font-medium">Height:</span> {lighthouse.height}m</p>}
+                    {lighthouse.year_built > 0 && <p><span className="font-medium">Built:</span> {lighthouse.year_built}</p>}
+                </div>
+                {lighthouse.light_characteristics && (
+                    <p className="mt-1 text-sm text-gray-500">
+                        <span className="font-medium">Light:</span> {lighthouse.light_characteristics}
+                    </p>
+                )}
+                {lighthouse.description && (
+                    <p className="mt-2 text-sm text-gray-600 line-clamp-2 italic">
+                        "{lighthouse.description}"
+                    </p>
+                )}
+
                 <div className="mt-4">
                     <button
                         onClick={handleToggleVisit}

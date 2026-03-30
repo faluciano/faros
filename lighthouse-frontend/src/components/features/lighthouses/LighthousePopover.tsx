@@ -77,8 +77,21 @@ const LighthousePopoverContent = ({
         className="w-full h-32 object-cover rounded-md"
       />
       <div className="text-sm text-gray-600">
-        <p>{lighthouse.state}</p>
-        <p>{lighthouse.country}</p>
+        <p>{lighthouse.state}, {lighthouse.country}</p>
+        <div className="mt-2 grid grid-cols-2 gap-x-4 border-t border-gray-100 pt-2">
+            {lighthouse.height > 0 && <p><span className="font-medium text-gray-900">Height:</span> {lighthouse.height}m</p>}
+            {lighthouse.year_built > 0 && <p><span className="font-medium text-gray-900">Built:</span> {lighthouse.year_built}</p>}
+        </div>
+        {lighthouse.light_characteristics && (
+            <p className="mt-1">
+                <span className="font-medium text-gray-900">Light:</span> {lighthouse.light_characteristics}
+            </p>
+        )}
+        {lighthouse.description && (
+            <p className="mt-2 italic text-gray-700">
+                {lighthouse.description}
+            </p>
+        )}
       </div>
       {isAuthenticated && (
         <div className="flex flex-col gap-2">
