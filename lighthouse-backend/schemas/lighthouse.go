@@ -17,4 +17,12 @@ type Lighthouse struct {
 	State string `json:"state"`
 	// @Description Country where the lighthouse is located
 	Country string `json:"country"`
+	// @Description Height of the lighthouse in meters
+	Height float64 `json:"height"`
+	// @Description Year the lighthouse was built
+	YearBuilt int `json:"year_built"`
+	// @Description Characteristics of the lighthouse's light
+	LightCharacteristics string `json:"light_characteristics"`
+	// @Description Brief historical description of the lighthouse
+	Description string `json:"description"`
 }
