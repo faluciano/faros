@@ -6,6 +6,10 @@ export interface Lighthouse {
   image: string;
   state: string;
   country: string;
+  height: number;
+  year_built: number;
+  light_characteristics: string;
+  description: string;
   isVisited?: boolean;
 }
 
