@@ -94,5 +94,11 @@ func createAllTables(db *sql.DB) error {
 	// Add password_hash column to existing tables (ignore error if column already exists)
 	_, _ = db.Exec("ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT ''")
 
+	// Add new columns to lighthouses table (ignore error if columns already exist)
+	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN height REAL DEFAULT 0")
+	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN year_built INTEGER DEFAULT 0")
+	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN light_characteristics TEXT DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN description TEXT DEFAULT ''")
+
 	return nil
 }
