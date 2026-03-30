@@ -6,6 +6,10 @@
     - [x] Implement center-point calculation for building footprints
 - [x] Task: Process All Elements (33521)
     - [x] Run local test import to verify entry count (~54k raw, ~10k pruned)
+- [x] Task: Spatial Deduplication (39284)
+    - [x] Implement logic to identify lighthouses within 50m of each other
+    - [x] Merge metadata from duplicates (favoring Wikidata/Ways)
+    - [x] Preserve the best image (real photo > placeholder)
 - [x] Task: Conductor - User Manual Verification 'OSM Processing' (Protocol in workflow.md)
 
 ## Phase 2: Metadata Extraction & Image Safety
