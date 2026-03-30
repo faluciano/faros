@@ -15,12 +15,12 @@ Faros is the definitive platform for lighthouse enthusiasts and social travelers
 
 ### Current
 - Interactive global lighthouse map (using Pigeon-Maps/MapLibre).
+- Detailed Lighthouse Specifications: High-precision metadata including height, year built, light characteristics, and historical descriptions.
 - User authentication and social connections (Clerk).
 - Personal tracking and wishlist management.
 - Friend discovery and shared maps.
 
 ### Upcoming / Priority
-- **Detailed Lighthouse Specifications:** Adding rich metadata such as height, year built, light characteristics, and historical context to every lighthouse.
 - **PWA Enhancements:** Improving offline support and mobile-like experience on all devices.
 - **Future:** Lighthouse visit photo uploads and social sharing.
 
