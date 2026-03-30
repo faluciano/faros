@@ -8,6 +8,7 @@ import { useLighthouse } from "../../../hooks/useLighthouse";
 import { fetchWithAuth } from "../../../utils/api";
 import { getLighthouseMarkerColor, getMapTilerStyleUrl, MAP_DEFAULTS, FilterState, DEFAULT_FILTERS } from "../../../utils/map";
 import MapPin from "./MapPin";
+import { isWebGLSupported } from "../../../utils/webgl";
 
 interface FriendState {
   isLoading: boolean;
@@ -178,6 +179,20 @@ const UserMap = () => {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold text-gray-800">Loading lighthouses...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isWebGLSupported()) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-gray-50">
+        <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-md">
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Map Unavailable</h2>
+          <p className="text-gray-600">
+            Your browser or device does not support WebGL, which is required to display the interactive map. 
+            Please try enabling hardware acceleration in your browser settings or use a different device.
+          </p>
         </div>
       </div>
     );

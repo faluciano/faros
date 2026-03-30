@@ -7,10 +7,10 @@
 - [x] Task: Update Backend Models (fe327d5)
     - [x] Write failing tests for lighthouse struct with new fields
     - [x] Update `schemas/lighthouse.go` with new struct fields
-- [~] Task: Update Database Implementation
-    - [ ] Write failing unit tests for DB queries with new fields
-    - [ ] Update `db/interface.go` and `db/db.go` implementation
-- [ ] Task: Conductor - User Manual Verification 'Backend and Database' (Protocol in workflow.md)
+- [x] Task: Update Database Implementation (3e82e94)
+    - [x] Write failing unit tests for DB queries with new fields
+    - [x] Update `db/interface.go` and `db/db.go` implementation
+- [~] Task: Conductor - User Manual Verification 'Backend and Database' (Protocol in workflow.md)
 
 ## Phase 2: API and Documentation
 - [ ] Task: Update API Handlers
