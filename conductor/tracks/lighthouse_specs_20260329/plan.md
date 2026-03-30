@@ -1,7 +1,7 @@
 # Implementation Plan: Implement Detailed Lighthouse Specifications
 
 ## Phase 1: Backend and Database
-- [ ] Task: Update Database Schema
+- [~] Task: Update Database Schema
     - [ ] Write failing test for new columns in DB schema
     - [ ] Update SQL schema in `db/db.go`
 - [ ] Task: Update Backend Models
