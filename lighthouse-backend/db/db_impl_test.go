@@ -32,7 +32,11 @@ func TestDBImplGetLighthouses(t *testing.T) {
 		height REAL,
 		year_built INTEGER,
 		light_characteristics TEXT,
-		description TEXT
+		description TEXT,
+		source TEXT DEFAULT 'OpenStreetMap',
+		image_author TEXT DEFAULT '',
+		image_license TEXT DEFAULT '',
+		image_url TEXT DEFAULT ''
 	)`)
 	if err != nil {
 		t.Fatalf("Failed to create lighthouses table: %v", err)
@@ -51,11 +55,15 @@ func TestDBImplGetLighthouses(t *testing.T) {
 		YearBuilt:            1875,
 		LightCharacteristics: "Fl W 5s",
 		Description:          "A nice one.",
+		Source:               "Wikidata",
+		ImageAuthor:          "Photographer",
+		ImageLicense:         "CC-BY-SA",
+		ImageURL:             "https://example.com/lh1",
 	}
 	_, err = db_f.Exec(`INSERT INTO lighthouses 
-		(id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		lh.ID, lh.Name, lh.Country, lh.State, lh.Latitude, lh.Longitude, lh.Image, lh.Height, lh.YearBuilt, lh.LightCharacteristics, lh.Description)
+		(id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		lh.ID, lh.Name, lh.Country, lh.State, lh.Latitude, lh.Longitude, lh.Image, lh.Height, lh.YearBuilt, lh.LightCharacteristics, lh.Description, lh.Source, lh.ImageAuthor, lh.ImageLicense, lh.ImageURL)
 	if err != nil {
 		t.Fatalf("Failed to insert test data: %v", err)
 	}
@@ -76,6 +84,9 @@ func TestDBImplGetLighthouses(t *testing.T) {
 	}
 	if l.YearBuilt != 1875 {
 		t.Errorf("Expected year built 1875, got %d", l.YearBuilt)
+	}
+	if l.Source != "Wikidata" {
+		t.Errorf("Expected source 'Wikidata', got '%s'", l.Source)
 	}
 }
 
@@ -100,7 +111,11 @@ func TestDBImplGetLighthousesSummary(t *testing.T) {
 		height REAL,
 		year_built INTEGER,
 		light_characteristics TEXT,
-		description TEXT
+		description TEXT,
+		source TEXT DEFAULT 'OpenStreetMap',
+		image_author TEXT DEFAULT '',
+		image_license TEXT DEFAULT '',
+		image_url TEXT DEFAULT ''
 	)`)
 	
 	_, err = db_f.Exec(`INSERT INTO lighthouses (id, name, latitude, longitude, image, state, country) VALUES (?, ?, ?, ?, ?, ?, ?)`, "1", "LH 1", 10.0, 20.0, "img.jpg", "FL", "USA")

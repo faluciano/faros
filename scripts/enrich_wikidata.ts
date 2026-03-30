@@ -38,11 +38,40 @@ async function fetchWikidata(wikidataId: string) {
     const heightValue = claims.P2048?.[0]?.mainsnak?.datavalue?.value?.amount;
     const height = heightValue ? parseFloat(heightValue.replace("+", "")) : 0;
 
+    // Description fallback
+    const description = entity.descriptions?.en?.value || "";
+
     // P18: Image
     const imageName = claims.P18?.[0]?.mainsnak?.datavalue?.value;
-    const imageUrl = imageName ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(imageName)}?width=800` : null;
+    let imageUrl = null;
+    let imageAuthor = "";
+    let imageLicense = "";
+    let imagePageUrl = "";
 
-    return { year, height, description: entity.descriptions?.en?.value || "", imageUrl };
+    if (imageName) {
+      const commonsUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(imageName)}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=800&format=json&origin=*`;
+      const commonsRes = await fetch(commonsUrl, { headers: { 'User-Agent': 'FarosLighthouseBot/1.0 (https://github.com/faluciano/faros)' }});
+      const commonsData = await commonsRes.json() as any;
+      const pages = commonsData.query?.pages;
+      if (pages) {
+          const pageId = Object.keys(pages)[0];
+          const imageInfo = pages[pageId]?.imageinfo?.[0];
+          if (imageInfo) {
+              imageUrl = imageInfo.thumburl || imageInfo.url;
+              imagePageUrl = imageInfo.descriptionurl || "";
+              
+              const meta = imageInfo.extmetadata || {};
+              // Attempt to parse out HTML from artist string
+              let rawAuthor = meta.Artist?.value || "";
+              rawAuthor = rawAuthor.replace(/<[^>]*>?/gm, '').trim(); 
+              imageAuthor = rawAuthor;
+              
+              imageLicense = meta.LicenseShortName?.value || "";
+          }
+      }
+    }
+
+    return { year, height, description, imageUrl, imageAuthor, imageLicense, imagePageUrl };
   } catch (e) {
     return null;
   }
@@ -84,7 +113,7 @@ async function run() {
                 pendingUpdates.push({ id, ...info });
                 console.log(`[Pending] ${id} (${wikidataId})`);
             }
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 400));
         }
     }
 
@@ -99,10 +128,20 @@ async function run() {
                     height = CASE WHEN height = 0 THEN ? ELSE height END,
                     description = CASE WHEN description = '' THEN ? ELSE description END,
                     image = CASE WHEN image LIKE '%via.placeholder.com%' AND ? IS NOT NULL THEN ? ELSE image END,
+                    image_author = CASE WHEN image LIKE '%via.placeholder.com%' AND ? IS NOT NULL THEN ? ELSE image_author END,
+                    image_license = CASE WHEN image LIKE '%via.placeholder.com%' AND ? IS NOT NULL THEN ? ELSE image_license END,
+                    image_url = CASE WHEN image LIKE '%via.placeholder.com%' AND ? IS NOT NULL THEN ? ELSE image_url END,
                     source = 'Wikidata'
                 WHERE id = ?
             `,
-            args: [u.year, u.height, u.description, u.imageUrl, u.imageUrl, u.id]
+            args: [
+                u.year, u.height, u.description, 
+                u.imageUrl, u.imageUrl, 
+                u.imageUrl, u.imageAuthor,
+                u.imageUrl, u.imageLicense,
+                u.imageUrl, u.imagePageUrl,
+                u.id
+            ]
         }));
 
         try {

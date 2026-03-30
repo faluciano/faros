@@ -92,6 +92,21 @@ const LighthousePopoverContent = ({
                 {lighthouse.description}
             </p>
         )}
+        
+        <div className="mt-3 text-xs text-gray-400 border-t border-gray-100 pt-2">
+            <p>Data Source: {lighthouse.source}</p>
+            {lighthouse.image_author && (
+                <p>
+                    Image © {lighthouse.image_author}
+                    {lighthouse.image_license ? ` (${lighthouse.image_license})` : ''}
+                    {lighthouse.image_url && (
+                        <a href={lighthouse.image_url} target="_blank" rel="noopener noreferrer" className="ml-1 underline text-blue-400">
+                            [Original]
+                        </a>
+                    )}
+                </p>
+            )}
+        </div>
       </div>
       {isAuthenticated && (
         <div className="flex flex-col gap-2">

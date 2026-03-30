@@ -10,6 +10,10 @@ export interface Lighthouse {
   year_built: number;
   light_characteristics: string;
   description: string;
+  source: string;
+  image_author: string;
+  image_license: string;
+  image_url: string;
   isVisited?: boolean;
 }
 

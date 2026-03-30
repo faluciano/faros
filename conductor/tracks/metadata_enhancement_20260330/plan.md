@@ -32,6 +32,21 @@
 ## Phase 4: Full Cloud Population & Optimization
 - [x] Task: Database Indexing (33521)
     - [x] Add/Verify indexes on `latitude`, `longitude`, and `isVisited` for 54k scale
-- [~] Task: Execute Cloud Import
-    - [ ] Run the final population script against Turso cloud (batched)
-- [ ] Task: Conductor - User Manual Verification 'Full Population' (Protocol in workflow.md)
+- [x] Task: Execute Cloud Import (34119)
+    - [x] Run the final population script against Turso cloud (batched)
+- [x] Task: Conductor - User Manual Verification 'Full Population' (Protocol in workflow.md)
+
+## Phase 5: Advanced Image Sourcing & Legal Compliance
+- [x] Task: Image Attribution Schema (41985)
+    - [x] Add columns for `image_author`, `image_license`, and `image_url` to the database schema
+    - [x] Update frontend components (`LighthouseCard`, `LighthousePopover`) to display image attribution
+- [x] Task: Wikipedia Article Image Sourcing (42095)
+    - [x] Create script to fetch "Page Images" and attribution metadata from Wikimedia Commons API
+    - [x] Update database with high-res Wikipedia thumbnails and license info
+    - [x] **Strict Typing:** Ensure script uses interfaces and avoids `any`
+- [ ] Task: Localized Keyword Search
+    - [ ] Implement language-aware search (Phare, Faro, Leuchtturm) based on country
+    - [ ] **Error Handling:** Add robust retry/timeout logic following project standards
+- [ ] Task: Execute Advanced Sourcing
+    - [ ] Run the worker in the background and monitor logs
+- [ ] Task: Conductor - User Manual Verification 'Advanced Sourcing & Legal' (Protocol in workflow.md)

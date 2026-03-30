@@ -117,6 +117,9 @@ func createAllTables(db *sql.DB) error {
 	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN light_characteristics TEXT DEFAULT ''")
 	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN description TEXT DEFAULT ''")
 	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN source TEXT DEFAULT 'OpenStreetMap'")
+	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN image_author TEXT DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN image_license TEXT DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN image_url TEXT DEFAULT ''")
 
 	return nil
 }

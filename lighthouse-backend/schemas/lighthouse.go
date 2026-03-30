@@ -25,6 +25,14 @@ type Lighthouse struct {
 	LightCharacteristics string `json:"light_characteristics"`
 	// @Description Brief historical description of the lighthouse
 	Description string `json:"description"`
+	// @Description Original source of the lighthouse data
+	Source string `json:"source"`
+	// @Description Original author of the image
+	ImageAuthor string `json:"image_author"`
+	// @Description License of the image
+	ImageLicense string `json:"image_license"`
+	// @Description Original URL of the image page (e.g. Wikimedia Commons page)
+	ImageURL string `json:"image_url"`
 }
 
 // LighthouseSummary represents a lightweight lighthouse for map markers

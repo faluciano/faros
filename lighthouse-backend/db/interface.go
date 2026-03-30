@@ -18,7 +18,7 @@ func NewDB(db *sql.DB) interfaces.DBInterface {
 
 // GetLighthouses returns all lighthouses
 func (d *DBImpl) GetLighthouses() ([]schemas.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description FROM lighthouses`)
+	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses`)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (d *DBImpl) GetLighthouses() ([]schemas.Lighthouse, error) {
 	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description); err != nil {
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
@@ -41,8 +41,8 @@ func (d *DBImpl) GetLighthouses() ([]schemas.Lighthouse, error) {
 // GetLighthouseByID returns a single lighthouse by its ID
 func (d *DBImpl) GetLighthouseByID(id string) (*schemas.Lighthouse, error) {
 	var l schemas.Lighthouse
-	err := d.db.QueryRow(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description FROM lighthouses WHERE id = ?`, id).
-		Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description)
+	err := d.db.QueryRow(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses WHERE id = ?`, id).
+		Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -77,7 +77,7 @@ func (d *DBImpl) GetLighthousesSummary() ([]schemas.LighthouseSummary, error) {
 
 // GetLighthousesByCountry returns lighthouses filtered by country
 func (d *DBImpl) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description FROM lighthouses WHERE country = ?`, country)
+	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses WHERE country = ?`, country)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (d *DBImpl) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, 
 	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description); err != nil {
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
@@ -99,7 +99,7 @@ func (d *DBImpl) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, 
 
 // GetLighthousesByState returns lighthouses filtered by state
 func (d *DBImpl) GetLighthousesByState(state string) ([]schemas.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description FROM lighthouses WHERE state = ?`, state)
+	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses WHERE state = ?`, state)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (d *DBImpl) GetLighthousesByState(state string) ([]schemas.Lighthouse, erro
 	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description); err != nil {
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
@@ -121,7 +121,7 @@ func (d *DBImpl) GetLighthousesByState(state string) ([]schemas.Lighthouse, erro
 
 // GetLighthousesByCountryAndState returns lighthouses filtered by both country and state
 func (d *DBImpl) GetLighthousesByCountryAndState(country string, state string) ([]schemas.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description FROM lighthouses WHERE country = ? AND state = ?`, country, state)
+	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses WHERE country = ? AND state = ?`, country, state)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (d *DBImpl) GetLighthousesByCountryAndState(country string, state string) (
 	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
 		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description); err != nil {
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
@@ -196,7 +196,7 @@ func (d *DBImpl) CreateUserWithPassword(user schemas.User) error {
 
 func (d *DBImpl) GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error) {
 	query := `
-	SELECT l.id, l.country, l.state, l.name, l.latitude, l.longitude, l.image, l.height, l.year_built, l.light_characteristics, l.description
+	SELECT l.id, l.name, l.country, l.state, l.latitude, l.longitude, l.image, l.height, l.year_built, l.light_characteristics, l.description, l.source, l.image_author, l.image_license, l.image_url
 	FROM user_visited_lighthouse uvl
 	JOIN lighthouses l ON uvl.lighthouse_id = l.id
 	WHERE uvl.user_id = ?
@@ -210,11 +210,11 @@ func (d *DBImpl) GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, err
 
 	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
-		var lighthouse schemas.Lighthouse
-		if err := rows.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image, &lighthouse.Height, &lighthouse.YearBuilt, &lighthouse.LightCharacteristics, &lighthouse.Description); err != nil {
+		var l schemas.Lighthouse
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
 			return nil, err
 		}
-		lighthouses = append(lighthouses, lighthouse)
+		lighthouses = append(lighthouses, l)
 	}
 
 	return lighthouses, nil
@@ -222,7 +222,7 @@ func (d *DBImpl) GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, err
 
 func (d *DBImpl) GetUserWishlistLighthouses(id string) ([]schemas.Lighthouse, error) {
 	query := `
-	SELECT l.id, l.country, l.state, l.name, l.latitude, l.longitude, l.image
+	SELECT l.id, l.name, l.country, l.state, l.latitude, l.longitude, l.image, l.height, l.year_built, l.light_characteristics, l.description, l.source, l.image_author, l.image_license, l.image_url
 	FROM user_wishlist_lighthouse uwl
 	JOIN lighthouses l ON uwl.lighthouse_id = l.id
 	WHERE uwl.user_id = ?
@@ -236,11 +236,11 @@ func (d *DBImpl) GetUserWishlistLighthouses(id string) ([]schemas.Lighthouse, er
 
 	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
-		var lighthouse schemas.Lighthouse
-		if err := rows.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image); err != nil {
+		var l schemas.Lighthouse
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
 			return nil, err
 		}
-		lighthouses = append(lighthouses, lighthouse)
+		lighthouses = append(lighthouses, l)
 	}
 
 	return lighthouses, nil
@@ -290,7 +290,7 @@ func (d *DBImpl) UnmarkLighthouseAsVisited(userId string, lighthouseId string) e
 
 func (d *DBImpl) GetFriendVisitedLighthouses(userId string, friendId string) ([]schemas.Lighthouse, error) {
 	query := `
-	SELECT l.id, l.country, l.state, l.name, l.latitude, l.longitude, l.image, l.height, l.year_built, l.light_characteristics, l.description
+	SELECT l.id, l.name, l.country, l.state, l.latitude, l.longitude, l.image, l.height, l.year_built, l.light_characteristics, l.description, l.source, l.image_author, l.image_license, l.image_url
 	FROM user_visited_lighthouse uvl
 	JOIN lighthouses l ON uvl.lighthouse_id = l.id
 	-- This JOIN confirms friendship exists and is accepted
@@ -309,11 +309,11 @@ func (d *DBImpl) GetFriendVisitedLighthouses(userId string, friendId string) ([]
 
 	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
-		var lighthouse schemas.Lighthouse
-		if err := rows.Scan(&lighthouse.ID, &lighthouse.Country, &lighthouse.State, &lighthouse.Name, &lighthouse.Latitude, &lighthouse.Longitude, &lighthouse.Image, &lighthouse.Height, &lighthouse.YearBuilt, &lighthouse.LightCharacteristics, &lighthouse.Description); err != nil {
+		var l schemas.Lighthouse
+		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
 			return nil, err
 		}
-		lighthouses = append(lighthouses, lighthouse)
+		lighthouses = append(lighthouses, l)
 	}
 
 	return lighthouses, nil

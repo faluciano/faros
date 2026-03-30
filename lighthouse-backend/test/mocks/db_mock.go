@@ -27,6 +27,10 @@ func NewMockDB() interfaces.DBInterface {
 				YearBuilt:            1870,
 				LightCharacteristics: "Fl W 10s",
 				Description:          "A beautiful lighthouse in California.",
+				Source:               "OpenStreetMap",
+				ImageAuthor:          "User",
+				ImageLicense:         "CC0",
+				ImageURL:             "https://example.com/lh1",
 			},
 			{
 				ID:                   "2",
@@ -40,6 +44,10 @@ func NewMockDB() interfaces.DBInterface {
 				YearBuilt:            1880,
 				LightCharacteristics: "F R",
 				Description:          "A historic lighthouse in New York.",
+				Source:               "OpenStreetMap",
+				ImageAuthor:          "User",
+				ImageLicense:         "CC0",
+				ImageURL:             "https://example.com/lh2",
 			},
 			{
 				ID:                   "3",
@@ -53,6 +61,10 @@ func NewMockDB() interfaces.DBInterface {
 				YearBuilt:            1890,
 				LightCharacteristics: "Iso W 4s",
 				Description:          "A lighthouse in British Columbia.",
+				Source:               "OpenStreetMap",
+				ImageAuthor:          "User",
+				ImageLicense:         "CC0",
+				ImageURL:             "https://example.com/lh3",
 			},
 		},
 	}

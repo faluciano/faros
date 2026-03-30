@@ -36,7 +36,7 @@ async function fetchWithTimeout(url: string, options: any = {}, timeout = 10000)
   }
 }
 
-async function getGeosearchedImage(lat: number, lon: number): Promise<string | null> {
+async function getGeosearchedImage(lat: number, lon: number): Promise<{url: string, author: string, license: string, pageUrl: string} | null> {
   const geoUrl = `https://commons.wikimedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=1000&gsnamespace=6&format=json&origin=*`;
 
   try {
@@ -47,14 +47,23 @@ async function getGeosearchedImage(lat: number, lon: number): Promise<string | n
       const firstFile = geoData.query.geosearch[0];
       const pageId = firstFile.pageid;
       
-      const infoUrl = `https://commons.wikimedia.org/w/api.php?action=query&pageids=${pageId}&prop=imageinfo&iiprop=url&iiurlwidth=800&format=json&origin=*`;
+      const infoUrl = `https://commons.wikimedia.org/w/api.php?action=query&pageids=${pageId}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=800&format=json&origin=*`;
       const infoResponse = await fetchWithTimeout(infoUrl);
       const infoData = await infoResponse.json();
       
       if (infoData.query && infoData.query.pages && infoData.query.pages[pageId]) {
         const imageInfo = infoData.query.pages[pageId].imageinfo;
         if (imageInfo && imageInfo.length > 0) {
-          return imageInfo[0].thumburl || imageInfo[0].url;
+            const url = imageInfo[0].thumburl || imageInfo[0].url;
+            const pageUrl = imageInfo[0].descriptionurl || "";
+            const meta = imageInfo[0].extmetadata || {};
+            
+            let rawAuthor = meta.Artist?.value || "";
+            rawAuthor = rawAuthor.replace(/<[^>]*>?/gm, '').trim(); 
+            
+            const license = meta.LicenseShortName?.value || "";
+            
+            return { url, author: rawAuthor, license, pageUrl };
         }
       }
     }
@@ -92,12 +101,12 @@ async function run() {
       const lon = row.longitude as number;
       
       try {
-          const imageUrl = await getGeosearchedImage(lat, lon);
+          const imgData = await getGeosearchedImage(lat, lon);
           
-          if (imageUrl) {
+          if (imgData) {
             await client.execute({
-              sql: "UPDATE lighthouses SET image = ? WHERE id = ?",
-              args: [imageUrl, id]
+              sql: "UPDATE lighthouses SET image = ?, image_author = ?, image_license = ?, image_url = ? WHERE id = ?",
+              args: [imgData.url, imgData.author, imgData.license, imgData.pageUrl, id]
             });
             totalUpdated++;
             console.log(`✅ Updated: ${name}`);

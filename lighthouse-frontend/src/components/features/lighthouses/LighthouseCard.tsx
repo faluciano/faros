@@ -53,6 +53,21 @@ const LighthouseCard = ({ lighthouse }: { lighthouse: Lighthouse }) => {
                         "{lighthouse.description}"
                     </p>
                 )}
+                
+                <div className="mt-2 text-xs text-gray-400">
+                    <p>Source: {lighthouse.source}</p>
+                    {lighthouse.image_author && (
+                        <p>
+                            Image: {lighthouse.image_author} 
+                            {lighthouse.image_license ? ` (${lighthouse.image_license})` : ''}
+                            {lighthouse.image_url && (
+                                <a href={lighthouse.image_url} target="_blank" rel="noopener noreferrer" className="ml-1 underline text-blue-400">
+                                    [Link]
+                                </a>
+                            )}
+                        </p>
+                    )}
+                </div>
 
                 <div className="mt-4">
                     <button
