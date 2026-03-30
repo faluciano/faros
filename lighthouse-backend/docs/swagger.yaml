@@ -12,12 +12,52 @@ definitions:
         description: '@Description ID of the lighthouse to visit'
         type: string
     type: object
+  handlers.authResponse:
+    properties:
+      token:
+        description: '@Description JWT authentication token'
+        type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/schemas.User'
+        description: '@Description Authenticated user information'
+    type: object
+  handlers.loginRequest:
+    properties:
+      email:
+        description: '@Description User''s email address'
+        type: string
+      password:
+        description: '@Description User''s password'
+        type: string
+    type: object
+  handlers.registerRequest:
+    properties:
+      email:
+        description: '@Description User''s email address'
+        type: string
+      first_name:
+        description: '@Description User''s first name'
+        type: string
+      last_name:
+        description: '@Description User''s last name'
+        type: string
+      password:
+        description: '@Description User''s password (minimum 8 characters)'
+        type: string
+    type: object
   schemas.Lighthouse:
     description: A lighthouse with its geographical information and metadata
     properties:
       country:
         description: '@Description Country where the lighthouse is located'
         type: string
+      description:
+        description: '@Description Brief historical description of the lighthouse'
+        type: string
+      height:
+        description: '@Description Height of the lighthouse in meters'
+        type: number
       id:
         description: '@Description Unique identifier for the lighthouse'
         type: string
@@ -27,6 +67,9 @@ definitions:
       latitude:
         description: '@Description Latitude coordinate of the lighthouse'
         type: number
+      light_characteristics:
+        description: '@Description Characteristics of the lighthouse''s light'
+        type: string
       longitude:
         description: '@Description Longitude coordinate of the lighthouse'
         type: number
@@ -36,6 +79,9 @@ definitions:
       state:
         description: '@Description State or province where the lighthouse is located'
         type: string
+      year_built:
+        description: '@Description Year the lighthouse was built'
+        type: integer
     type: object
   schemas.User:
     description: A user with their basic information
@@ -69,14 +115,14 @@ info:
 paths:
   /api/lighthouses:
     get:
-      description: Get a list of all lighthouses, optionally filtered by country or
+      description: Get a list of all lighthouses, optionally filtered by country and/or
         state
       parameters:
-      - description: Filter by country
+      - description: Filter by country name
         in: query
         name: country
         type: string
-      - description: Filter by state
+      - description: Filter by state name (can be combined with country)
         in: query
         name: state
         type: string
@@ -89,6 +135,12 @@ paths:
             items:
               $ref: '#/definitions/schemas.Lighthouse'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -98,6 +150,119 @@ paths:
       summary: Get all lighthouses
       tags:
       - lighthouses
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - auth
+  /auth/me:
+    get:
+      description: Get the currently authenticated user's information (requires JWT)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.User'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get current user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account with email and password
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.registerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - auth
   /docs:
     get:
       description: Get the Swagger API documentation
