@@ -16,10 +16,10 @@
 - [x] Task: Update API Handlers (6febe51 - No logic changes needed)
     - [x] Write failing integration tests for lighthouse handlers with new fields
     - [x] Update `handlers/lighthouse.go` to handle new fields
-- [~] Task: Update API Documentation
-    - [ ] Update Swagger comments in handlers
-    - [ ] Regenerate Swagger docs (`swag init`)
-- [ ] Task: Conductor - User Manual Verification 'API and Documentation' (Protocol in workflow.md)
+- [x] Task: Update API Documentation (8848f8e)
+    - [x] Update Swagger comments in handlers
+    - [x] Regenerate Swagger docs (`swag init`)
+- [~] Task: Conductor - User Manual Verification 'API and Documentation' (Protocol in workflow.md)
 
 ## Phase 3: Frontend Integration
 - [ ] Task: Update Frontend Types and API Hooks
