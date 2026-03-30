@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useMemo, useRef } from "react";
 import { Map, Source, Layer, Popup, MapRef } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -8,6 +9,7 @@ import { useAuth } from "../../../hooks/useAuth";
 import { getMapTilerStyleUrl, MAP_DEFAULTS } from "../../../utils/map";
 import { isWebGLSupported } from "../../../utils/webgl";
 import { getLighthouseByID } from "../../../utils/api";
+import { FeatureCollection } from "geojson";
 
 const clusterLayer: any = {
   id: 'clusters',
@@ -52,7 +54,7 @@ const LighthouseMap = () => {
   const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  const geojson = useMemo(() => {
+  const geojson: FeatureCollection = useMemo(() => {
     return {
       type: 'FeatureCollection',
       features: lighthouses.map((l) => ({
@@ -87,13 +89,13 @@ const LighthouseMap = () => {
   const handleMapClick = async (event: any) => {
     const feature = event.features?.[0];
     if (feature && feature.layer.id === 'unclustered-point') {
-      const id = feature.properties.id;
+      const id = feature.properties?.id;
       setIsLoadingDetails(true);
       try {
         const details = await getLighthouseByID(id);
         setSelectedLighthouse({
             ...details,
-            isVisited: feature.properties.isVisited
+            isVisited: feature.properties?.isVisited
         });
       } catch (error) {
         console.error("Failed to fetch lighthouse details:", error);
@@ -101,14 +103,14 @@ const LighthouseMap = () => {
         setIsLoadingDetails(false);
       }
     } else if (feature && feature.layer.id === 'clusters') {
-        const clusterId = feature.properties.cluster_id;
+        const clusterId = feature.properties?.cluster_id;
         const map = mapRef.current?.getMap();
         if (map) {
             const source: any = map.getSource('lighthouses');
             source.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
                 if (err) return;
                 map.easeTo({
-                    center: feature.geometry.coordinates,
+                    center: (feature.geometry as any).coordinates,
                     zoom: zoom
                 });
             });
