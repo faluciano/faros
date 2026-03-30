@@ -18,6 +18,8 @@ Expand the dataset to include all 54,614 entries while maximizing metadata richn
 ### 3. Metadata Extraction Refinement
 - Expand tag mapping for Year Built, Height, and Description.
 - Normalization of ISO country/state codes.
+- **Improved Naming Logic:** Use `ref`, `seamark:light:reference`, or `description` as fallbacks for missing names to avoid numeric "Lighthouse 123" titles.
+- **Data Quality Pruning:** Delete entries that lack a human-friendly name unless they have a linked Wikipedia/Wikidata entry or a physical height over 5m (filtering out minor pole lights).
 
 ### 4. Performance Optimization (Scale: 54k+)
 - Ensure database indexes are optimized for global spatial queries.

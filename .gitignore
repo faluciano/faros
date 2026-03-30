@@ -1,0 +1,6 @@
+*.log
+scripts/global_lighthouses.json
+node_modules/
+bun.lock
+lighthouse.db
+.env*

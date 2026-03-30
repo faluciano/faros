@@ -4,6 +4,6 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [ ] **Track: Metadata Enhancement & Full Global Population**
+- [~] **Track: Metadata Enhancement & Full Global Population**
   *Link: [./tracks/metadata_enhancement_20260330/](./tracks/metadata_enhancement_20260330/)*
 

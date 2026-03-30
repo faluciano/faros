@@ -56,7 +56,8 @@ func createAllTables(db *sql.DB) error {
 			height REAL,
 			year_built INTEGER,
 			light_characteristics TEXT,
-			description TEXT
+			description TEXT,
+			source TEXT DEFAULT 'OpenStreetMap'
 		);`,
 		`CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
@@ -96,7 +97,9 @@ func createAllTables(db *sql.DB) error {
 		);`,
 		`CREATE INDEX IF NOT EXISTS idx_friendships_friend_id_status ON friendships(friend_id, status);`,
 		`CREATE INDEX IF NOT EXISTS idx_lighthouses_country_state ON lighthouses(country, state);`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);`,
+		`CREATE INDEX IF NOT EXISTS idx_lighthouses_lat_long ON lighthouses(latitude, longitude);`,
+		`CREATE INDEX IF NOT EXISTS idx_lighthouses_source ON lighthouses(source);`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);`,,
 	}
 
 	for _, query := range queries {
@@ -113,6 +116,7 @@ func createAllTables(db *sql.DB) error {
 	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN year_built INTEGER DEFAULT 0")
 	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN light_characteristics TEXT DEFAULT ''")
 	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN description TEXT DEFAULT ''")
+	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN source TEXT DEFAULT 'OpenStreetMap'")
 
 	return nil
 }
