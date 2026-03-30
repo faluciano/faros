@@ -25,10 +25,10 @@
 - [x] Task: Update Frontend Types and API Hooks (c6a1cbd)
     - [x] Write failing tests for lighthouse API response parsing
     - [x] Update `src/types.ts` and `src/hooks/useLighthouse.ts`
-- [~] Task: Update UI Components
-    - [ ] Write failing unit tests for `LighthouseCard` and `LighthousePopover`
-    - [ ] Update components to display new lighthouse specifications
-- [ ] Task: Conductor - User Manual Verification 'Frontend Integration' (Protocol in workflow.md)
+- [x] Task: Update UI Components (6397bea)
+    - [x] Write failing unit tests for `LighthouseCard` and `LighthousePopover`
+    - [x] Update components to display new lighthouse specifications
+- [~] Task: Conductor - User Manual Verification 'Frontend Integration' (Protocol in workflow.md)
 
 ## Phase 4: Data Population
 - [ ] Task: Populate Lighthouse Metadata
