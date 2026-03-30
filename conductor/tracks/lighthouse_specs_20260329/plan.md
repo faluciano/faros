@@ -4,10 +4,10 @@
 - [x] Task: Update Database Schema (97ae33b)
     - [x] Write failing test for new columns in DB schema
     - [x] Update SQL schema in `db/db.go`
-- [~] Task: Update Backend Models
-    - [ ] Write failing tests for lighthouse struct with new fields
-    - [ ] Update `schemas/lighthouse.go` with new struct fields
-- [ ] Task: Update Database Implementation
+- [x] Task: Update Backend Models (fe327d5)
+    - [x] Write failing tests for lighthouse struct with new fields
+    - [x] Update `schemas/lighthouse.go` with new struct fields
+- [~] Task: Update Database Implementation
     - [ ] Write failing unit tests for DB queries with new fields
     - [ ] Update `db/interface.go` and `db/db.go` implementation
 - [ ] Task: Conductor - User Manual Verification 'Backend and Database' (Protocol in workflow.md)
