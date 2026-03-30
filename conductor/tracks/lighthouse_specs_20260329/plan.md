@@ -12,20 +12,26 @@
     - [x] Update `db/interface.go` and `db/db.go` implementation
 - [x] Task: Conductor - User Manual Verification 'Backend and Database' (Protocol in workflow.md)
 
-## Phase 2: API and Documentation
+## Phase 2: API and Documentation [checkpoint: 4819231]
 - [x] Task: Update API Handlers (6febe51 - No logic changes needed)
     - [x] Write failing integration tests for lighthouse handlers with new fields
     - [x] Update `handlers/lighthouse.go` to handle new fields
 - [x] Task: Update API Documentation (8848f8e)
     - [x] Update Swagger comments in handlers
     - [x] Regenerate Swagger docs (`swag init`)
-- [~] Task: Conductor - User Manual Verification 'API and Documentation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'API and Documentation' (Protocol in workflow.md)
 
 ## Phase 3: Frontend Integration
-- [ ] Task: Update Frontend Types and API Hooks
+- [~] Task: Update Frontend Types and API Hooks
     - [ ] Write failing tests for lighthouse API response parsing
     - [ ] Update `src/types.ts` and `src/hooks/useLighthouse.ts`
 - [ ] Task: Update UI Components
     - [ ] Write failing unit tests for `LighthouseCard` and `LighthousePopover`
     - [ ] Update components to display new lighthouse specifications
 - [ ] Task: Conductor - User Manual Verification 'Frontend Integration' (Protocol in workflow.md)
+
+## Phase 4: Data Population
+- [ ] Task: Populate Lighthouse Metadata
+    - [ ] Create a script to populate height, year, and characteristics for existing lighthouses
+    - [ ] Execute the population script on the database
+- [ ] Task: Conductor - User Manual Verification 'Data Population' (Protocol in workflow.md)
