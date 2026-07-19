@@ -30,38 +30,38 @@ const LighthouseCard = ({ lighthouse }: { lighthouse: Lighthouse }) => {
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <article className="app-card-interactive overflow-hidden">
             <div
                 className="h-48 bg-cover bg-center"
                 style={{ backgroundImage: `url(${lighthouse.image})` }}
             />
-            <div className="p-4">
-                <h2 className="text-xl font-semibold text-gray-900">{lighthouse.name}</h2>
-                <p className="text-gray-600">{lighthouse.state}, {lighthouse.country}</p>
+            <div className="p-5">
+                <h2 className="font-display text-2xl font-semibold text-faros-navy">{lighthouse.name}</h2>
+                <p className="mt-1 text-faros-muted">{lighthouse.state}, {lighthouse.country}</p>
                 
-                <div className="mt-2 text-sm text-gray-500 grid grid-cols-2 gap-x-4">
-                    {lighthouse.height > 0 && <p><span className="font-medium">Height:</span> {lighthouse.height}m</p>}
-                    {lighthouse.year_built > 0 && <p><span className="font-medium">Built:</span> {lighthouse.year_built}</p>}
+                <div className="mt-3 grid grid-cols-2 gap-x-4 text-sm text-faros-muted">
+                    {lighthouse.height > 0 && <p><span className="font-semibold text-faros-ink">Height:</span> {lighthouse.height}m</p>}
+                    {lighthouse.year_built > 0 && <p><span className="font-semibold text-faros-ink">Built:</span> {lighthouse.year_built}</p>}
                 </div>
                 {lighthouse.light_characteristics && (
-                    <p className="mt-1 text-sm text-gray-500">
-                        <span className="font-medium">Light:</span> {lighthouse.light_characteristics}
+                    <p className="mt-1 text-sm text-faros-muted">
+                        <span className="font-semibold text-faros-ink">Light:</span> {lighthouse.light_characteristics}
                     </p>
                 )}
                 {lighthouse.description && (
-                    <p className="mt-2 text-sm text-gray-600 line-clamp-2 italic">
+                    <p className="mt-2 line-clamp-2 text-sm italic text-faros-ink">
                         "{lighthouse.description}"
                     </p>
                 )}
                 
-                <div className="mt-2 text-xs text-gray-400">
+                <div className="mt-3 border-t border-faros-line pt-3 text-xs text-faros-muted/80">
                     <p>Source: {lighthouse.source}</p>
                     {lighthouse.image_author && (
                         <p>
                             Image: {lighthouse.image_author} 
                             {lighthouse.image_license ? ` (${lighthouse.image_license})` : ''}
                             {lighthouse.image_url && (
-                                <a href={lighthouse.image_url} target="_blank" rel="noopener noreferrer" className="ml-1 underline text-blue-400">
+                                <a href={lighthouse.image_url} target="_blank" rel="noopener noreferrer" className="ml-1 font-semibold text-faros-teal underline">
                                     [Link]
                                 </a>
                             )}
@@ -73,10 +73,10 @@ const LighthouseCard = ({ lighthouse }: { lighthouse: Lighthouse }) => {
                     <button
                         onClick={handleToggleVisit}
                         disabled={isAdding || isRemoving}
-                        className={`w-full py-2 px-4 rounded-md text-white font-medium transition-colors ${
+                        className={`app-button w-full ${
                             isVisited
-                                ? 'bg-red-500 hover:bg-red-600'
-                                : 'bg-green-500 hover:bg-green-600'
+                                ? 'bg-faros-coral text-white hover:bg-red-700 focus:ring-faros-coral'
+                                : 'bg-faros-teal text-white hover:bg-faros-teal-dark focus:ring-faros-teal'
                         } ${(isAdding || isRemoving) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {(isAdding || isRemoving)
@@ -88,7 +88,7 @@ const LighthouseCard = ({ lighthouse }: { lighthouse: Lighthouse }) => {
                     </button>
                 </div>
             </div>
-        </div>
+        </article>
     );
 }
 

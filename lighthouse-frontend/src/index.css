@@ -2,58 +2,150 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-/* root styling */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
 
-body {
-  font-family: 'Roboto', sans-serif;
-  background-color: #000000;
-  color: #ffffff;
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    min-width: 320px;
+    background: #eef3f0;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background: #eef3f0;
+    color: #17363e;
+    font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: #b9ddd6;
+    color: #0c2d36;
+  }
 }
 
-/* header styling */
+@layer components {
+  .app-page {
+    @apply relative min-h-[calc(100vh-4rem)] overflow-hidden bg-faros-canvas px-4 py-8 text-faros-ink sm:px-6 sm:py-10 lg:px-8;
+    background-image:
+      radial-gradient(circle at 8% 8%, rgba(15, 118, 110, 0.09), transparent 28rem),
+      radial-gradient(circle at 92% 88%, rgba(212, 154, 58, 0.08), transparent 24rem);
+  }
 
-header {
-  background-color: #fff;
-  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  .app-shell {
+    @apply relative mx-auto w-full max-w-7xl;
+  }
+
+  .app-card {
+    @apply rounded-2xl border border-faros-line bg-white shadow-faros;
+  }
+
+  .app-card-interactive {
+    @apply app-card transition duration-200 hover:-translate-y-0.5 hover:border-faros-teal/30 hover:shadow-faros;
+  }
+
+  .app-panel {
+    @apply rounded-xl border border-faros-line bg-faros-sand/70;
+  }
+
+  .app-eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.22em] text-faros-teal;
+  }
+
+  .app-title {
+    @apply font-display text-4xl font-semibold tracking-tight text-faros-navy sm:text-5xl;
+  }
+
+  .app-heading {
+    @apply font-display text-2xl font-semibold tracking-tight text-faros-navy sm:text-3xl;
+  }
+
+  .app-copy {
+    @apply leading-7 text-faros-muted;
+  }
+
+  .app-label {
+    @apply mb-1.5 block text-sm font-semibold text-faros-ink;
+  }
+
+  .app-input {
+    @apply w-full rounded-xl border border-faros-line bg-white px-3.5 py-3 text-faros-navy outline-none transition placeholder:text-faros-muted/70 focus:border-faros-teal focus:ring-2 focus:ring-faros-teal/15;
+  }
+
+  .app-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .app-button-primary {
+    @apply app-button bg-faros-teal text-white shadow-lg shadow-faros-teal/15 hover:-translate-y-0.5 hover:bg-faros-teal-dark focus:ring-faros-teal disabled:hover:translate-y-0;
+  }
+
+  .app-button-secondary {
+    @apply app-button border border-faros-line bg-white text-faros-ink hover:border-faros-teal/40 hover:bg-faros-mint/45 focus:ring-faros-teal;
+  }
+
+  .app-button-danger {
+    @apply app-button bg-faros-coral text-white hover:bg-red-700 focus:ring-faros-coral;
+  }
+
+  .app-icon-tile {
+    @apply grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-faros-mint text-faros-teal;
+  }
+
+  .app-alert {
+    @apply rounded-xl border px-4 py-3 text-sm;
+  }
+
+  .app-alert-error {
+    @apply app-alert border-red-200 bg-red-50 text-red-800;
+  }
+
+  .app-alert-warning {
+    @apply app-alert border-amber-300/60 bg-amber-50 text-amber-900;
+  }
+
+  .app-segmented {
+    @apply grid rounded-xl bg-faros-canvas p-1;
+  }
+
+  .app-segment {
+    @apply rounded-lg px-4 py-2.5 text-sm font-semibold text-faros-muted transition hover:text-faros-navy;
+  }
+
+  .app-segment-active {
+    @apply bg-white text-faros-navy shadow-sm;
+  }
+
+  .app-map-panel {
+    @apply rounded-2xl border border-white/70 bg-white/95 p-4 text-faros-ink shadow-faros-sm backdrop-blur;
+  }
 }
 
-/* main styling */
-
-main {
+.maplibregl-popup-content {
+  border: 1px solid #d3ddd8;
+  border-radius: 1rem;
+  box-shadow: 0 18px 48px rgba(12, 45, 54, 0.18);
   padding: 1rem;
 }
 
-/* footer styling */
-
-footer {
-  background-color: #fff;
-  box-shadow: 0 -2px 4px 0 rgba(0, 0, 0, 0.1);
-}
-
-/* root styling */
-
-body {
-  font-family: 'Roboto', sans-serif;
-  background-color: #000000;
-  color: #ffffff;
-}
-
-/* header styling */
-
-header {
-  background-color: #fff;
-  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
-}
-
-/* main styling */
-
-main {
-  padding: 1rem;
-}
-
-/* footer styling */
-
-footer {
-  background-color: #fff;
-  box-shadow: 0 -2px 4px 0 rgba(0, 0, 0, 0.1);
+.maplibregl-popup-close-button {
+  color: #65787c;
+  font-size: 1.25rem;
+  padding: 0.35rem 0.55rem;
 }

@@ -1,10 +1,10 @@
 import { Lighthouse } from "../types";
 
 export const MARKER_COLORS = {
-  UNVISITED: "#EF4444", // Red
-  VISITED: "#10B981",   // Green
-  FRIEND: "#6366F1",    // Indigo
-  WISHLIST: "#F59E0B",  // Amber
+  UNVISITED: "#C95B54",
+  VISITED: "#0F766E",
+  FRIEND: "#0369A1",
+  WISHLIST: "#D49A3A",
 } as const;
 
 export const MAP_DEFAULTS = {

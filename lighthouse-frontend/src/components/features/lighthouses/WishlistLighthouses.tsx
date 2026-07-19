@@ -6,6 +6,7 @@ import { useApi } from "../../../hooks/useApi";
 import { useMutation } from "../../../hooks/useMutation";
 import { getWishlist, removeFromWishlist } from "../../../utils/api";
 import Error from "../../layout/Error";
+import PageState from "../../layout/PageState";
 
 const WishlistLighthouses = () => {
   const { isSignedIn } = useAuth();
@@ -31,27 +32,11 @@ const WishlistLighthouses = () => {
   };
 
   if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
-            Please sign in to view your wishlist
-          </h2>
-        </div>
-      </div>
-    );
+    return <PageState title="Sign in to view your wishlist" />;
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
-            Loading your wishlist...
-          </h2>
-        </div>
-      </div>
-    );
+    return <PageState title="Loading your wishlist..." />;
   }
 
   if (error) {

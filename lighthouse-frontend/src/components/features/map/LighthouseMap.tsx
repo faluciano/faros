@@ -10,6 +10,7 @@ import { isWebGLSupported } from "../../../utils/webgl";
 import { getLighthouseByID } from "../../../utils/api";
 import { FeatureCollection, Point } from "geojson";
 import { GeoJSONSource } from "maplibre-gl";
+import PageState from "../../layout/PageState";
 
 const clusterLayer: CircleLayerSpecification = {
   id: 'clusters',
@@ -17,7 +18,7 @@ const clusterLayer: CircleLayerSpecification = {
   source: 'lighthouses',
   filter: ['has', 'point_count'],
   paint: {
-    'circle-color': ['step', ['get', 'point_count'], '#51bbd6', 100, '#f1f075', 750, '#f28cb1'],
+    'circle-color': ['step', ['get', 'point_count'], '#0F766E', 100, '#D49A3A', 750, '#C95B54'],
     'circle-radius': ['step', ['get', 'point_count'], 20, 100, 30, 750, 40]
   }
 };
@@ -40,7 +41,7 @@ const unclusteredPointLayer: CircleLayerSpecification = {
   source: 'lighthouses',
   filter: ['!', ['has', 'point_count']],
   paint: {
-    'circle-color': ['case', ['get', 'isVisited'], '#10B981', '#EF4444'],
+    'circle-color': ['case', ['get', 'isVisited'], '#0F766E', '#C95B54'],
     'circle-radius': 6,
     'circle-stroke-width': 1,
     'circle-stroke-color': '#fff'
@@ -74,15 +75,10 @@ const LighthouseMap = () => {
 
   if (!isWebGLSupported()) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-gray-50">
-        <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-md">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Map Unavailable</h2>
-          <p className="text-gray-600">
-            Your browser or device does not support WebGL, which is required to display the interactive map. 
-            Please try enabling hardware acceleration in your browser settings or use a different device.
-          </p>
-        </div>
-      </div>
+      <PageState
+        title="Map unavailable"
+        message="Your browser or device does not support WebGL. Enable hardware acceleration or try a different device."
+      />
     );
   }
 
@@ -172,9 +168,9 @@ const LighthouseMap = () => {
           </Popup>
         )}
         {isLoadingDetails && (
-            <div className="absolute top-4 right-4 bg-white p-2 rounded shadow-md z-10">
-                Loading details...
-            </div>
+          <div className="app-map-panel absolute right-4 top-4 z-10 text-sm font-semibold">
+            Loading lighthouse details...
+          </div>
         )}
       </Map>
     </div>

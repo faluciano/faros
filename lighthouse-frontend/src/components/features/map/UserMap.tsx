@@ -9,6 +9,7 @@ import { fetchWithAuth } from "../../../utils/api";
 import { getLighthouseMarkerColor, getMapTilerStyleUrl, MAP_DEFAULTS, FilterState, DEFAULT_FILTERS } from "../../../utils/map";
 import MapPin from "./MapPin";
 import { isWebGLSupported } from "../../../utils/webgl";
+import PageState from "../../layout/PageState";
 
 interface FriendState {
   isLoading: boolean;
@@ -175,26 +176,15 @@ const UserMap = () => {
   };
 
   if (isLoading || isWishlistLoading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-gray-800">Loading lighthouses...</h2>
-        </div>
-      </div>
-    );
+    return <PageState title="Loading lighthouses..." />;
   }
 
   if (!isWebGLSupported()) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)] bg-gray-50">
-        <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-md">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Map Unavailable</h2>
-          <p className="text-gray-600">
-            Your browser or device does not support WebGL, which is required to display the interactive map. 
-            Please try enabling hardware acceleration in your browser settings or use a different device.
-          </p>
-        </div>
-      </div>
+      <PageState
+        title="Map unavailable"
+        message="Your browser or device does not support WebGL. Enable hardware acceleration or try a different device."
+      />
     );
   }
 
@@ -203,18 +193,18 @@ const UserMap = () => {
   return (
     <div className="relative h-[calc(100vh-4rem)]">
       {/* Filter Panel */}
-      <div className="absolute top-4 left-4 z-10 bg-white text-black p-4 rounded-lg shadow-md">
-        <h3 className="font-medium text-gray-800 mb-3">Filters</h3>
+      <div className="app-map-panel absolute left-3 top-3 z-10 w-40 sm:left-4 sm:top-4 sm:w-44">
+        <h3 className="mb-3 font-bold text-faros-navy">Filters</h3>
         <div className="space-y-2">
           <label className="flex items-center space-x-2">
             <input
               type="checkbox"
               checked={filters.visited}
               onChange={(e) => setFilters(prev => ({ ...prev, visited: e.target.checked }))}
-              className="rounded text-green-500 focus:ring-green-500"
+              className="rounded accent-faros-teal focus:ring-faros-teal"
             />
             <span className="text-sm flex items-center">
-              <span className="w-3 h-3 rounded-full bg-[#10B981] inline-block mr-2"></span>
+              <span className="mr-2 inline-block h-3 w-3 rounded-full bg-faros-teal"></span>
               Visited
             </span>
           </label>
@@ -223,10 +213,10 @@ const UserMap = () => {
               type="checkbox"
               checked={filters.unvisited}
               onChange={(e) => setFilters(prev => ({ ...prev, unvisited: e.target.checked }))}
-              className="rounded text-red-500 focus:ring-red-500"
+              className="rounded accent-faros-coral focus:ring-faros-coral"
             />
             <span className="text-sm flex items-center">
-              <span className="w-3 h-3 rounded-full bg-[#EF4444] inline-block mr-2"></span>
+              <span className="mr-2 inline-block h-3 w-3 rounded-full bg-faros-coral"></span>
               Not Visited
             </span>
           </label>
@@ -235,10 +225,10 @@ const UserMap = () => {
               type="checkbox"
               checked={filters.wishlist}
               onChange={(e) => setFilters(prev => ({ ...prev, wishlist: e.target.checked }))}
-              className="rounded text-amber-500 focus:ring-amber-500"
+              className="rounded accent-faros-amber focus:ring-faros-amber"
             />
             <span className="text-sm flex items-center">
-              <span className="w-3 h-3 rounded-full bg-[#F59E0B] inline-block mr-2"></span>
+              <span className="mr-2 inline-block h-3 w-3 rounded-full bg-faros-amber"></span>
               Wishlist
             </span>
           </label>
@@ -247,10 +237,10 @@ const UserMap = () => {
               type="checkbox"
               checked={filters.friends}
               onChange={(e) => setFilters(prev => ({ ...prev, friends: e.target.checked }))}
-              className="rounded text-indigo-500 focus:ring-indigo-500"
+              className="rounded accent-sky-700 focus:ring-sky-700"
             />
             <span className="text-sm flex items-center">
-              <span className="w-3 h-3 rounded-full bg-[#6366F1] inline-block mr-2"></span>
+              <span className="mr-2 inline-block h-3 w-3 rounded-full bg-sky-700"></span>
               Friend's Visited
             </span>
           </label>
@@ -258,13 +248,13 @@ const UserMap = () => {
       </div>
 
       {/* Stats Panel */}
-      <div className="absolute top-4 right-4 z-10 bg-white text-black p-4 rounded-lg shadow-md">
-        <p className="text-sm text-gray-600 mb-2">
+      <div className="app-map-panel absolute right-3 top-3 z-10 w-44 sm:right-4 sm:top-4 sm:w-64">
+        <p className="mb-2 text-sm font-semibold text-faros-muted">
           Your Visited Lighthouses: {lighthouses?.filter(l => l.isVisited)?.length || 0}
         </p>
         {friends.length > 0 && (
           <div className="mt-4">
-            <h3 className="font-medium text-gray-800 mb-2">View Friend's Lighthouses:</h3>
+            <h3 className="mb-2 font-bold text-faros-navy">View a friend&apos;s log</h3>
             <select
               value={selectedFriend || ""}
               onChange={(e) => {
@@ -273,7 +263,7 @@ const UserMap = () => {
                   setFriendState({ isLoading: false, error: null, lighthouses: null });
                 }
               }}
-              className="w-full p-2 border rounded-md"
+              className="app-input !py-2"
             >
               <option value="">Select a friend</option>
               {friends.map((friend) => (
@@ -283,13 +273,13 @@ const UserMap = () => {
               ))}
             </select>
             {friendState.isLoading && (
-              <p className="mt-2 text-sm text-gray-600">Loading friend's lighthouses...</p>
+              <p className="mt-2 text-sm text-faros-muted">Loading friend&apos;s lighthouses...</p>
             )}
             {friendState.error && (
-              <p className="mt-2 text-sm text-gray-600">{friendState.error}</p>
+              <p className="mt-2 text-sm text-faros-muted">{friendState.error}</p>
             )}
             {selectedFriend && !friendState.isLoading && !friendState.error && friendState.lighthouses && (
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="mt-2 text-sm text-faros-muted">
                 {selectedFriendName}'s Visited Lighthouses: {friendState.lighthouses.length}
               </p>
             )}

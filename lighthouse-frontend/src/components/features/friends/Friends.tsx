@@ -4,6 +4,7 @@ import { Tab } from '@headlessui/react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { User } from '../../../types';
 import { getBaseUrl } from '../../../utils/api';
+import PageState from '../../layout/PageState';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
@@ -247,46 +248,41 @@ export default function Friends() {
   }, [searchQuery, friends, pendingRequests, outgoingRequests, searchUsers]); // Added dependencies to update results when lists change
 
   if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
-            Please sign in to view your friends
-          </h2>
-        </div>
-      </div>
-    );
+    return <PageState title="Sign in to view your friends" />;
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-100 p-8">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
-            Loading...
-          </h2>
-        </div>
-      </div>
-    );
+    return <PageState title="Loading your community..." />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-md p-6">
+    <main className="app-page">
+      <div className="app-shell">
+        <section className="app-card p-6 sm:p-8">
+          <div className="mb-7">
+            <p className="app-eyebrow">Community</p>
+            <h1 className="app-heading mt-2">Friends and requests</h1>
+            <p className="app-copy mt-2">
+              Find other lighthouse explorers and share the places you have visited.
+            </p>
+          </div>
+
           {error && (
-            <div className="mb-4 p-4 text-red-700 bg-red-100 rounded-lg">
+            <div className="app-alert-error mb-5">
               {error}
             </div>
           )}
 
-          {/* Search Bar */}
-          <div className="mb-6">
+          <div className="app-panel mb-7 p-5">
+            <label htmlFor="friend-search" className="app-label">
+              Find people
+            </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                <MagnifyingGlassIcon className="h-5 w-5 text-faros-muted" aria-hidden="true" />
               </div>
               <input
+                id="friend-search"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => {
@@ -297,37 +293,39 @@ export default function Friends() {
                   }
                 }}
                 placeholder="Search users by name or email..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
+                className="app-input pl-10"
               />
             </div>
 
-            {/* Search Results */}
             {searchQuery.trim() && (
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold mb-2">Search Results</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="mt-5">
+                <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-faros-muted">
+                  Search results
+                </h2>
+                <div className="mt-3 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {isSearching ? (
-                    <p className="text-gray-500 col-span-full text-center">Searching...</p>
+                    <p className="app-copy col-span-full text-center">Searching...</p>
                   ) : searchResults && searchResults.length > 0 ? (
                     searchResults.map((user) => (
-                      <div
+                      <article
                         key={user.id}
-                        className="bg-white p-4 rounded-lg shadow border"
+                        className="rounded-xl border border-faros-line bg-white p-4"
                       >
-                        <h3 className="text-lg font-semibold">
+                        <h3 className="font-bold text-faros-navy">
                           {user.first_name} {user.last_name}
                         </h3>
-                        <p className="text-gray-600 text-sm">{user.email}</p>
+                        <p className="mt-1 text-sm text-faros-muted">{user.email}</p>
                         <button
+                          type="button"
                           onClick={() => sendFriendRequest(user.id)}
-                          className="mt-2 w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                          className="app-button-primary mt-4 w-full !py-2.5"
                         >
-                          Send Friend Request
+                          Send request
                         </button>
-                      </div>
+                      </article>
                     ))
                   ) : (
-                    <p className="text-gray-500 col-span-full text-center">
+                    <p className="app-copy col-span-full text-center">
                       {searchQuery.trim() ? 'No users found' : 'Type to search for users'}
                     </p>
                   )}
@@ -337,15 +335,12 @@ export default function Friends() {
           </div>
 
           <Tab.Group>
-            <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+            <Tab.List className="app-segmented grid gap-1 sm:grid-cols-3">
               <Tab
                 className={({ selected }) =>
                   classNames(
-                    'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                    'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                    selected
-                      ? 'bg-white text-blue-700 shadow'
-                      : 'text-gray-700 hover:bg-white/[0.12] hover:text-blue-900'
+                    'app-segment w-full focus:outline-none focus:ring-2 focus:ring-faros-teal focus:ring-offset-2',
+                    selected ? 'app-segment-active' : ''
                   )
                 }
               >
@@ -354,11 +349,8 @@ export default function Friends() {
               <Tab
                 className={({ selected }) =>
                   classNames(
-                    'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                    'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                    selected
-                      ? 'bg-white text-blue-700 shadow'
-                      : 'text-gray-700 hover:bg-white/[0.12] hover:text-blue-900'
+                    'app-segment w-full focus:outline-none focus:ring-2 focus:ring-faros-teal focus:ring-offset-2',
+                    selected ? 'app-segment-active' : ''
                   )
                 }
               >
@@ -367,75 +359,75 @@ export default function Friends() {
               <Tab
                 className={({ selected }) =>
                   classNames(
-                    'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                    'ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2',
-                    selected
-                      ? 'bg-white text-blue-700 shadow'
-                      : 'text-gray-700 hover:bg-white/[0.12] hover:text-blue-900'
+                    'app-segment w-full focus:outline-none focus:ring-2 focus:ring-faros-teal focus:ring-offset-2',
+                    selected ? 'app-segment-active' : ''
                   )
                 }
               >
                 Outgoing Requests ({outgoingRequests?.length || 0})
               </Tab>
             </Tab.List>
-            <Tab.Panels className="mt-4">
+            <Tab.Panels className="mt-6">
               <Tab.Panel>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {friends && friends.length > 0 ? (
                     friends.map((friend) => (
-                      <div
+                      <article
                         key={friend.id}
-                        className="bg-white p-4 rounded-lg shadow border"
+                        className="app-panel bg-white p-5"
                       >
-                        <h3 className="text-lg font-semibold">
+                        <h3 className="text-lg font-bold text-faros-navy">
                           {friend.first_name} {friend.last_name}
                         </h3>
-                        <p className="text-gray-600 text-sm">{friend.email}</p>
+                        <p className="mt-1 text-sm text-faros-muted">{friend.email}</p>
                         <button
+                          type="button"
                           onClick={() => removeFriend(friend.id)}
-                          className="mt-2 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+                          className="app-button-danger mt-4 w-full !py-2.5"
                         >
-                          Remove Friend
+                          Remove friend
                         </button>
-                      </div>
+                      </article>
                     ))
                   ) : (
-                    <p className="text-gray-500 col-span-full text-center py-4">
-                      You don't have any friends yet.
+                    <p className="app-copy col-span-full py-8 text-center">
+                      You don&apos;t have any friends yet.
                     </p>
                   )}
                 </div>
               </Tab.Panel>
               <Tab.Panel>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {pendingRequests && pendingRequests.length > 0 ? (
                     pendingRequests.map((request) => (
-                      <div
+                      <article
                         key={request.id}
-                        className="bg-white p-4 rounded-lg shadow border"
+                        className="app-panel bg-white p-5"
                       >
-                        <h3 className="text-lg font-semibold">
+                        <h3 className="text-lg font-bold text-faros-navy">
                           {request.first_name} {request.last_name}
                         </h3>
-                        <p className="text-gray-600 text-sm">{request.email}</p>
-                        <div className="mt-2 space-x-2">
+                        <p className="mt-1 text-sm text-faros-muted">{request.email}</p>
+                        <div className="mt-4 flex gap-2">
                           <button
+                            type="button"
                             onClick={() => acceptFriendRequest(request.id)}
-                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
+                            className="app-button-primary flex-1 !py-2.5"
                           >
                             Accept
                           </button>
                           <button
+                            type="button"
                             onClick={() => removeFriend(request.id)}
-                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+                            className="app-button-danger flex-1 !py-2.5"
                           >
                             Decline
                           </button>
                         </div>
-                      </div>
+                      </article>
                     ))
                   ) : (
-                    <p className="text-gray-500 col-span-full text-center py-4">
+                    <p className="app-copy col-span-full py-8 text-center">
                       No pending friend requests.
                     </p>
                   )}
@@ -447,26 +439,25 @@ export default function Friends() {
                     outgoingRequests.map((request) => (
                       <div
                         key={request.id}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                        className="app-panel flex flex-col gap-4 bg-white p-5 sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div>
-                          <h3 className="text-lg font-medium text-gray-900">
+                          <h3 className="text-lg font-bold text-faros-navy">
                             {request.first_name} {request.last_name}
                           </h3>
-                          <p className="text-sm text-gray-500">{request.email}</p>
+                          <p className="mt-1 text-sm text-faros-muted">{request.email}</p>
                         </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => removeFriend(request.id)}
-                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                          >
-                            Cancel Request
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFriend(request.id)}
+                          className="app-button-danger !py-2.5"
+                        >
+                          Cancel request
+                        </button>
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 text-center py-4">
+                    <p className="app-copy py-8 text-center">
                       No outgoing friend requests.
                     </p>
                   )}
@@ -474,8 +465,8 @@ export default function Friends() {
               </Tab.Panel>
             </Tab.Panels>
           </Tab.Group>
-        </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

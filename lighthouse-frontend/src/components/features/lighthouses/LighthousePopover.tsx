@@ -70,37 +70,37 @@ const LighthousePopoverContent = ({
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-xl text-gray-900 font-bold">{lighthouse.name}</h3>
+      <h3 className="font-display text-2xl font-semibold text-faros-navy">{lighthouse.name}</h3>
       <img
         src={lighthouse.image}
         alt={lighthouse.name}
-        className="w-full h-32 object-cover rounded-md"
+        className="h-32 w-full rounded-xl object-cover"
       />
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-faros-muted">
         <p>{lighthouse.state}, {lighthouse.country}</p>
-        <div className="mt-2 grid grid-cols-2 gap-x-4 border-t border-gray-100 pt-2">
-            {lighthouse.height > 0 && <p><span className="font-medium text-gray-900">Height:</span> {lighthouse.height}m</p>}
-            {lighthouse.year_built > 0 && <p><span className="font-medium text-gray-900">Built:</span> {lighthouse.year_built}</p>}
+        <div className="mt-2 grid grid-cols-2 gap-x-4 border-t border-faros-line pt-2">
+            {lighthouse.height > 0 && <p><span className="font-semibold text-faros-ink">Height:</span> {lighthouse.height}m</p>}
+            {lighthouse.year_built > 0 && <p><span className="font-semibold text-faros-ink">Built:</span> {lighthouse.year_built}</p>}
         </div>
         {lighthouse.light_characteristics && (
             <p className="mt-1">
-                <span className="font-medium text-gray-900">Light:</span> {lighthouse.light_characteristics}
+                <span className="font-semibold text-faros-ink">Light:</span> {lighthouse.light_characteristics}
             </p>
         )}
         {lighthouse.description && (
-            <p className="mt-2 italic text-gray-700">
+            <p className="mt-2 italic text-faros-ink">
                 {lighthouse.description}
             </p>
         )}
         
-        <div className="mt-3 text-xs text-gray-400 border-t border-gray-100 pt-2">
+        <div className="mt-3 border-t border-faros-line pt-2 text-xs text-faros-muted/80">
             <p>Data Source: {lighthouse.source}</p>
             {lighthouse.image_author && (
                 <p>
                     Image © {lighthouse.image_author}
                     {lighthouse.image_license ? ` (${lighthouse.image_license})` : ''}
                     {lighthouse.image_url && (
-                        <a href={lighthouse.image_url} target="_blank" rel="noopener noreferrer" className="ml-1 underline text-blue-400">
+                        <a href={lighthouse.image_url} target="_blank" rel="noopener noreferrer" className="ml-1 font-semibold text-faros-teal underline">
                             [Original]
                         </a>
                     )}
@@ -113,10 +113,10 @@ const LighthousePopoverContent = ({
           <button
             onClick={handleVisitToggle}
             disabled={isLoading}
-            className={`px-4 py-2 rounded-md text-white font-medium transition-colors
+            className={`app-button w-full
               ${optimisticIsVisited
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-green-500 hover:bg-green-600"}
+                ? "bg-faros-coral text-white hover:bg-red-700 focus:ring-faros-coral"
+                : "bg-faros-teal text-white hover:bg-faros-teal-dark focus:ring-faros-teal"}
               ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {isLoading ? "Loading..." : optimisticIsVisited ? "Remove from Visited" : "Mark as Visited"}
@@ -125,10 +125,10 @@ const LighthousePopoverContent = ({
             <button
               onClick={handleWishlistToggle}
               disabled={isWishlistLoading}
-              className={`px-4 py-2 rounded-md text-white font-medium transition-colors ${
+              className={`app-button w-full ${
                 isInWishlist
-                  ? "bg-red-500 hover:bg-red-600"
-                  : "bg-blue-500 hover:bg-blue-600"
+                  ? "bg-faros-coral text-white hover:bg-red-700 focus:ring-faros-coral"
+                  : "bg-faros-amber text-faros-navy hover:bg-amber-300 focus:ring-faros-amber"
               } ${isWishlistLoading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {isWishlistLoading

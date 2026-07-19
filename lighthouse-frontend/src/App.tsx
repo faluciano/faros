@@ -13,6 +13,7 @@ import VisitedLighthouses from "./components/features/lighthouses/VisitedLightho
 import WishlistLighthouses from "./components/features/lighthouses/WishlistLighthouses";
 import Friends from './components/features/friends/Friends';
 import AuthPage from './components/auth/AuthPage';
+import PageState from './components/layout/PageState';
 
 // Context
 import { LighthouseProvider } from "./context/LighthouseContextProvider";
@@ -22,19 +23,13 @@ function App() {
   const { isSignedIn, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-gray-800">Loading...</h2>
-        </div>
-      </div>
-    );
+    return <PageState title="Lighting the way..." message="Loading your Faros workspace." />;
   }
 
   return (
     <UserProvider>
       <LighthouseProvider>
-        <div className="min-h-screen bg-gray-100">
+        <div className="min-h-screen bg-faros-canvas">
           <Navbar />
           <div className="pt-16">
             <Routes>

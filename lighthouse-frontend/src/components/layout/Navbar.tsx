@@ -1,179 +1,124 @@
-import { useAuth } from "../../hooks/useAuth";
-import { Link } from "react-router-dom";
 import { useState } from "react";
-
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Link, NavLink } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import Logo from "../../assets/faros-logo.png";
+
+const publicLinks = [
+  { to: "/", label: "Home" },
+  { to: "/lighthouse", label: "Lighthouses" },
+  { to: "/contact", label: "Contact" },
+];
+
+const privateLinks = [
+  { to: "/visited", label: "Visited" },
+  { to: "/wishlist", label: "Wishlist" },
+  { to: "/friends", label: "Friends" },
+];
 
 const Navbar = () => {
   const { isSignedIn, user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const links = isSignedIn
+    ? [publicLinks[0], publicLinks[1], ...privateLinks, publicLinks[2]]
+    : publicLinks;
 
   return (
-    <nav className="bg-gray-800 shadow-lg fixed w-full top-0 z-50">
-      <div className="relative max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-        {/* Main Navbar Content */}
-        <div className="relative flex items-center justify-between h-16">
-          {/* Mobile menu button */}
-          <div className="flex items-center sm:hidden z-10">
-            <button 
-              onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-              aria-expanded="false"
-            >
-              <span className="sr-only">Open main menu</span>
-              <svg
-                className={`${isOpen ? 'hidden' : 'block'} h-6 w-6`}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
-              </svg>
-              <svg
-                className={`${isOpen ? 'block' : 'hidden'} h-6 w-6`}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Logo - Centered on mobile, left-aligned on desktop */}
-          <div className="absolute inset-0 flex items-center justify-center sm:static sm:justify-start">
-            <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="flex items-center">
-                <img
-                  className="h-8 w-auto rounded-full"
-                  src={Logo}
-                  alt="Faros Logo"
-                />
-                <span className="ml-2 text-white text-lg font-semibold hidden sm:block">Faros</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden sm:ml-6 sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div className="flex space-x-4">
-              <Link
-                to="/"
-                className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap"
-              >
-                Home
-              </Link>
-              <Link
-                to="/lighthouse"
-                className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap"
-              >
-                Lighthouses
-              </Link>
-              {isSignedIn && (
-                <>
-                  <Link
-                    to="/visited"
-                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap"
-                  >
-                    Visited
-                  </Link>
-                  <Link
-                    to="/wishlist"
-                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap"
-                  >
-                    Wishlist
-                  </Link>
-                  <Link
-                    to="/friends"
-                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap"
-                  >
-                    Friends
-                  </Link>
-                </>
-              )}
-              <Link
-                to="/contact"
-                className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap"
-              >
-                Contact
-              </Link>
-            </div>
-          </div>
-
-          {/* Auth Buttons */}
-          <div className="flex items-center z-10">
-            {!isSignedIn ? (
-              <Link
-                to="/login"
-                className="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
-              >
-                Sign In
-              </Link>
+    <nav className="fixed top-0 z-50 w-full border-b border-white/10 bg-faros-navy shadow-lg shadow-faros-navy/10">
+      <div className="relative mx-auto max-w-7xl px-3 sm:px-5 lg:px-8">
+        <div className="relative flex h-16 items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setIsOpen((open) => !open)}
+            className="z-10 grid h-10 w-10 place-items-center rounded-lg text-white/70 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-faros-mint sm:hidden"
+            aria-expanded={isOpen}
+          >
+            <span className="sr-only">Open main menu</span>
+            {isOpen ? (
+              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
             ) : (
-              <div className="flex items-center space-x-3">
-                <span className="text-gray-300 text-sm font-medium hidden sm:block">
+              <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+            )}
+          </button>
+
+          <div className="absolute inset-0 flex items-center justify-center sm:static sm:justify-start">
+            <Link to="/" className="flex items-center gap-2.5" onClick={() => setIsOpen(false)}>
+              <img className="h-9 w-9 rounded-full" src={Logo} alt="Faros Logo" />
+              <span className="hidden font-display text-xl font-semibold tracking-wide text-white sm:block">
+                Faros
+              </span>
+            </Link>
+          </div>
+
+          <div className="hidden flex-1 items-center justify-between sm:ml-8 sm:flex">
+            <div className="flex items-center gap-1">
+              {links.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.to === "/"}
+                  className={({ isActive }) =>
+                    `rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      isActive
+                        ? "bg-white/12 text-white"
+                        : "text-white/65 hover:bg-white/8 hover:text-white"
+                    }`
+                  }
+                >
+                  {link.label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+
+          <div className="z-10 flex items-center gap-3">
+            {isSignedIn ? (
+              <>
+                <span className="hidden text-sm font-semibold text-faros-mint/80 lg:block">
                   {user?.first_name} {user?.last_name}
                 </span>
                 <button
+                  type="button"
                   onClick={logout}
-                  className="bg-gray-900 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors"
+                  className="rounded-lg border border-white/20 px-3.5 py-2 text-sm font-bold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-faros-mint"
                 >
-                  Sign Out
+                  Sign out
                 </button>
-              </div>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="rounded-lg bg-faros-amber px-3.5 py-2 text-sm font-bold text-faros-navy transition hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-faros-amber focus:ring-offset-2 focus:ring-offset-faros-navy"
+              >
+                Sign in
+              </Link>
             )}
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <div
-          className={`${isOpen ? 'block' : 'hidden'} sm:hidden absolute left-0 right-0 top-16 bg-gray-800 shadow-lg`}
-        >
-          <div className="px-2 pt-2 pb-3 space-y-1 border-t border-gray-700" onClick={() => setIsOpen(false)}>
-            <Link
-              to="/"
-              className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
-            >
-              Home
-            </Link>
-            <Link
-              to="/lighthouse"
-              className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
-            >
-              Lighthouses
-            </Link>
-            {isSignedIn && (
-              <>
-                <Link
-                  to="/visited"
-                  className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+        {isOpen ? (
+          <div className="absolute left-0 right-0 top-16 border-t border-white/10 bg-faros-navy px-3 pb-4 pt-3 shadow-xl sm:hidden">
+            <div className="space-y-1">
+              {links.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.to === "/"}
+                  onClick={() => setIsOpen(false)}
+                  className={({ isActive }) =>
+                    `block rounded-lg px-3 py-2.5 text-base font-semibold transition ${
+                      isActive
+                        ? "bg-white/12 text-white"
+                        : "text-white/70 hover:bg-white/8 hover:text-white"
+                    }`
+                  }
                 >
-                  Visited
-                </Link>
-                <Link
-                  to="/wishlist"
-                  className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
-                >
-                  Wishlist
-                </Link>
-                <Link
-                  to="/friends"
-                  className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
-                >
-                  Friends
-                </Link>
-              </>
-            )}
-            <Link
-              to="/contact"
-              className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
-            >
-              Contact
-            </Link>
+                  {link.label}
+                </NavLink>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </nav>
   );
