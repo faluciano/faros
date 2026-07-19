@@ -25,21 +25,26 @@ export const fetchWithAuth = async <T>(
     },
   });
 
+  const responseText = await response.text();
+
   if (!response.ok) {
-    const errorText = await response.text();
-    let errorMessage = errorText;
-    if (errorText) {
+    let errorMessage = responseText;
+    if (responseText) {
       try {
-        const payload = JSON.parse(errorText) as { message?: string; error?: string };
-        errorMessage = payload.message || payload.error || errorText;
+        const payload = JSON.parse(responseText) as { message?: string; error?: string };
+        errorMessage = payload.message || payload.error || responseText;
       } catch {
-        errorMessage = errorText;
+        errorMessage = responseText;
       }
     }
     throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
   }
 
-  return response.json() as Promise<T>;
+  if (!responseText) {
+    return undefined as T;
+  }
+
+  return JSON.parse(responseText) as T;
 };
 
 export const getLighthouses = async (): Promise<Lighthouse[]> => {
