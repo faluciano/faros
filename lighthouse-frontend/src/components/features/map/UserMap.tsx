@@ -391,6 +391,12 @@ const UserMap = () => {
             </label>
           ))}
         </div>
+        <div className="mt-3 flex items-center border-t border-faros-line pt-3 text-sm text-faros-muted">
+          <span className="mr-2 inline-grid h-5 w-5 place-items-center rounded-full bg-[#344A53] text-[9px] font-bold text-white">
+            9
+          </span>
+          Mixed cluster
+        </div>
       </div>
 
       <div className="app-map-panel absolute right-3 top-3 z-10 w-44 sm:right-4 sm:top-4 sm:w-64">

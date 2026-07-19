@@ -12,8 +12,10 @@ export const clusterLayer: CircleLayerSpecification = {
   source: LIGHTHOUSE_SOURCE_ID,
   filter: ["has", "point_count"],
   paint: {
-    "circle-color": ["step", ["get", "point_count"], "#0F766E", 100, "#D49A3A", 750, "#C95B54"],
+    "circle-color": ["step", ["get", "point_count"], "#52636A", 100, "#344A53", 750, "#1E343D"],
     "circle-radius": ["step", ["get", "point_count"], 20, 100, 30, 750, 40],
+    "circle-stroke-width": 2,
+    "circle-stroke-color": "rgba(255, 255, 255, 0.85)",
   },
 };
 
@@ -26,6 +28,11 @@ export const clusterCountLayer: SymbolLayerSpecification = {
     "text-field": "{point_count_abbreviated}",
     "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
     "text-size": 12,
+  },
+  paint: {
+    "text-color": "#FFFFFF",
+    "text-halo-color": "rgba(12, 45, 54, 0.35)",
+    "text-halo-width": 1,
   },
 };
 
