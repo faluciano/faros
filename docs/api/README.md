@@ -1,6 +1,6 @@
 # Faros API Documentation
 
-Welcome to the Faros Lighthouse API documentation. This API allows users to manage lighthouse visits, wishlists, and social features like friends and friend requests.
+The Faros API manages lighthouse visits, wishlists, and social features.
 
 ## Base URL
 
@@ -9,39 +9,34 @@ Welcome to the Faros Lighthouse API documentation. This API allows users to mana
 
 ## Authentication
 
-The API uses Clerk for authentication. Include the authorization token in the request header:
+Users register and sign in with a WebAuthn passkey. Successful authentication
+returns a short-lived JWT for protected API requests:
 
+```text
+Authorization: Bearer <token>
 ```
-Authorization: Bearer <your-token>
-```
+
+See [authentication.md](./authentication.md) for the complete passkey ceremony.
 
 ## Interactive Documentation
 
-For interactive API documentation with request/response examples, visit:
 - **Local**: [http://localhost:8080/docs/](http://localhost:8080/docs/)
 - **Production**: `<your-api-url>/docs/`
 
 ## Quick Start
 
-1. **Get all lighthouses**: `GET /api/lighthouses`
-2. **Search lighthouses by country**: `GET /api/lighthouses?country=USA`
-3. **Search lighthouses by state**: `GET /api/lighthouses?state=California`
-4. **Get current user info**: `GET /user` (requires authentication)
-
-## Rate Limiting
-
-The API implements standard rate limiting to ensure fair usage. Please respect the limits and implement appropriate error handling in your applications.
+1. `GET /api/lighthouses`
+2. `GET /api/lighthouses?country=USA`
+3. `GET /api/lighthouses?state=California`
+4. `GET /user` with a valid bearer token
 
 ## Error Handling
 
-The API returns standard HTTP status codes and JSON error responses:
-
 ```json
 {
-  "error": "Error description"
+  "status": 400,
+  "message": "Error description"
 }
 ```
 
-## Support
-
-For API support, please create an issue in the GitHub repository or contact the development team.
+For API support, create an issue in the GitHub repository.

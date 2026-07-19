@@ -79,48 +79,34 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/login": {
-            "post": {
-                "description": "Authenticate a user with email and password",
-                "consumes": [
-                    "application/json"
-                ],
+        "/api/lighthouses/{id}": {
+            "get": {
+                "description": "Get details for a specific lighthouse by ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "auth"
+                    "lighthouses"
                 ],
-                "summary": "Login user",
+                "summary": "Get a single lighthouse",
                 "parameters": [
                     {
-                        "description": "Login credentials",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handlers.loginRequest"
-                        }
+                        "type": "string",
+                        "description": "Lighthouse ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.authResponse"
+                            "$ref": "#/definitions/schemas.Lighthouse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -192,9 +178,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/register": {
+        "/auth/passkey/login": {
             "post": {
-                "description": "Create a new user account with email and password",
+                "description": "Verify a discoverable passkey and authenticate its owner",
                 "consumes": [
                     "application/json"
                 ],
@@ -204,16 +190,91 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Register a new user",
+                "summary": "Finish passkey sign-in",
                 "parameters": [
                     {
-                        "description": "Registration details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
+                        "type": "string",
+                        "description": "Passkey ceremony ID",
+                        "name": "X-WebAuthn-Session",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/handlers.registerRequest"
+                            "$ref": "#/definitions/handlers.authResponse"
                         }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/passkey/login/options": {
+            "post": {
+                "description": "Create usernameless passkey authentication options",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Begin passkey sign-in",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/passkey/register": {
+            "post": {
+                "description": "Verify a new passkey and create the user account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Finish passkey registration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Passkey ceremony ID",
+                        "name": "X-WebAuthn-Session",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -226,28 +287,72 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/utils.APIError"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/utils.APIError"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/passkey/register/options": {
+            "post": {
+                "description": "Create passkey registration options for a new user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Begin passkey registration",
+                "parameters": [
+                    {
+                        "description": "Registration profile",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.passkeyRegistrationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
                         }
                     }
                 }
@@ -1164,20 +1269,7 @@ const docTemplate = `{
                 }
             }
         },
-        "handlers.loginRequest": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "description": "@Description User's email address",
-                    "type": "string"
-                },
-                "password": {
-                    "description": "@Description User's password",
-                    "type": "string"
-                }
-            }
-        },
-        "handlers.registerRequest": {
+        "handlers.passkeyRegistrationRequest": {
             "type": "object",
             "properties": {
                 "email": {
@@ -1190,10 +1282,6 @@ const docTemplate = `{
                 },
                 "last_name": {
                     "description": "@Description User's last name",
-                    "type": "string"
-                },
-                "password": {
-                    "description": "@Description User's password (minimum 8 characters)",
                     "type": "string"
                 }
             }
@@ -1222,6 +1310,18 @@ const docTemplate = `{
                     "description": "@Description URL to the lighthouse image",
                     "type": "string"
                 },
+                "image_author": {
+                    "description": "@Description Original author of the image",
+                    "type": "string"
+                },
+                "image_license": {
+                    "description": "@Description License of the image",
+                    "type": "string"
+                },
+                "image_url": {
+                    "description": "@Description Original URL of the image page (e.g. Wikimedia Commons page)",
+                    "type": "string"
+                },
                 "latitude": {
                     "description": "@Description Latitude coordinate of the lighthouse",
                     "type": "number"
@@ -1236,6 +1336,10 @@ const docTemplate = `{
                 },
                 "name": {
                     "description": "@Description Name of the lighthouse",
+                    "type": "string"
+                },
+                "source": {
+                    "description": "@Description Original source of the lighthouse data",
                     "type": "string"
                 },
                 "state": {
@@ -1267,6 +1371,17 @@ const docTemplate = `{
                 "last_name": {
                     "description": "@Description User's last name",
                     "type": "string"
+                }
+            }
+        },
+        "utils.APIError": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
                 }
             }
         }

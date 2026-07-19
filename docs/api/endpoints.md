@@ -4,6 +4,16 @@
 
 These endpoints are accessible without authentication and provide public lighthouse data.
 
+### Passkey Authentication
+
+- `POST /auth/passkey/register/options`: Begin passkey account registration
+- `POST /auth/passkey/register`: Verify the new passkey and return a JWT
+- `POST /auth/passkey/login/options`: Begin usernameless passkey sign-in
+- `POST /auth/passkey/login`: Verify the passkey assertion and return a JWT
+
+The finish endpoints require the ceremony ID returned by their matching options
+endpoint in the `X-WebAuthn-Session` header.
+
 ### Lighthouses
 
 #### Get All Lighthouses
@@ -25,7 +35,7 @@ These endpoints are accessible without authentication and provide public lightho
 
 ## Authenticated Endpoints
 
-All endpoints below require authentication via Clerk. These provide personalized features and user-specific data.
+All endpoints below require the JWT returned after passkey authentication.
 
 ### User Management
 
@@ -139,6 +149,7 @@ All endpoints return JSON responses with appropriate HTTP status codes:
 
 ```json
 {
-  "error": "Descriptive error message"
+  "status": 400,
+  "message": "Descriptive error message"
 }
 ```

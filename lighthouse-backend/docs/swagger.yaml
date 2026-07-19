@@ -22,16 +22,7 @@ definitions:
         - $ref: '#/definitions/schemas.User'
         description: '@Description Authenticated user information'
     type: object
-  handlers.loginRequest:
-    properties:
-      email:
-        description: '@Description User''s email address'
-        type: string
-      password:
-        description: '@Description User''s password'
-        type: string
-    type: object
-  handlers.registerRequest:
+  handlers.passkeyRegistrationRequest:
     properties:
       email:
         description: '@Description User''s email address'
@@ -41,9 +32,6 @@ definitions:
         type: string
       last_name:
         description: '@Description User''s last name'
-        type: string
-      password:
-        description: '@Description User''s password (minimum 8 characters)'
         type: string
     type: object
   schemas.Lighthouse:
@@ -64,6 +52,16 @@ definitions:
       image:
         description: '@Description URL to the lighthouse image'
         type: string
+      image_author:
+        description: '@Description Original author of the image'
+        type: string
+      image_license:
+        description: '@Description License of the image'
+        type: string
+      image_url:
+        description: '@Description Original URL of the image page (e.g. Wikimedia
+          Commons page)'
+        type: string
       latitude:
         description: '@Description Latitude coordinate of the lighthouse'
         type: number
@@ -75,6 +73,9 @@ definitions:
         type: number
       name:
         description: '@Description Name of the lighthouse'
+        type: string
+      source:
+        description: '@Description Original source of the lighthouse data'
         type: string
       state:
         description: '@Description State or province where the lighthouse is located'
@@ -98,6 +99,13 @@ definitions:
       last_name:
         description: '@Description User''s last name'
         type: string
+    type: object
+  utils.APIError:
+    properties:
+      message:
+        type: string
+      status:
+        type: integer
     type: object
 host: localhost:8080
 info:
@@ -150,33 +158,24 @@ paths:
       summary: Get all lighthouses
       tags:
       - lighthouses
-  /auth/login:
-    post:
-      consumes:
-      - application/json
-      description: Authenticate a user with email and password
+  /api/lighthouses/{id}:
+    get:
+      description: Get details for a specific lighthouse by ID
       parameters:
-      - description: Login credentials
-        in: body
-        name: request
+      - description: Lighthouse ID
+        in: path
+        name: id
         required: true
-        schema:
-          $ref: '#/definitions/handlers.loginRequest'
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/handlers.authResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Unauthorized
+            $ref: '#/definitions/schemas.Lighthouse'
+        "404":
+          description: Not Found
           schema:
             additionalProperties:
               type: string
@@ -187,9 +186,9 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Login user
+      summary: Get a single lighthouse
       tags:
-      - auth
+      - lighthouses
   /auth/me:
     get:
       description: Get the currently authenticated user's information (requires JWT)
@@ -223,18 +222,68 @@ paths:
       summary: Get current user
       tags:
       - auth
-  /auth/register:
+  /auth/passkey/login:
     post:
       consumes:
       - application/json
-      description: Create a new user account with email and password
+      description: Verify a discoverable passkey and authenticate its owner
       parameters:
-      - description: Registration details
-        in: body
-        name: request
+      - description: Passkey ceremony ID
+        in: header
+        name: X-WebAuthn-Session
         required: true
-        schema:
-          $ref: '#/definitions/handlers.registerRequest'
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      summary: Finish passkey sign-in
+      tags:
+      - auth
+  /auth/passkey/login/options:
+    post:
+      description: Create usernameless passkey authentication options
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      summary: Begin passkey sign-in
+      tags:
+      - auth
+  /auth/passkey/register:
+    post:
+      consumes:
+      - application/json
+      description: Verify a new passkey and create the user account
+      parameters:
+      - description: Passkey ceremony ID
+        in: header
+        name: X-WebAuthn-Session
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -245,22 +294,51 @@ paths:
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/utils.APIError'
         "409":
           description: Conflict
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/utils.APIError'
         "500":
           description: Internal Server Error
           schema:
-            additionalProperties:
-              type: string
+            $ref: '#/definitions/utils.APIError'
+      summary: Finish passkey registration
+      tags:
+      - auth
+  /auth/passkey/register/options:
+    post:
+      consumes:
+      - application/json
+      description: Create passkey registration options for a new user
+      parameters:
+      - description: Registration profile
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.passkeyRegistrationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
             type: object
-      summary: Register a new user
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      summary: Begin passkey registration
       tags:
       - auth
   /docs:

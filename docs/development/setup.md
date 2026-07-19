@@ -35,8 +35,12 @@ cp .env.example .env
 Create a `.env` file in the `lighthouse-backend` directory:
 
 ```env
-# Clerk Authentication
-CLERK_AUTH_TOKEN=your_clerk_secret_key
+# API sessions
+JWT_SECRET=replace_with_a_long_random_value
+
+# WebAuthn passkeys (local defaults shown)
+PASSKEY_RP_ID=localhost
+PASSKEY_RP_ORIGINS=http://localhost:5173
 
 # Database (for production deployment)
 TURSO_DATABASE_URL=your_turso_database_url
@@ -69,14 +73,10 @@ The API will be available at `http://localhost:8080`
 cd ../lighthouse-frontend
 
 # Install dependencies
-npm install
-# or
 bun install
 
 # Start development server
-npm run dev
-# or
-bun dev
+bun run dev
 ```
 
 The frontend will be available at `http://localhost:5173`
@@ -96,6 +96,12 @@ Once the backend is running, you can access:
 ### Production
 - Uses Turso (SQLite in the cloud)
 - Requires `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`
+
+### Passkey migration
+
+The `20260718_passkey_only_auth` migration runs once. It clears existing user,
+friendship, visited-lighthouse, and wishlist data so every user registers a new
+passkey. Lighthouse reference data is preserved.
 
 ## Development Commands
 
@@ -122,16 +128,16 @@ go vet ./...
 
 ```bash
 # Development server
-npm run dev
+bun run dev
 
 # Build for production
-npm run build
+bun run build
 
 # Preview production build
-npm run preview
+bun run preview
 
 # Run linting
-npm run lint
+bun run lint
 ```
 
 ## Project Structure
@@ -168,9 +174,13 @@ faros/
 
 - **Port already in use**: Change the `PORT` environment variable
 - **Database connection error**: Check your Turso credentials or SQLite file permissions
-- **Authentication errors**: Verify your `CLERK_AUTH_TOKEN`
+- **Passkey origin errors**: Verify `PASSKEY_RP_ID` matches the frontend host and
+  `PASSKEY_RP_ORIGINS` contains its full origin
+- **Passkey unavailable**: Use HTTPS in production; plain HTTP is supported only
+  on localhost
 
 ### Frontend Issues
 
 - **API connection failed**: Ensure the backend is running on the correct port
-- **Authentication not working**: Check Clerk configuration in both frontend and backend
+- **Authentication not working**: Verify the backend JWT secret and passkey
+  relying-party configuration

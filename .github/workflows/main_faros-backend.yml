@@ -61,4 +61,7 @@ jobs:
           az containerapp update \
             --name faros-backend \
             --resource-group faros \
-            --image farosacr.azurecr.io/faros-backend:${{ github.sha }}
+            --image farosacr.azurecr.io/faros-backend:${{ github.sha }} \
+            --set-env-vars \
+              PASSKEY_RP_ID=agreeable-pond-025c6731e.5.azurestaticapps.net \
+              PASSKEY_RP_ORIGINS=https://agreeable-pond-025c6731e.5.azurestaticapps.net

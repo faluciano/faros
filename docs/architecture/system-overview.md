@@ -17,8 +17,8 @@ Faros is a full-stack web application for tracking lighthouse visits and connect
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │
          │              ┌─────────────────┐
-         │              │   Clerk Auth    │
-         └──────────────►│   (External)    │
+         └─────────────►│ Device Passkey  │
+                        │  Authenticator  │
                         └─────────────────┘
 ```
 
@@ -71,7 +71,7 @@ Faros is a full-stack web application for tracking lighthouse visits and connect
 
 #### Middleware
 - **CORS**: Cross-origin resource sharing
-- **Authentication**: Clerk JWT validation
+- **Authentication**: WebAuthn passkey verification and JWT validation
 - **Error Handling**: Consistent error responses
 
 ## Frontend Architecture
@@ -116,11 +116,12 @@ src/
 
 ### User Authentication Flow
 ```
-1. User logs in via Clerk for personalized features
-2. Frontend receives JWT token
-3. Token included in authenticated API requests
-4. Backend validates token with Clerk for protected routes
-5. User context extracted from claims for personalized data
+1. Frontend requests a short-lived, single-use WebAuthn ceremony
+2. The user's device or password manager verifies the passkey
+3. Backend validates the signed WebAuthn response and stored credential
+4. Frontend receives a 24-hour JWT
+5. JWT is included in authenticated API requests
+6. Backend validates the JWT for protected routes
 ```
 
 ### API Request Flow
@@ -147,7 +148,7 @@ src/
 - **Basic Browse Functionality**: No login required
 
 ### Authentication
-- **Clerk Integration**: External authentication service for personalized features
+- **Passkeys**: Discoverable WebAuthn credentials with required user verification
 - **JWT Tokens**: Stateless authentication for protected routes
 - **Header-based Auth**: Bearer token in Authorization header
 
@@ -201,6 +202,9 @@ Developer Machine
 
 ### Private Tables  
 - **users**: User profiles and metadata (authentication required)
+- **webauthn_users**: Stable opaque user handles scoped by relying-party ID
+- **webauthn_credentials**: Passkey public credentials and authenticator state
+- **webauthn_sessions**: Short-lived, single-use ceremony state
 - **user_visited_lighthouses**: User visit tracking (user-specific)
 - **user_wishlist**: User wishlist management (user-specific)
 - **friends**: Friend relationships (user-specific)

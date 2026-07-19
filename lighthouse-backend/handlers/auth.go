@@ -2,42 +2,68 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"lighthouse-backend/auth"
 	"lighthouse-backend/interfaces"
 	"lighthouse-backend/schemas"
 	"lighthouse-backend/utils"
+	"log"
 	"net/http"
+	"net/mail"
+	"strings"
 
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 )
 
-// AuthHandler handles authentication-related requests
+const (
+	passkeySessionHeader        = "X-WebAuthn-Session"
+	passkeyRegistrationCeremony = "registration"
+	passkeyLoginCeremony        = "login"
+	maxAuthRequestBytes         = 1 << 20
+)
+
+// AuthHandler handles authentication-related requests.
 type AuthHandler struct {
 	db        interfaces.DBInterface
 	jwtSecret string
+	passkeys  *webauthn.WebAuthn
+	rpID      string
 }
 
-// NewAuthHandler creates a new AuthHandler
-func NewAuthHandler(db interfaces.DBInterface, jwtSecret string) *AuthHandler {
-	return &AuthHandler{db: db, jwtSecret: jwtSecret}
+func NewAuthHandler(
+	db interfaces.DBInterface,
+	jwtSecret string,
+	passkeys *webauthn.WebAuthn,
+	rpID string,
+) *AuthHandler {
+	return &AuthHandler{
+		db:        db,
+		jwtSecret: jwtSecret,
+		passkeys:  passkeys,
+		rpID:      rpID,
+	}
 }
 
-type registerRequest struct {
+type passkeyRegistrationRequest struct {
 	// @Description User's email address
 	Email string `json:"email"`
-	// @Description User's password (minimum 8 characters)
-	Password string `json:"password"`
 	// @Description User's first name
 	FirstName string `json:"first_name"`
 	// @Description User's last name
 	LastName string `json:"last_name"`
 }
 
-type loginRequest struct {
-	// @Description User's email address
-	Email string `json:"email"`
-	// @Description User's password
-	Password string `json:"password"`
+type passkeyRegistrationOptionsResponse struct {
+	FlowID    string                                      `json:"flow_id"`
+	PublicKey protocol.PublicKeyCredentialCreationOptions `json:"public_key"`
+}
+
+type passkeyLoginOptionsResponse struct {
+	FlowID    string                                     `json:"flow_id"`
+	PublicKey protocol.PublicKeyCredentialRequestOptions `json:"public_key"`
 }
 
 type authResponse struct {
@@ -47,52 +73,49 @@ type authResponse struct {
 	User schemas.User `json:"user"`
 }
 
-// @Summary     Register a new user
-// @Description Create a new user account with email and password
+// BeginPasskeyRegistration godoc
+// @Summary     Begin passkey registration
+// @Description Create passkey registration options for a new user
 // @Tags        auth
 // @Accept      json
 // @Produce     json
-// @Param       request body registerRequest true "Registration details"
-// @Success     201 {object} authResponse
-// @Failure     400 {object} map[string]string
-// @Failure     409 {object} map[string]string
-// @Failure     500 {object} map[string]string
-// @Router      /auth/register [post]
-func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var req registerRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+// @Param       request body passkeyRegistrationRequest true "Registration profile"
+// @Success     200 {object} map[string]interface{}
+// @Failure     400 {object} utils.APIError
+// @Failure     409 {object} utils.APIError
+// @Failure     500 {object} utils.APIError
+// @Router      /auth/passkey/register/options [post]
+func (h *AuthHandler) BeginPasskeyRegistration(w http.ResponseWriter, r *http.Request) {
+	var req passkeyRegistrationRequest
+	if err := decodeJSON(w, r, &req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	// Validate required fields
-	if req.Email == "" {
-		utils.WriteError(w, http.StatusBadRequest, "email is required")
+	email, err := normalizeEmail(req.Email)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if req.Password == "" {
-		utils.WriteError(w, http.StatusBadRequest, "password is required")
-		return
-	}
-	if len(req.Password) < 8 {
-		utils.WriteError(w, http.StatusBadRequest, "password must be at least 8 characters")
-		return
-	}
-	if req.FirstName == "" {
+	firstName := strings.TrimSpace(req.FirstName)
+	lastName := strings.TrimSpace(req.LastName)
+	if firstName == "" {
 		utils.WriteError(w, http.StatusBadRequest, "first_name is required")
 		return
 	}
-	if req.LastName == "" {
+	if lastName == "" {
 		utils.WriteError(w, http.StatusBadRequest, "last_name is required")
 		return
 	}
+	if len(firstName) > 100 || len(lastName) > 100 {
+		utils.WriteError(w, http.StatusBadRequest, "name fields must be 100 characters or fewer")
+		return
+	}
 
-	// Check if email already exists
-	existingUser, err := h.db.GetUserByEmail(req.Email)
+	existingUser, err := h.db.GetUserByEmail(email)
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, "failed to check existing user")
+		log.Printf("check passkey registration email: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to begin passkey registration")
 		return
 	}
 	if existingUser != nil {
@@ -100,112 +123,235 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hash password
-	hashedPassword, err := auth.HashPassword(req.Password)
+	handle, err := auth.GenerateUserHandle()
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, "failed to hash password")
+		log.Printf("generate passkey user handle: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to begin passkey registration")
 		return
 	}
 
-	// Create user
-	userID := uuid.New().String()
-	user := schemas.User{
-		ID:           userID,
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		Email:        req.Email,
-		PasswordHash: hashedPassword,
+	user := schemas.PasskeyUser{
+		User: schemas.User{
+			ID:        uuid.NewString(),
+			Email:     email,
+			FirstName: firstName,
+			LastName:  lastName,
+		},
+		Handle: handle,
 	}
 
-	if err := h.db.CreateUserWithPassword(user); err != nil {
+	creation, sessionData, err := h.passkeys.BeginRegistration(
+		user,
+		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired),
+	)
+	if err != nil {
+		log.Printf("begin passkey registration: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to begin passkey registration")
+		return
+	}
+
+	flowID, err := auth.GenerateCeremonyID()
+	if err != nil {
+		log.Printf("generate passkey registration ceremony ID: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to begin passkey registration")
+		return
+	}
+
+	if err := h.db.SavePasskeySession(r.Context(), schemas.PasskeySession{
+		ID:       flowID,
+		RPID:     h.rpID,
+		Ceremony: passkeyRegistrationCeremony,
+		Data:     *sessionData,
+		User:     user.User,
+	}); err != nil {
+		log.Printf("save passkey registration session: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to begin passkey registration")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, passkeyRegistrationOptionsResponse{
+		FlowID:    flowID,
+		PublicKey: creation.Response,
+	})
+}
+
+// FinishPasskeyRegistration godoc
+// @Summary     Finish passkey registration
+// @Description Verify a new passkey and create the user account
+// @Tags        auth
+// @Accept      json
+// @Produce     json
+// @Param       X-WebAuthn-Session header string true "Passkey ceremony ID"
+// @Success     201 {object} authResponse
+// @Failure     400 {object} utils.APIError
+// @Failure     409 {object} utils.APIError
+// @Failure     500 {object} utils.APIError
+// @Router      /auth/passkey/register [post]
+func (h *AuthHandler) FinishPasskeyRegistration(w http.ResponseWriter, r *http.Request) {
+	session, ok := h.consumePasskeySession(w, r, passkeyRegistrationCeremony)
+	if !ok {
+		return
+	}
+
+	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(
+		http.MaxBytesReader(w, r.Body, maxAuthRequestBytes),
+	)
+	if err != nil {
+		log.Printf("parse passkey registration response: %v", err)
+		utils.WriteError(w, http.StatusBadRequest, "invalid passkey registration response")
+		return
+	}
+
+	user := schemas.PasskeyUser{
+		User:   session.User,
+		Handle: session.Data.UserID,
+	}
+	credential, err := h.passkeys.CreateCredential(user, session.Data, parsedResponse)
+	if err != nil {
+		log.Printf("verify passkey registration: %v", err)
+		utils.WriteError(w, http.StatusBadRequest, "passkey registration failed")
+		return
+	}
+
+	if err := h.db.CreatePasskeyUser(r.Context(), user, *credential, h.rpID); err != nil {
+		if errors.Is(err, interfaces.ErrUserAlreadyExists) {
+			utils.WriteError(w, http.StatusConflict, "email or passkey already registered")
+			return
+		}
+		log.Printf("create passkey user: %v", err)
 		utils.WriteError(w, http.StatusInternalServerError, "failed to create user")
 		return
 	}
 
-	// Generate JWT
-	token, err := auth.GenerateToken(userID, h.jwtSecret)
+	h.writeAuthResponse(w, http.StatusCreated, user.User)
+}
+
+// BeginPasskeyLogin godoc
+// @Summary     Begin passkey sign-in
+// @Description Create usernameless passkey authentication options
+// @Tags        auth
+// @Produce     json
+// @Success     200 {object} map[string]interface{}
+// @Failure     500 {object} utils.APIError
+// @Router      /auth/passkey/login/options [post]
+func (h *AuthHandler) BeginPasskeyLogin(w http.ResponseWriter, r *http.Request) {
+	assertion, sessionData, err := h.passkeys.BeginDiscoverableLogin(
+		webauthn.WithUserVerification(protocol.VerificationRequired),
+	)
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, "failed to generate token")
+		log.Printf("begin passkey login: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to begin passkey sign-in")
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(authResponse{
-		Token: token,
-		User: schemas.User{
-			ID:        user.ID,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     user.Email,
-		},
+	flowID, err := auth.GenerateCeremonyID()
+	if err != nil {
+		log.Printf("generate passkey login ceremony ID: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to begin passkey sign-in")
+		return
+	}
+
+	if err := h.db.SavePasskeySession(r.Context(), schemas.PasskeySession{
+		ID:       flowID,
+		RPID:     h.rpID,
+		Ceremony: passkeyLoginCeremony,
+		Data:     *sessionData,
+	}); err != nil {
+		log.Printf("save passkey login session: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to begin passkey sign-in")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, passkeyLoginOptionsResponse{
+		FlowID:    flowID,
+		PublicKey: assertion.Response,
 	})
 }
 
-// @Summary     Login user
-// @Description Authenticate a user with email and password
+// FinishPasskeyLogin godoc
+// @Summary     Finish passkey sign-in
+// @Description Verify a discoverable passkey and authenticate its owner
 // @Tags        auth
 // @Accept      json
 // @Produce     json
-// @Param       request body loginRequest true "Login credentials"
+// @Param       X-WebAuthn-Session header string true "Passkey ceremony ID"
 // @Success     200 {object} authResponse
-// @Failure     400 {object} map[string]string
-// @Failure     401 {object} map[string]string
-// @Failure     500 {object} map[string]string
-// @Router      /auth/login [post]
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var req loginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, "invalid request body")
+// @Failure     400 {object} utils.APIError
+// @Failure     401 {object} utils.APIError
+// @Failure     500 {object} utils.APIError
+// @Router      /auth/passkey/login [post]
+func (h *AuthHandler) FinishPasskeyLogin(w http.ResponseWriter, r *http.Request) {
+	session, ok := h.consumePasskeySession(w, r, passkeyLoginCeremony)
+	if !ok {
 		return
 	}
 
-	// Validate required fields
-	if req.Email == "" {
-		utils.WriteError(w, http.StatusBadRequest, "email is required")
-		return
-	}
-	if req.Password == "" {
-		utils.WriteError(w, http.StatusBadRequest, "password is required")
-		return
-	}
-
-	// Look up user by email
-	user, err := h.db.GetUserByEmail(req.Email)
+	parsedResponse, err := protocol.ParseCredentialRequestResponseBody(
+		http.MaxBytesReader(w, r.Body, maxAuthRequestBytes),
+	)
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, "failed to look up user")
-		return
-	}
-	if user == nil {
-		utils.WriteError(w, http.StatusUnauthorized, "invalid credentials")
+		log.Printf("parse passkey login response: %v", err)
+		utils.WriteError(w, http.StatusBadRequest, "invalid passkey sign-in response")
 		return
 	}
 
-	// Check password
-	if !auth.CheckPassword(req.Password, user.PasswordHash) {
-		utils.WriteError(w, http.StatusUnauthorized, "invalid credentials")
-		return
-	}
-
-	// Generate JWT
-	token, err := auth.GenerateToken(user.ID, h.jwtSecret)
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, "failed to generate token")
-		return
-	}
-
-	json.NewEncoder(w).Encode(authResponse{
-		Token: token,
-		User: schemas.User{
-			ID:        user.ID,
-			FirstName: user.FirstName,
-			LastName:  user.LastName,
-			Email:     user.Email,
+	resolvedUser, credential, err := h.passkeys.ValidatePasskeyLogin(
+		func(_ []byte, userHandle []byte) (webauthn.User, error) {
+			user, err := h.db.GetPasskeyUserByHandle(r.Context(), h.rpID, userHandle)
+			if err != nil {
+				return nil, err
+			}
+			if user == nil {
+				return nil, interfaces.ErrPasskeyCredentialAbsent
+			}
+			return user, nil
 		},
-	})
+		session.Data,
+		parsedResponse,
+	)
+	if err != nil {
+		log.Printf("verify passkey login: %v", err)
+		utils.WriteError(w, http.StatusUnauthorized, "passkey sign-in failed")
+		return
+	}
+
+	user, ok := resolvedUser.(*schemas.PasskeyUser)
+	if !ok {
+		log.Printf("verify passkey login: unexpected user type %T", resolvedUser)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to complete passkey sign-in")
+		return
+	}
+	if credential.Authenticator.CloneWarning {
+		log.Printf("reject cloned passkey credential for user %s", user.ID)
+		utils.WriteError(w, http.StatusUnauthorized, "passkey sign-in failed")
+		return
+	}
+	credentialVersion, ok := user.CredentialVersion(credential.ID)
+	if !ok {
+		log.Printf("update passkey credential: missing version for user %s", user.ID)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to complete passkey sign-in")
+		return
+	}
+	if err := h.db.UpdatePasskeyCredential(
+		r.Context(),
+		h.rpID,
+		user.ID,
+		*credential,
+		credentialVersion,
+	); errors.Is(err, interfaces.ErrPasskeyCredentialChanged) {
+		log.Printf("passkey credential changed during login for user %s", user.ID)
+		utils.WriteError(w, http.StatusConflict, "passkey sign-in must be retried")
+		return
+	} else if err != nil {
+		log.Printf("update passkey credential: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to complete passkey sign-in")
+		return
+	}
+
+	h.writeAuthResponse(w, http.StatusOK, user.User)
 }
 
+// GetMe godoc
 // @Summary     Get current user
 // @Description Get the currently authenticated user's information (requires JWT)
 // @Tags        auth
@@ -217,8 +363,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure     500 {object} map[string]string
 // @Router      /auth/me [get]
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	userID := auth.GetUserID(r.Context())
 	if userID == "" {
 		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
@@ -235,5 +379,81 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(user)
+	writeJSON(w, http.StatusOK, user)
+}
+
+func (h *AuthHandler) consumePasskeySession(
+	w http.ResponseWriter,
+	r *http.Request,
+	ceremony string,
+) (*schemas.PasskeySession, bool) {
+	flowID := strings.TrimSpace(r.Header.Get(passkeySessionHeader))
+	if flowID == "" {
+		utils.WriteError(w, http.StatusBadRequest, "missing passkey session")
+		return nil, false
+	}
+
+	session, err := h.db.ConsumePasskeySession(r.Context(), flowID, ceremony, h.rpID)
+	if errors.Is(err, interfaces.ErrPasskeySessionNotFound) ||
+		errors.Is(err, interfaces.ErrPasskeySessionExpired) {
+		utils.WriteError(w, http.StatusBadRequest, "passkey request expired; start again")
+		return nil, false
+	}
+	if err != nil {
+		log.Printf("consume passkey %s session: %v", ceremony, err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to continue passkey request")
+		return nil, false
+	}
+
+	return session, true
+}
+
+func (h *AuthHandler) writeAuthResponse(w http.ResponseWriter, status int, user schemas.User) {
+	token, err := auth.GenerateToken(user.ID, h.jwtSecret)
+	if err != nil {
+		log.Printf("generate auth token: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "failed to create authentication session")
+		return
+	}
+
+	writeJSON(w, status, authResponse{
+		Token: token,
+		User:  user,
+	})
+}
+
+func normalizeEmail(value string) (string, error) {
+	email := strings.ToLower(strings.TrimSpace(value))
+	if email == "" {
+		return "", errors.New("email is required")
+	}
+	if len(email) > 254 {
+		return "", errors.New("email must be 254 characters or fewer")
+	}
+
+	address, err := mail.ParseAddress(email)
+	if err != nil || address.Address != email {
+		return "", errors.New("email must be valid")
+	}
+	return email, nil
+}
+
+func decodeJSON(w http.ResponseWriter, r *http.Request, destination any) error {
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxAuthRequestBytes))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(destination); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return errors.New("request body must contain one JSON object")
+	}
+	return nil
+}
+
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		log.Printf("encode JSON response: %v", err)
+	}
 }

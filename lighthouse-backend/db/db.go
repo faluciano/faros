@@ -45,6 +45,10 @@ func InitDB() (*sql.DB, error) {
 
 func createAllTables(db *sql.DB) error {
 	queries := []string{
+		`CREATE TABLE IF NOT EXISTS schema_migrations (
+			version TEXT PRIMARY KEY,
+			applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`,
 		`CREATE TABLE IF NOT EXISTS lighthouses (
 			id TEXT PRIMARY KEY,
 			name TEXT,
@@ -64,9 +68,42 @@ func createAllTables(db *sql.DB) error {
 			first_name TEXT,
 			last_name TEXT,
 			email TEXT,
-			password_hash TEXT DEFAULT '',
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);`,
+		`CREATE TABLE IF NOT EXISTS webauthn_users (
+			rp_id TEXT NOT NULL,
+			user_id TEXT NOT NULL,
+			handle BLOB NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (rp_id, user_id),
+			UNIQUE (rp_id, handle),
+			FOREIGN KEY (user_id) REFERENCES users(id)
+		);`,
+		`CREATE TABLE IF NOT EXISTS webauthn_credentials (
+			rp_id TEXT NOT NULL,
+			credential_id BLOB NOT NULL,
+			user_id TEXT NOT NULL,
+			credential_json BLOB NOT NULL,
+			version INTEGER NOT NULL DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			last_used_at TIMESTAMP,
+			PRIMARY KEY (rp_id, credential_id),
+			FOREIGN KEY (rp_id, user_id) REFERENCES webauthn_users(rp_id, user_id)
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user_id ON webauthn_credentials(rp_id, user_id);`,
+		`CREATE TABLE IF NOT EXISTS webauthn_sessions (
+			id TEXT PRIMARY KEY,
+			rp_id TEXT NOT NULL,
+			ceremony TEXT NOT NULL,
+			session_data BLOB NOT NULL,
+			user_id TEXT NOT NULL DEFAULT '',
+			email TEXT NOT NULL DEFAULT '',
+			first_name TEXT NOT NULL DEFAULT '',
+			last_name TEXT NOT NULL DEFAULT '',
+			expires_at INTEGER NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);`,
+		`CREATE INDEX IF NOT EXISTS idx_webauthn_sessions_expires_at ON webauthn_sessions(expires_at);`,
 		`CREATE TABLE IF NOT EXISTS user_wishlist_lighthouse (
 			user_id TEXT,
 			lighthouse_id TEXT,
@@ -108,9 +145,6 @@ func createAllTables(db *sql.DB) error {
 		}
 	}
 
-	// Add password_hash column to existing tables (ignore error if column already exists)
-	_, _ = db.Exec("ALTER TABLE users ADD COLUMN password_hash TEXT DEFAULT ''")
-
 	// Add new columns to lighthouses table (ignore error if columns already exist)
 	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN height REAL DEFAULT 0")
 	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN year_built INTEGER DEFAULT 0")
@@ -121,5 +155,123 @@ func createAllTables(db *sql.DB) error {
 	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN image_license TEXT DEFAULT ''")
 	_, _ = db.Exec("ALTER TABLE lighthouses ADD COLUMN image_url TEXT DEFAULT ''")
 
-	return nil
+	if err := ensureCredentialVersionColumn(db); err != nil {
+		return err
+	}
+	return resetLegacyUsersForPasskeys(db)
+}
+
+const passkeyResetMigration = "20260718_passkey_only_auth"
+const passkeyCredentialVersionMigration = "20260718_passkey_credential_version"
+
+func ensureCredentialVersionColumn(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	result, err := tx.Exec(
+		"INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)",
+		passkeyCredentialVersionMigration,
+	)
+	if err != nil {
+		return err
+	}
+
+	applied, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if applied == 0 {
+		return tx.Commit()
+	}
+
+	rows, err := tx.Query("PRAGMA table_info(webauthn_credentials)")
+	if err != nil {
+		return err
+	}
+
+	hasVersion := false
+	for rows.Next() {
+		var (
+			columnID     int
+			name         string
+			columnType   string
+			notNull      int
+			defaultValue sql.NullString
+			primaryKey   int
+		)
+		if err := rows.Scan(
+			&columnID,
+			&name,
+			&columnType,
+			&notNull,
+			&defaultValue,
+			&primaryKey,
+		); err != nil {
+			rows.Close()
+			return err
+		}
+		if name == "version" {
+			hasVersion = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+
+	if !hasVersion {
+		if _, err := tx.Exec(
+			"ALTER TABLE webauthn_credentials ADD COLUMN version INTEGER NOT NULL DEFAULT 0",
+		); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func resetLegacyUsersForPasskeys(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	result, err := tx.Exec(
+		"INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)",
+		passkeyResetMigration,
+	)
+	if err != nil {
+		return err
+	}
+
+	applied, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if applied == 0 {
+		return tx.Commit()
+	}
+
+	tables := []string{
+		"webauthn_sessions",
+		"webauthn_credentials",
+		"webauthn_users",
+		"friendships",
+		"user_wishlist_lighthouse",
+		"user_visited_lighthouse",
+		"users",
+	}
+	for _, table := range tables {
+		if _, err := tx.Exec("DELETE FROM " + table); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }

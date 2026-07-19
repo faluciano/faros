@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, ReactNode } from 'react';
 import { User } from '../types';
 import { AuthContext } from './AuthContext';
 import { getBaseUrl } from '../utils/api';
+import { createPasskeyAccount, signInWithPasskey } from '../utils/passkeys';
 
 const TOKEN_KEY = 'token';
 
@@ -47,37 +48,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     validateToken();
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const response = await fetch(`${getBaseUrl()}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Login failed');
-    }
-
-    const data = await response.json();
+  const login = useCallback(async () => {
+    const data = await signInWithPasskey();
     localStorage.setItem(TOKEN_KEY, data.token);
     setToken(data.token);
     setUser(data.user);
   }, []);
 
-  const register = useCallback(async (email: string, password: string, firstName: string, lastName: string) => {
-    const response = await fetch(`${getBaseUrl()}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, first_name: firstName, last_name: lastName }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Registration failed');
-    }
-
-    const data = await response.json();
+  const register = useCallback(async (email: string, firstName: string, lastName: string) => {
+    const data = await createPasskeyAccount({ email, firstName, lastName });
     localStorage.setItem(TOKEN_KEY, data.token);
     setToken(data.token);
     setUser(data.user);

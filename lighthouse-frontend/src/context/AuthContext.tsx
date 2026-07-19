@@ -6,8 +6,8 @@ export interface AuthContextType {
   token: string | null;
   isSignedIn: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  login: () => Promise<void>;
+  register: (email: string, firstName: string, lastName: string) => Promise<void>;
   logout: () => void;
   getToken: () => string | null;
 }

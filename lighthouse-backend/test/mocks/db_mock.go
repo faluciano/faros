@@ -1,8 +1,11 @@
 package mocks
 
 import (
+	"context"
 	"lighthouse-backend/interfaces"
 	"lighthouse-backend/schemas"
+
+	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 // MockDB implements interfaces.DBInterface for testing
@@ -157,4 +160,35 @@ func (m *MockDB) GetFriendVisitedLighthouses(userId, fId string) ([]schemas.Ligh
 
 // Auth operations
 func (m *MockDB) GetUserByEmail(email string) (*schemas.User, error) { return nil, nil }
-func (m *MockDB) CreateUserWithPassword(user schemas.User) error     { return nil }
+func (m *MockDB) SavePasskeySession(ctx context.Context, session schemas.PasskeySession) error {
+	return nil
+}
+func (m *MockDB) ConsumePasskeySession(
+	ctx context.Context,
+	id, ceremony, rpID string,
+) (*schemas.PasskeySession, error) {
+	return nil, interfaces.ErrPasskeySessionNotFound
+}
+func (m *MockDB) CreatePasskeyUser(
+	ctx context.Context,
+	user schemas.PasskeyUser,
+	credential webauthn.Credential,
+	rpID string,
+) error {
+	return nil
+}
+func (m *MockDB) GetPasskeyUserByHandle(
+	ctx context.Context,
+	rpID string,
+	handle []byte,
+) (*schemas.PasskeyUser, error) {
+	return nil, nil
+}
+func (m *MockDB) UpdatePasskeyCredential(
+	ctx context.Context,
+	rpID, userID string,
+	credential webauthn.Credential,
+	expectedVersion int64,
+) error {
+	return nil
+}

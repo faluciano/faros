@@ -1,9 +1,17 @@
 package db
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"lighthouse-backend/interfaces"
 	"lighthouse-backend/schemas"
+	"strings"
+	"time"
+
+	"github.com/go-webauthn/webauthn/webauthn"
 )
 
 // DBImpl implements interfaces.DBInterface using a real database connection
@@ -172,9 +180,9 @@ func (d *DBImpl) GetUser(id string) (*schemas.User, error) {
 func (d *DBImpl) GetUserByEmail(email string) (*schemas.User, error) {
 	var user schemas.User
 	err := d.db.QueryRow(
-		"SELECT id, first_name, last_name, email, password_hash FROM users WHERE email = ?",
+		"SELECT id, first_name, last_name, email FROM users WHERE email = ?",
 		email,
-	).Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.PasswordHash)
+	).Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -185,13 +193,231 @@ func (d *DBImpl) GetUserByEmail(email string) (*schemas.User, error) {
 	return &user, nil
 }
 
-func (d *DBImpl) CreateUserWithPassword(user schemas.User) error {
-	query := `
-	INSERT INTO users (id, first_name, last_name, email, password_hash)
-	VALUES (?, ?, ?, ?, ?)
-	`
-	_, err := d.db.Exec(query, user.ID, user.FirstName, user.LastName, user.Email, user.PasswordHash)
-	return err
+func (d *DBImpl) SavePasskeySession(ctx context.Context, session schemas.PasskeySession) error {
+	if session.Data.Expires.IsZero() {
+		return fmt.Errorf("passkey session expiry must be set")
+	}
+
+	sessionData, err := json.Marshal(session.Data)
+	if err != nil {
+		return fmt.Errorf("marshal passkey session: %w", err)
+	}
+
+	if _, err := d.db.ExecContext(
+		ctx,
+		"DELETE FROM webauthn_sessions WHERE expires_at <= ?",
+		time.Now().Unix(),
+	); err != nil {
+		return fmt.Errorf("remove expired passkey sessions: %w", err)
+	}
+
+	_, err = d.db.ExecContext(ctx, `
+		INSERT INTO webauthn_sessions (
+			id, rp_id, ceremony, session_data, user_id, email, first_name, last_name, expires_at
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`,
+		session.ID,
+		session.RPID,
+		session.Ceremony,
+		sessionData,
+		session.User.ID,
+		session.User.Email,
+		session.User.FirstName,
+		session.User.LastName,
+		session.Data.Expires.Unix(),
+	)
+	if err != nil {
+		return fmt.Errorf("save passkey session: %w", err)
+	}
+	return nil
+}
+
+func (d *DBImpl) ConsumePasskeySession(
+	ctx context.Context,
+	id string,
+	ceremony string,
+	rpID string,
+) (*schemas.PasskeySession, error) {
+	var (
+		sessionData []byte
+		session     schemas.PasskeySession
+		expiresAt   int64
+	)
+
+	err := d.db.QueryRowContext(ctx, `
+		DELETE FROM webauthn_sessions
+		WHERE id = ? AND ceremony = ? AND rp_id = ?
+		RETURNING session_data, user_id, email, first_name, last_name, expires_at
+	`, id, ceremony, rpID).Scan(
+		&sessionData,
+		&session.User.ID,
+		&session.User.Email,
+		&session.User.FirstName,
+		&session.User.LastName,
+		&expiresAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, interfaces.ErrPasskeySessionNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("consume passkey session: %w", err)
+	}
+	if expiresAt <= time.Now().Unix() {
+		return nil, interfaces.ErrPasskeySessionExpired
+	}
+	if err := json.Unmarshal(sessionData, &session.Data); err != nil {
+		return nil, fmt.Errorf("unmarshal passkey session: %w", err)
+	}
+
+	session.ID = id
+	session.Ceremony = ceremony
+	session.RPID = rpID
+	return &session, nil
+}
+
+func (d *DBImpl) CreatePasskeyUser(
+	ctx context.Context,
+	user schemas.PasskeyUser,
+	credential webauthn.Credential,
+	rpID string,
+) error {
+	credentialJSON, err := json.Marshal(credential)
+	if err != nil {
+		return fmt.Errorf("marshal passkey credential: %w", err)
+	}
+
+	tx, err := d.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin passkey user transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO users (id, first_name, last_name, email)
+		VALUES (?, ?, ?, ?)
+	`, user.ID, user.FirstName, user.LastName, user.Email); err != nil {
+		if isUniqueConstraintError(err) {
+			return fmt.Errorf("%w: %v", interfaces.ErrUserAlreadyExists, err)
+		}
+		return fmt.Errorf("create user: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO webauthn_users (rp_id, user_id, handle)
+		VALUES (?, ?, ?)
+	`, rpID, user.ID, user.Handle); err != nil {
+		return fmt.Errorf("create passkey user: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO webauthn_credentials (rp_id, credential_id, user_id, credential_json)
+		VALUES (?, ?, ?, ?)
+	`, rpID, credential.ID, user.ID, credentialJSON); err != nil {
+		if isUniqueConstraintError(err) {
+			return fmt.Errorf("%w: %v", interfaces.ErrUserAlreadyExists, err)
+		}
+		return fmt.Errorf("create passkey credential: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit passkey user transaction: %w", err)
+	}
+	return nil
+}
+
+func (d *DBImpl) GetPasskeyUserByHandle(
+	ctx context.Context,
+	rpID string,
+	handle []byte,
+) (*schemas.PasskeyUser, error) {
+	var user schemas.PasskeyUser
+	err := d.db.QueryRowContext(ctx, `
+		SELECT u.id, u.first_name, u.last_name, u.email, wu.handle
+		FROM webauthn_users wu
+		JOIN users u ON u.id = wu.user_id
+		WHERE wu.rp_id = ? AND wu.handle = ?
+	`, rpID, handle).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.Handle,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get passkey user: %w", err)
+	}
+
+	rows, err := d.db.QueryContext(ctx, `
+		SELECT credential_json, version
+		FROM webauthn_credentials
+		WHERE rp_id = ? AND user_id = ?
+	`, rpID, user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("get passkey credentials: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			credentialJSON []byte
+			version        int64
+		)
+		if err := rows.Scan(&credentialJSON, &version); err != nil {
+			return nil, fmt.Errorf("scan passkey credential: %w", err)
+		}
+
+		var credential webauthn.Credential
+		if err := json.Unmarshal(credentialJSON, &credential); err != nil {
+			return nil, fmt.Errorf("unmarshal passkey credential: %w", err)
+		}
+		user.Credentials = append(user.Credentials, credential)
+		user.CredentialVersions = append(user.CredentialVersions, version)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate passkey credentials: %w", err)
+	}
+
+	return &user, nil
+}
+
+func (d *DBImpl) UpdatePasskeyCredential(
+	ctx context.Context,
+	rpID string,
+	userID string,
+	credential webauthn.Credential,
+	expectedVersion int64,
+) error {
+	credentialJSON, err := json.Marshal(credential)
+	if err != nil {
+		return fmt.Errorf("marshal passkey credential: %w", err)
+	}
+
+	result, err := d.db.ExecContext(ctx, `
+		UPDATE webauthn_credentials
+		SET credential_json = ?, version = version + 1, last_used_at = CURRENT_TIMESTAMP
+		WHERE rp_id = ? AND user_id = ? AND credential_id = ? AND version = ?
+	`, credentialJSON, rpID, userID, credential.ID, expectedVersion)
+	if err != nil {
+		return fmt.Errorf("update passkey credential: %w", err)
+	}
+
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read updated passkey credential count: %w", err)
+	}
+	if updated != 1 {
+		return interfaces.ErrPasskeyCredentialChanged
+	}
+	return nil
+}
+
+func isUniqueConstraintError(err error) bool {
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "unique constraint")
 }
 
 func (d *DBImpl) GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error) {

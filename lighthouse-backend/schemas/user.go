@@ -11,6 +11,4 @@ type User struct {
 	LastName string `json:"last_name"`
 	// @Description User's email address
 	Email string `json:"email"`
-	// PasswordHash is excluded from JSON serialization for security
-	PasswordHash string `json:"-"`
 }

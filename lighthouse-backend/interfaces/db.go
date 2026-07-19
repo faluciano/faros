@@ -1,6 +1,20 @@
 package interfaces
 
-import "lighthouse-backend/schemas"
+import (
+	"context"
+	"errors"
+	"lighthouse-backend/schemas"
+
+	"github.com/go-webauthn/webauthn/webauthn"
+)
+
+var (
+	ErrUserAlreadyExists        = errors.New("user already exists")
+	ErrPasskeySessionNotFound   = errors.New("passkey session not found")
+	ErrPasskeySessionExpired    = errors.New("passkey session expired")
+	ErrPasskeyCredentialAbsent  = errors.New("passkey credential not found")
+	ErrPasskeyCredentialChanged = errors.New("passkey credential changed")
+)
 
 // DBInterface defines the database operations we need
 type DBInterface interface {
@@ -18,7 +32,16 @@ type DBInterface interface {
 
 	// Auth operations
 	GetUserByEmail(email string) (*schemas.User, error)
-	CreateUserWithPassword(user schemas.User) error
+	SavePasskeySession(ctx context.Context, session schemas.PasskeySession) error
+	ConsumePasskeySession(ctx context.Context, id, ceremony, rpID string) (*schemas.PasskeySession, error)
+	CreatePasskeyUser(ctx context.Context, user schemas.PasskeyUser, credential webauthn.Credential, rpID string) error
+	GetPasskeyUserByHandle(ctx context.Context, rpID string, handle []byte) (*schemas.PasskeyUser, error)
+	UpdatePasskeyCredential(
+		ctx context.Context,
+		rpID, userID string,
+		credential webauthn.Credential,
+		expectedVersion int64,
+	) error
 
 	GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error)
 	MarkLighthouseAsVisited(userId string, lighthouseId string) error

@@ -27,6 +27,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
@@ -83,7 +84,15 @@ func main() {
 		log.Println("WARNING: JWT_SECRET not set, authentication will not work")
 		jwtSecret = "default-secret-for-tests-only"
 	}
-	authHandler := handlers.NewAuthHandler(database, jwtSecret)
+
+	passkeyRPID := envOrDefault("PASSKEY_RP_ID", "localhost")
+	passkeyOrigins := envListOrDefault("PASSKEY_RP_ORIGINS", []string{"http://localhost:5173"})
+	passkeys, err := auth.NewPasskey(passkeyRPID, passkeyOrigins)
+	if err != nil {
+		log.Fatalf("Invalid passkey configuration: %v", err)
+	}
+
+	authHandler := handlers.NewAuthHandler(database, jwtSecret, passkeys, passkeyRPID)
 	authMiddleware := auth.RequireAuth(jwtSecret)
 
 	mux := http.NewServeMux()
@@ -101,8 +110,10 @@ func main() {
 	mux.HandleFunc("GET /api/lighthouses/{id}", lighthouseHandler.GetLighthouseByID)
 
 	// Auth routes
-	mux.HandleFunc("POST /auth/register", authHandler.Register)
-	mux.HandleFunc("POST /auth/login", authHandler.Login)
+	mux.HandleFunc("POST /auth/passkey/register/options", authHandler.BeginPasskeyRegistration)
+	mux.HandleFunc("POST /auth/passkey/register", authHandler.FinishPasskeyRegistration)
+	mux.HandleFunc("POST /auth/passkey/login/options", authHandler.BeginPasskeyLogin)
+	mux.HandleFunc("POST /auth/passkey/login", authHandler.FinishPasskeyLogin)
 	mux.Handle("GET /auth/me", authMiddleware(http.HandlerFunc(authHandler.GetMe)))
 
 	// User routes with authentication
@@ -129,14 +140,23 @@ func main() {
 	mux.Handle("GET /users/search", authMiddleware(http.HandlerFunc(friendsHandler.SearchUsers)))
 
 	// Configure CORS
-	c := cors.New(cors.Options{
-		AllowedOrigins: []string{
+	allowedOrigins := uniqueStrings(append(passkeyOrigins,
+		[]string{
 			"http://localhost:5173",
 			"https://agreeable-pond-025c6731e.5.azurestaticapps.net",
 			"https://agreeable-pond-025c6731e.4.azurestaticapps.net",
-		},
+		}...,
+	))
+	c := cors.New(cors.Options{
+		AllowedOrigins: allowedOrigins,
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Authorization", "Content-Type", "Origin", "Accept"},
+		AllowedHeaders: []string{
+			"Authorization",
+			"Content-Type",
+			"Origin",
+			"Accept",
+			"X-WebAuthn-Session",
+		},
 		ExposedHeaders: []string{"Content-Length"},
 		MaxAge:         86400,
 	})
@@ -153,4 +173,43 @@ func main() {
 	if err := http.ListenAndServe(":"+PORT, handler); err != nil {
 		log.Fatalf("Server failed to start: %v\n", err)
 	}
+}
+
+func envOrDefault(name string, fallback string) string {
+	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
+		return value
+	}
+	return fallback
+}
+
+func envListOrDefault(name string, fallback []string) []string {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return fallback
+	}
+
+	items := strings.Split(value, ",")
+	values := make([]string, 0, len(items))
+	for _, item := range items {
+		if item = strings.TrimSpace(item); item != "" {
+			values = append(values, item)
+		}
+	}
+	if len(values) == 0 {
+		return fallback
+	}
+	return values
+}
+
+func uniqueStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	unique := make([]string, 0, len(values))
+	for _, value := range values {
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		unique = append(unique, value)
+	}
+	return unique
 }
