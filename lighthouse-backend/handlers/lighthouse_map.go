@@ -100,7 +100,7 @@ func (h *LighthouseHandler) getLighthouseMapPayload() (lighthouseMapPayload, err
 				Type:        "Point",
 				Coordinates: [2]float64{point.Longitude, point.Latitude},
 			},
-			Properties: schemas.LighthouseMapProperties{},
+			Properties: schemas.LighthouseMapProperties{ID: point.ID},
 		})
 	}
 

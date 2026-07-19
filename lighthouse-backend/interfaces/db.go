@@ -14,6 +14,7 @@ var (
 	ErrPasskeySessionExpired    = errors.New("passkey session expired")
 	ErrPasskeyCredentialAbsent  = errors.New("passkey credential not found")
 	ErrPasskeyCredentialChanged = errors.New("passkey credential changed")
+	ErrFriendshipExists         = errors.New("friendship or friend request already exists")
 )
 
 // DBInterface defines the database operations we need

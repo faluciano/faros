@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"lighthouse-backend/auth"
 	"lighthouse-backend/interfaces"
 	"lighthouse-backend/schemas"
 	"lighthouse-backend/utils"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -164,9 +166,11 @@ func (h *FriendsHandler) GetOutgoingFriendRequests(w http.ResponseWriter, r *htt
 // @Produce     json
 // @Security    ApiKeyAuth
 // @Param       request body FriendRequest true "Friend ID"
-// @Success     200
+// @Success     200 {object} map[string]bool
 // @Failure     400 {object} map[string]string
 // @Failure     401 {object} map[string]string
+// @Failure     404 {object} map[string]string
+// @Failure     409 {object} map[string]string
 // @Failure     500 {object} map[string]string
 // @Router      /user/friends/requests [post]
 func (h *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Request) {
@@ -183,13 +187,36 @@ func (h *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Reques
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
+	req.FriendId = strings.TrimSpace(req.FriendId)
+	if req.FriendId == "" {
+		utils.WriteError(w, http.StatusBadRequest, "friendId is required")
+		return
+	}
+	if req.FriendId == userID {
+		utils.WriteError(w, http.StatusBadRequest, "cannot send a friend request to yourself")
+		return
+	}
+	friend, err := h.db.GetUser(req.FriendId)
+	if err != nil {
+		log.Printf("look up friend request recipient: %v", err)
+		utils.WriteError(w, http.StatusInternalServerError, "Failed to send friend request")
+		return
+	}
+	if friend == nil {
+		utils.WriteError(w, http.StatusNotFound, "user not found")
+		return
+	}
 
-	if err := h.db.SendFriendRequest(userID, req.FriendId); err != nil {
+	if err := h.db.SendFriendRequest(userID, req.FriendId); errors.Is(err, interfaces.ErrFriendshipExists) {
+		utils.WriteError(w, http.StatusConflict, "friendship or friend request already exists")
+		return
+	} else if err != nil {
+		log.Printf("send friend request: %v", err)
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to send friend request")
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]bool{"success": true})
 }
 
 // @Summary     Accept friend request

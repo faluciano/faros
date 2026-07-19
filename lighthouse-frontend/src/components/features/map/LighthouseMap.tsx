@@ -20,6 +20,7 @@ import LighthousePopoverContent from "../lighthouses/LighthousePopover";
 import {
   clusterCountLayer,
   clusterLayer,
+  lighthouseHitLayer,
   lighthousePointLayer,
   LIGHTHOUSE_SOURCE_ID,
 } from "./layers";
@@ -57,8 +58,11 @@ const LighthouseMap = () => {
       return;
     }
 
-    if (feature.layer.id === lighthousePointLayer.id) {
-      const id = String(feature.id ?? "");
+    if (
+      feature.layer.id === lighthousePointLayer.id ||
+      feature.layer.id === lighthouseHitLayer.id
+    ) {
+      const id = String(feature.properties?.id ?? feature.id ?? "");
       if (!id) {
         return;
       }
@@ -115,7 +119,11 @@ const LighthouseMap = () => {
         }}
         style={{ width: "100%", height: "100%" }}
         onClick={handleMapClick}
-        interactiveLayerIds={[clusterLayer.id, lighthousePointLayer.id]}
+        interactiveLayerIds={[
+          clusterLayer.id,
+          lighthousePointLayer.id,
+          lighthouseHitLayer.id,
+        ]}
       >
         <Source
           id={LIGHTHOUSE_SOURCE_ID}
@@ -124,10 +132,12 @@ const LighthouseMap = () => {
           cluster
           clusterMaxZoom={14}
           clusterRadius={50}
+          promoteId="id"
         >
           <Layer {...clusterLayer} />
           <Layer {...clusterCountLayer} />
           <Layer {...lighthousePointLayer} />
+          <Layer {...lighthouseHitLayer} />
         </Source>
 
         {selectedLighthouse ? (

@@ -49,6 +49,19 @@ export const lighthousePointLayer: CircleLayerSpecification = {
   },
 };
 
+export const lighthouseHitLayer: CircleLayerSpecification = {
+  id: "unclustered-point-hit-area",
+  type: "circle",
+  source: LIGHTHOUSE_SOURCE_ID,
+  filter: ["!", ["has", "point_count"]],
+  paint: {
+    "circle-color": "#000",
+    "circle-opacity": 0.01,
+    "circle-radius": 16,
+    "circle-stroke-width": 0,
+  },
+};
+
 export const friendClusterLayer: CircleLayerSpecification = {
   id: "friend-clusters",
   type: "circle",
@@ -84,5 +97,18 @@ export const friendPointLayer: CircleLayerSpecification = {
     "circle-radius": 6,
     "circle-stroke-width": 1,
     "circle-stroke-color": "#fff",
+  },
+};
+
+export const friendHitLayer: CircleLayerSpecification = {
+  id: "friend-point-hit-area",
+  type: "circle",
+  source: FRIEND_SOURCE_ID,
+  filter: ["!", ["has", "point_count"]],
+  paint: {
+    "circle-color": "#000",
+    "circle-opacity": 0.01,
+    "circle-radius": 16,
+    "circle-stroke-width": 0,
   },
 };

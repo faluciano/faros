@@ -31,6 +31,7 @@ export interface LighthouseSummary {
 }
 
 export interface LighthouseMapProperties {
+  id: string;
   isVisited?: boolean;
   isWishlist?: boolean;
   isFriend?: boolean;

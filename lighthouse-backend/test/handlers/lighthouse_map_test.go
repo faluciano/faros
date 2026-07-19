@@ -50,6 +50,9 @@ func TestGetLighthouseMap(t *testing.T) {
 	if data.Features[0].Geometry.Type != "Point" {
 		t.Fatalf("geometry type = %q, want Point", data.Features[0].Geometry.Type)
 	}
+	if data.Features[0].Properties.ID == "" {
+		t.Fatal("map feature is missing its application ID property")
+	}
 
 	cachedRequest := httptest.NewRequest(http.MethodGet, "/api/lighthouses/map", nil)
 	cachedRequest.Header.Set("If-None-Match", response.Header().Get("ETag"))

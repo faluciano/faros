@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 
 	_ "github.com/tursodatabase/go-libsql"
 )
@@ -158,11 +159,15 @@ func createAllTables(db *sql.DB) error {
 	if err := ensureCredentialVersionColumn(db); err != nil {
 		return err
 	}
-	return resetLegacyUsersForPasskeys(db)
+	if err := resetLegacyUsersForPasskeys(db); err != nil {
+		return err
+	}
+	return ensureDirectionalFriendships(db)
 }
 
 const passkeyResetMigration = "20260718_passkey_only_auth"
 const passkeyCredentialVersionMigration = "20260718_passkey_credential_version"
+const directionalFriendshipsMigration = "20260719_directional_friendships"
 
 func ensureCredentialVersionColumn(db *sql.DB) error {
 	tx, err := db.Begin()
@@ -273,5 +278,112 @@ func resetLegacyUsersForPasskeys(db *sql.DB) error {
 			return err
 		}
 	}
+	return tx.Commit()
+}
+
+func ensureDirectionalFriendships(db *sql.DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	result, err := tx.Exec(
+		"INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)",
+		directionalFriendshipsMigration,
+	)
+	if err != nil {
+		return err
+	}
+
+	applied, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if applied == 0 {
+		return tx.Commit()
+	}
+
+	var createSQL string
+	if err := tx.QueryRow(
+		"SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'friendships'",
+	).Scan(&createSQL); err != nil {
+		return err
+	}
+
+	normalizedSQL := strings.Join(strings.Fields(strings.ToLower(createSQL)), " ")
+	if strings.Contains(normalizedSQL, "check (user_id < friend_id)") {
+		if _, err := tx.Exec(`
+			CREATE TABLE friendships_directional (
+				user_id TEXT,
+				friend_id TEXT,
+				status TEXT CHECK(status IN ('pending', 'accepted')),
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				PRIMARY KEY (user_id, friend_id),
+				FOREIGN KEY (user_id) REFERENCES users(id),
+				FOREIGN KEY (friend_id) REFERENCES users(id)
+			)
+		`); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`
+			INSERT INTO friendships_directional (
+				user_id, friend_id, status, created_at, updated_at
+			)
+			SELECT user_id, friend_id, status, created_at, updated_at
+			FROM friendships
+		`); err != nil {
+			return err
+		}
+		if _, err := tx.Exec("DROP TABLE friendships"); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(
+			"ALTER TABLE friendships_directional RENAME TO friendships",
+		); err != nil {
+			return err
+		}
+	}
+
+	if _, err := tx.Exec(`
+		DELETE FROM friendships
+		WHERE rowid IN (
+			SELECT rowid
+			FROM (
+				SELECT
+					rowid,
+					ROW_NUMBER() OVER (
+						PARTITION BY
+							CASE WHEN user_id < friend_id THEN user_id ELSE friend_id END,
+							CASE WHEN user_id < friend_id THEN friend_id ELSE user_id END
+						ORDER BY
+							CASE WHEN status = 'accepted' THEN 0 ELSE 1 END,
+							created_at,
+							rowid
+					) AS pair_rank
+				FROM friendships
+			)
+			WHERE pair_rank > 1
+		)
+	`); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_friendships_friend_id_status
+		ON friendships(friend_id, status)
+	`); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_friendships_unique_pair
+		ON friendships (
+			CASE WHEN user_id < friend_id THEN user_id ELSE friend_id END,
+			CASE WHEN user_id < friend_id THEN friend_id ELSE user_id END
+		)
+	`); err != nil {
+		return err
+	}
+
 	return tx.Commit()
 }

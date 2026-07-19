@@ -6,7 +6,9 @@ type LighthouseMapPoint struct {
 	Longitude float64
 }
 
-type LighthouseMapProperties struct{}
+type LighthouseMapProperties struct {
+	ID string `json:"id"`
+}
 
 type LighthouseMapGeometry struct {
 	Type        string     `json:"type"`

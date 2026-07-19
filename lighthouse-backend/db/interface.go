@@ -629,7 +629,6 @@ func (d *DBImpl) SearchUsers(query string, currentUserId string) ([]schemas.User
 			(f.user_id = ? AND f.friend_id = u.id)
 			OR (f.friend_id = ? AND f.user_id = u.id)
 		)
-		AND f.status = 'accepted'
 	)
 	ORDER BY
 		CASE
@@ -678,15 +677,20 @@ func (d *DBImpl) SendFriendRequest(userId, friendId string) error {
 	query := `
 	INSERT INTO friendships (user_id, friend_id, status)
 	VALUES (?, ?, 'pending')
-	ON CONFLICT(user_id, friend_id) DO UPDATE SET
-		status = CASE
-			WHEN status = 'pending' THEN 'pending'
-			ELSE status
-		END,
-		updated_at = CURRENT_TIMESTAMP
+	ON CONFLICT DO NOTHING
 	`
-	_, err := d.db.Exec(query, userId, friendId)
-	return err
+	result, err := d.db.Exec(query, userId, friendId)
+	if err != nil {
+		return err
+	}
+	inserted, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if inserted != 1 {
+		return interfaces.ErrFriendshipExists
+	}
+	return nil
 }
 
 func (d *DBImpl) AcceptFriendRequest(userId, friendId string) error {

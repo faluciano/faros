@@ -27,7 +27,16 @@ export const fetchWithAuth = async <T>(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || `HTTP error! status: ${response.status}`);
+    let errorMessage = errorText;
+    if (errorText) {
+      try {
+        const payload = JSON.parse(errorText) as { message?: string; error?: string };
+        errorMessage = payload.message || payload.error || errorText;
+      } catch {
+        errorMessage = errorText;
+      }
+    }
+    throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
   }
 
   return response.json() as Promise<T>;

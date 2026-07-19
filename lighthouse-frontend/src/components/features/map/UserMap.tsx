@@ -35,8 +35,10 @@ import LighthousePopoverContent from "../lighthouses/LighthousePopover";
 import {
   clusterCountLayer,
   clusterLayer,
+  lighthouseHitLayer,
   friendClusterCountLayer,
   friendClusterLayer,
+  friendHitLayer,
   friendPointLayer,
   FRIEND_SOURCE_ID,
   lighthousePointLayer,
@@ -234,6 +236,7 @@ const UserMap = () => {
             coordinates: [lighthouse.longitude, lighthouse.latitude],
           },
           properties: {
+            id: lighthouse.id,
             isFriend: true,
           },
         }))
@@ -313,8 +316,13 @@ const UserMap = () => {
       return;
     }
 
-    if (feature.layer.id === lighthousePointLayer.id || feature.layer.id === friendPointLayer.id) {
-      const id = String(feature.id ?? "");
+    if (
+      feature.layer.id === lighthousePointLayer.id ||
+      feature.layer.id === lighthouseHitLayer.id ||
+      feature.layer.id === friendPointLayer.id ||
+      feature.layer.id === friendHitLayer.id
+    ) {
+      const id = String(feature.properties?.id ?? feature.id ?? "");
       if (!id) {
         return;
       }
@@ -435,8 +443,10 @@ const UserMap = () => {
         interactiveLayerIds={[
           clusterLayer.id,
           lighthousePointLayer.id,
+          lighthouseHitLayer.id,
           friendClusterLayer.id,
           friendPointLayer.id,
+          friendHitLayer.id,
         ]}
       >
         <Source
@@ -446,10 +456,12 @@ const UserMap = () => {
           cluster
           clusterMaxZoom={14}
           clusterRadius={50}
+          promoteId="id"
         >
           <Layer {...clusterLayer} />
           <Layer {...clusterCountLayer} />
           <Layer {...lighthousePointLayer} />
+          <Layer {...lighthouseHitLayer} />
         </Source>
 
         <Source
@@ -459,10 +471,12 @@ const UserMap = () => {
           cluster
           clusterMaxZoom={14}
           clusterRadius={45}
+          promoteId="id"
         >
           <Layer {...friendClusterLayer} />
           <Layer {...friendClusterCountLayer} />
           <Layer {...friendPointLayer} />
+          <Layer {...friendHitLayer} />
         </Source>
 
         {selectedLighthouse ? (

@@ -3,7 +3,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { Tab } from '@headlessui/react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { User } from '../../../types';
-import { getBaseUrl } from '../../../utils/api';
+import { fetchWithAuth, getBaseUrl } from '../../../utils/api';
 import PageState from '../../layout/PageState';
 
 function classNames(...classes: string[]) {
@@ -19,6 +19,7 @@ export default function Friends() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [sendingRequestIds, setSendingRequestIds] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
 
   const fetchFriends = useCallback(async () => {
@@ -139,32 +140,37 @@ export default function Friends() {
 
   const sendFriendRequest = async (friendId: string) => {
     if (!isSignedIn) return;
-    
+
+    const userToAdd = searchResults.find((user) => user.id === friendId);
+    setSendingRequestIds((current) => new Set(current).add(friendId));
+    setError(null);
+
     try {
       const token = getToken();
       if (!token) return;
 
-      const response = await fetch(`${getBaseUrl()}/user/friends/requests`, {
+      await fetchWithAuth<{ success: boolean }>(token, '/user/friends/requests', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ friendId }),
       });
-      if (!response.ok) throw new Error('Failed to send friend request');
 
-      // Remove user from search results
-      setSearchResults(searchResults.filter(user => user.id !== friendId));
-      
-      // Add to outgoing requests
-      const userToAdd = searchResults.find(user => user.id === friendId);
+      setSearchResults((current) => current.filter((user) => user.id !== friendId));
       if (userToAdd) {
-        setOutgoingRequests([...outgoingRequests, userToAdd]);
+        setOutgoingRequests((current) => [...current, userToAdd]);
       }
-    } catch (err) {
-      setError('Failed to send friend request');
-      console.error(err);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Failed to send friend request',
+      );
+      console.error(requestError);
+    } finally {
+      setSendingRequestIds((current) => {
+        const next = new Set(current);
+        next.delete(friendId);
+        return next;
+      });
     }
   };
 
@@ -318,9 +324,10 @@ export default function Friends() {
                         <button
                           type="button"
                           onClick={() => sendFriendRequest(user.id)}
+                          disabled={sendingRequestIds.has(user.id)}
                           className="app-button-primary mt-4 w-full !py-2.5"
                         >
-                          Send request
+                          {sendingRequestIds.has(user.id) ? 'Sending...' : 'Send request'}
                         </button>
                       </article>
                     ))

@@ -114,6 +114,9 @@ definitions:
         type: string
     type: object
   schemas.LighthouseMapProperties:
+    properties:
+      id:
+        type: string
     type: object
   schemas.User:
     description: A user with their basic information
@@ -597,6 +600,10 @@ paths:
       responses:
         "200":
           description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -605,6 +612,18 @@ paths:
             type: object
         "401":
           description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
           schema:
             additionalProperties:
               type: string
