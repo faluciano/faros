@@ -79,6 +79,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/lighthouses/map": {
+            "get": {
+                "description": "Get cached, compressed GeoJSON containing only lighthouse IDs and coordinates",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "lighthouses"
+                ],
+                "summary": "Get lighthouse map data",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.LighthouseMapData"
+                        }
+                    },
+                    "304": {
+                        "description": "Not Modified"
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/lighthouses/{id}": {
             "get": {
                 "description": "Get details for a specific lighthouse by ID",
@@ -988,6 +1017,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/map-state": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get lightweight visited and wishlist lighthouse IDs for map rendering",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get current user's map state",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/schemas.UserMapState"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.APIError"
+                        }
+                    }
+                }
+            }
+        },
         "/user/wishlist": {
             "get": {
                 "security": [
@@ -1352,6 +1418,54 @@ const docTemplate = `{
                 }
             }
         },
+        "schemas.LighthouseMapData": {
+            "type": "object",
+            "properties": {
+                "features": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/schemas.LighthouseMapFeature"
+                    }
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "schemas.LighthouseMapFeature": {
+            "type": "object",
+            "properties": {
+                "geometry": {
+                    "$ref": "#/definitions/schemas.LighthouseMapGeometry"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "properties": {
+                    "$ref": "#/definitions/schemas.LighthouseMapProperties"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "schemas.LighthouseMapGeometry": {
+            "type": "object",
+            "properties": {
+                "coordinates": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "schemas.LighthouseMapProperties": {
+            "type": "object"
+        },
         "schemas.User": {
             "description": "A user with their basic information",
             "type": "object",
@@ -1371,6 +1485,23 @@ const docTemplate = `{
                 "last_name": {
                     "description": "@Description User's last name",
                     "type": "string"
+                }
+            }
+        },
+        "schemas.UserMapState": {
+            "type": "object",
+            "properties": {
+                "visited_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "wishlist_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

@@ -1,0 +1,88 @@
+import type {
+  CircleLayerSpecification,
+  SymbolLayerSpecification,
+} from "maplibre-gl";
+
+export const LIGHTHOUSE_SOURCE_ID = "lighthouses";
+export const FRIEND_SOURCE_ID = "friend-lighthouses";
+
+export const clusterLayer: CircleLayerSpecification = {
+  id: "clusters",
+  type: "circle",
+  source: LIGHTHOUSE_SOURCE_ID,
+  filter: ["has", "point_count"],
+  paint: {
+    "circle-color": ["step", ["get", "point_count"], "#0F766E", 100, "#D49A3A", 750, "#C95B54"],
+    "circle-radius": ["step", ["get", "point_count"], 20, 100, 30, 750, 40],
+  },
+};
+
+export const clusterCountLayer: SymbolLayerSpecification = {
+  id: "cluster-count",
+  type: "symbol",
+  source: LIGHTHOUSE_SOURCE_ID,
+  filter: ["has", "point_count"],
+  layout: {
+    "text-field": "{point_count_abbreviated}",
+    "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+    "text-size": 12,
+  },
+};
+
+export const lighthousePointLayer: CircleLayerSpecification = {
+  id: "unclustered-point",
+  type: "circle",
+  source: LIGHTHOUSE_SOURCE_ID,
+  filter: ["!", ["has", "point_count"]],
+  paint: {
+    "circle-color": [
+      "case",
+      ["boolean", ["get", "isVisited"], false],
+      "#0F766E",
+      ["boolean", ["get", "isWishlist"], false],
+      "#D49A3A",
+      "#C95B54",
+    ],
+    "circle-radius": 6,
+    "circle-stroke-width": 1,
+    "circle-stroke-color": "#fff",
+  },
+};
+
+export const friendClusterLayer: CircleLayerSpecification = {
+  id: "friend-clusters",
+  type: "circle",
+  source: FRIEND_SOURCE_ID,
+  filter: ["has", "point_count"],
+  paint: {
+    "circle-color": "#0369A1",
+    "circle-radius": ["step", ["get", "point_count"], 18, 50, 25, 250, 34],
+    "circle-stroke-width": 2,
+    "circle-stroke-color": "#fff",
+  },
+};
+
+export const friendClusterCountLayer: SymbolLayerSpecification = {
+  id: "friend-cluster-count",
+  type: "symbol",
+  source: FRIEND_SOURCE_ID,
+  filter: ["has", "point_count"],
+  layout: {
+    "text-field": "{point_count_abbreviated}",
+    "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+    "text-size": 12,
+  },
+};
+
+export const friendPointLayer: CircleLayerSpecification = {
+  id: "friend-point",
+  type: "circle",
+  source: FRIEND_SOURCE_ID,
+  filter: ["!", ["has", "point_count"]],
+  paint: {
+    "circle-color": "#0369A1",
+    "circle-radius": 6,
+    "circle-stroke-width": 1,
+    "circle-stroke-color": "#fff",
+  },
+};

@@ -1,77 +1,37 @@
-import { useState, useMemo, useRef } from "react";
-import { Map, Source, Layer, Popup, MapRef, CircleLayerSpecification, SymbolLayerSpecification, MapLayerMouseEvent } from "react-map-gl/maplibre";
+import { useRef, useState } from "react";
+import {
+  Layer,
+  Map,
+  Popup,
+  Source,
+  type MapLayerMouseEvent,
+  type MapRef,
+} from "react-map-gl/maplibre";
+import type { Point } from "geojson";
+import type { GeoJSONSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Lighthouse } from "../../../types";
-import LighthousePopoverContent from "../lighthouses/LighthousePopover";
+import type { Lighthouse } from "../../../types";
 import { useLighthouse } from "../../../hooks/useLighthouse";
-import { useAuth } from "../../../hooks/useAuth";
+import { getLighthouseByID } from "../../../utils/api";
 import { getMapTilerStyleUrl, MAP_DEFAULTS } from "../../../utils/map";
 import { isWebGLSupported } from "../../../utils/webgl";
-import { getLighthouseByID } from "../../../utils/api";
-import { FeatureCollection, Point } from "geojson";
-import { GeoJSONSource } from "maplibre-gl";
 import PageState from "../../layout/PageState";
+import LighthousePopoverContent from "../lighthouses/LighthousePopover";
+import {
+  clusterCountLayer,
+  clusterLayer,
+  lighthousePointLayer,
+  LIGHTHOUSE_SOURCE_ID,
+} from "./layers";
 
-const clusterLayer: CircleLayerSpecification = {
-  id: 'clusters',
-  type: 'circle',
-  source: 'lighthouses',
-  filter: ['has', 'point_count'],
-  paint: {
-    'circle-color': ['step', ['get', 'point_count'], '#0F766E', 100, '#D49A3A', 750, '#C95B54'],
-    'circle-radius': ['step', ['get', 'point_count'], 20, 100, 30, 750, 40]
-  }
-};
-
-const clusterCountLayer: SymbolLayerSpecification = {
-  id: 'cluster-count',
-  type: 'symbol',
-  source: 'lighthouses',
-  filter: ['has', 'point_count'],
-  layout: {
-    'text-field': '{point_count_abbreviated}',
-    'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-    'text-size': 12
-  }
-};
-
-const unclusteredPointLayer: CircleLayerSpecification = {
-  id: 'unclustered-point',
-  type: 'circle',
-  source: 'lighthouses',
-  filter: ['!', ['has', 'point_count']],
-  paint: {
-    'circle-color': ['case', ['get', 'isVisited'], '#0F766E', '#C95B54'],
-    'circle-radius': 6,
-    'circle-stroke-width': 1,
-    'circle-stroke-color': '#fff'
-  }
-};
+const noopVisitChange = () => undefined;
 
 const LighthouseMap = () => {
   const mapRef = useRef<MapRef>(null);
-  const { lighthouses, refetchLighthouses } = useLighthouse();
-  const { isSignedIn } = useAuth();
+  const detailRequestIDRef = useRef(0);
+  const { mapData, isLoading, error } = useLighthouse();
   const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-
-  const geojson: FeatureCollection = useMemo(() => {
-    return {
-      type: 'FeatureCollection',
-      features: lighthouses.map((l) => ({
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [l.longitude, l.latitude]
-        },
-        properties: {
-          id: l.id,
-          name: l.name,
-          isVisited: l.isVisited || false
-        }
-      }))
-    };
-  }, [lighthouses]);
 
   if (!isWebGLSupported()) {
     return (
@@ -81,50 +41,70 @@ const LighthouseMap = () => {
       />
     );
   }
+  if (error) {
+    return <PageState title="Unable to load the lighthouse map" message={error.message} tone="error" />;
+  }
+  if (isLoading || !mapData) {
+    return <PageState title="Loading lighthouse map..." />;
+  }
 
   const handleMapClick = async (event: MapLayerMouseEvent) => {
     const feature = event.features?.[0];
-    if (feature && feature.layer.id === 'unclustered-point') {
-      const id = feature.properties?.id;
+    if (!feature) {
+      detailRequestIDRef.current += 1;
+      setIsLoadingDetails(false);
+      setSelectedLighthouse(null);
+      return;
+    }
+
+    if (feature.layer.id === lighthousePointLayer.id) {
+      const id = String(feature.id ?? "");
+      if (!id) {
+        return;
+      }
+      const requestID = detailRequestIDRef.current + 1;
+      detailRequestIDRef.current = requestID;
       setIsLoadingDetails(true);
       try {
         const details = await getLighthouseByID(id);
-        setSelectedLighthouse({
-            ...details,
-            isVisited: feature.properties?.isVisited
-        });
-      } catch (error) {
-        console.error("Failed to fetch lighthouse details:", error);
-      } finally {
-        setIsLoadingDetails(false);
-      }
-    } else if (feature && feature.layer.id === 'clusters') {
-        const clusterId = feature.properties?.cluster_id;
-        const map = mapRef.current?.getMap();
-        if (map) {
-            const source = map.getSource('lighthouses') as GeoJSONSource;
-            if (source) {
-                source.getClusterExpansionZoom(clusterId).then((zoom) => {
-                    map.easeTo({
-                        center: (feature.geometry as Point).coordinates as [number, number],
-                        zoom: zoom
-                    });
-                }).catch(err => {
-                    console.error("Failed to get cluster expansion zoom:", err);
-                });
-            }
+        if (detailRequestIDRef.current === requestID) {
+          setSelectedLighthouse(details);
         }
-    } else {
+      } catch (detailError) {
+        console.error("Failed to fetch lighthouse details:", detailError);
+      } finally {
+        if (detailRequestIDRef.current === requestID) {
+          setIsLoadingDetails(false);
+        }
+      }
+      return;
+    }
+
+    if (feature.layer.id === clusterLayer.id) {
+      detailRequestIDRef.current += 1;
+      setIsLoadingDetails(false);
       setSelectedLighthouse(null);
+      const map = mapRef.current?.getMap();
+      const source = map?.getSource(LIGHTHOUSE_SOURCE_ID) as GeoJSONSource | undefined;
+      const clusterID = Number(feature.properties?.cluster_id);
+      if (!map || !source || !Number.isFinite(clusterID)) {
+        return;
+      }
+
+      try {
+        const zoom = await source.getClusterExpansionZoom(clusterID);
+        map.easeTo({
+          center: (feature.geometry as Point).coordinates as [number, number],
+          zoom,
+        });
+      } catch (clusterError) {
+        console.error("Failed to expand lighthouse cluster:", clusterError);
+      }
     }
   };
 
-  const handleVisitChange = () => {
-    refetchLighthouses();
-  };
-
   return (
-    <div style={{ position: "relative", height: "calc(100vh - 4rem)" }}>
+    <div className="relative h-[calc(100vh-4rem)]">
       <Map
         ref={mapRef}
         mapStyle={getMapTilerStyleUrl()}
@@ -135,44 +115,49 @@ const LighthouseMap = () => {
         }}
         style={{ width: "100%", height: "100%" }}
         onClick={handleMapClick}
-        interactiveLayerIds={['clusters', 'unclustered-point']}
+        interactiveLayerIds={[clusterLayer.id, lighthousePointLayer.id]}
       >
         <Source
-          id="lighthouses"
+          id={LIGHTHOUSE_SOURCE_ID}
           type="geojson"
-          data={geojson}
-          cluster={true}
+          data={mapData}
+          cluster
           clusterMaxZoom={14}
           clusterRadius={50}
         >
           <Layer {...clusterLayer} />
           <Layer {...clusterCountLayer} />
-          <Layer {...unclusteredPointLayer} />
+          <Layer {...lighthousePointLayer} />
         </Source>
 
-        {selectedLighthouse && (
+        {selectedLighthouse ? (
           <Popup
             longitude={selectedLighthouse.longitude}
             latitude={selectedLighthouse.latitude}
             anchor="bottom"
-            onClose={() => setSelectedLighthouse(null)}
-            closeButton={true}
+            onClose={() => {
+              detailRequestIDRef.current += 1;
+              setIsLoadingDetails(false);
+              setSelectedLighthouse(null);
+            }}
+            closeButton
             closeOnClick={false}
             maxWidth="300px"
           >
             <LighthousePopoverContent
               lighthouse={selectedLighthouse}
-              onVisitChange={handleVisitChange}
-              isAuthenticated={!!isSignedIn}
+              onVisitChange={noopVisitChange}
+              isAuthenticated={false}
             />
           </Popup>
-        )}
-        {isLoadingDetails && (
-          <div className="app-map-panel absolute right-4 top-4 z-10 text-sm font-semibold">
-            Loading lighthouse details...
-          </div>
-        )}
+        ) : null}
       </Map>
+
+      {isLoadingDetails ? (
+        <div className="app-map-panel absolute bottom-4 right-4 z-10 text-sm font-semibold">
+          Loading lighthouse details...
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -85,6 +85,34 @@ func (h *UserHandler) GetUserVisitedLighthouses(w http.ResponseWriter, r *http.R
 	json.NewEncoder(w).Encode(lighthouses)
 }
 
+// GetUserMapState godoc
+// @Summary     Get current user's map state
+// @Description Get lightweight visited and wishlist lighthouse IDs for map rendering
+// @Tags        users
+// @Produce     json
+// @Security    ApiKeyAuth
+// @Success     200 {object} schemas.UserMapState
+// @Failure     401 {object} utils.APIError
+// @Failure     500 {object} utils.APIError
+// @Router      /user/map-state [get]
+func (h *UserHandler) GetUserMapState(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userID := auth.GetUserID(r.Context())
+	if userID == "" {
+		utils.WriteError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	state, err := h.db.GetUserMapState(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "failed to retrieve map state")
+		return
+	}
+
+	json.NewEncoder(w).Encode(state)
+}
+
 // @Summary     Get user's wishlist lighthouses
 // @Description Get a list of lighthouses in the current user's wishlist
 // @Tags        users

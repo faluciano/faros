@@ -28,32 +28,32 @@ function App() {
 
   return (
     <UserProvider>
-      <LighthouseProvider>
-        <div className="min-h-screen bg-faros-canvas">
-          <Navbar />
-          <div className="pt-16">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={
-                isSignedIn ? <Navigate to="/lighthouse" replace /> : <AuthPage />
-              } />
-              <Route path="/lighthouse" element={
-                isSignedIn ? <UserMap /> : <LighthouseMap />
-              } />
-              <Route path="/visited" element={
-                isSignedIn ? <VisitedLighthouses /> : <Navigate to="/login" replace />
-              } />
-              <Route path="/wishlist" element={
-                isSignedIn ? <WishlistLighthouses /> : <Navigate to="/login" replace />
-              } />
-              <Route path="/friends" element={
-                isSignedIn ? <Friends /> : <Navigate to="/login" replace />
-              } />
-            </Routes>
-          </div>
+      <div className="min-h-screen bg-faros-canvas">
+        <Navbar />
+        <div className="pt-16">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/login" element={
+              isSignedIn ? <Navigate to="/lighthouse" replace /> : <AuthPage />
+            } />
+            <Route path="/lighthouse" element={
+              <LighthouseProvider>
+                {isSignedIn ? <UserMap /> : <LighthouseMap />}
+              </LighthouseProvider>
+            } />
+            <Route path="/visited" element={
+              isSignedIn ? <VisitedLighthouses /> : <Navigate to="/login" replace />
+            } />
+            <Route path="/wishlist" element={
+              isSignedIn ? <WishlistLighthouses /> : <Navigate to="/login" replace />
+            } />
+            <Route path="/friends" element={
+              isSignedIn ? <Friends /> : <Navigate to="/login" replace />
+            } />
+          </Routes>
         </div>
-      </LighthouseProvider>
+      </div>
     </UserProvider>
   );
 }

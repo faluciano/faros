@@ -27,11 +27,9 @@ export const useMutation = <T, U>(mutationFunc: MutationFunction<T, U>): UseMuta
       const result = await mutationFunc(token, args);
       setData(result);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err);
-      } else {
-        setError(new Error(String(err)));
-      }
+      const mutationError = err instanceof Error ? err : new Error(String(err));
+      setError(mutationError);
+      throw mutationError;
     } finally {
       setIsLoading(false);
     }

@@ -84,6 +84,37 @@ definitions:
         description: '@Description Year the lighthouse was built'
         type: integer
     type: object
+  schemas.LighthouseMapData:
+    properties:
+      features:
+        items:
+          $ref: '#/definitions/schemas.LighthouseMapFeature'
+        type: array
+      type:
+        type: string
+    type: object
+  schemas.LighthouseMapFeature:
+    properties:
+      geometry:
+        $ref: '#/definitions/schemas.LighthouseMapGeometry'
+      id:
+        type: string
+      properties:
+        $ref: '#/definitions/schemas.LighthouseMapProperties'
+      type:
+        type: string
+    type: object
+  schemas.LighthouseMapGeometry:
+    properties:
+      coordinates:
+        items:
+          type: number
+        type: array
+      type:
+        type: string
+    type: object
+  schemas.LighthouseMapProperties:
+    type: object
   schemas.User:
     description: A user with their basic information
     properties:
@@ -99,6 +130,17 @@ definitions:
       last_name:
         description: '@Description User''s last name'
         type: string
+    type: object
+  schemas.UserMapState:
+    properties:
+      visited_ids:
+        items:
+          type: string
+        type: array
+      wishlist_ids:
+        items:
+          type: string
+        type: array
     type: object
   utils.APIError:
     properties:
@@ -187,6 +229,26 @@ paths:
               type: string
             type: object
       summary: Get a single lighthouse
+      tags:
+      - lighthouses
+  /api/lighthouses/map:
+    get:
+      description: Get cached, compressed GeoJSON containing only lighthouse IDs and
+        coordinates
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.LighthouseMapData'
+        "304":
+          description: Not Modified
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      summary: Get lighthouse map data
       tags:
       - lighthouses
   /auth/me:
@@ -740,6 +802,29 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Mark lighthouse as visited
+      tags:
+      - users
+  /user/map-state:
+    get:
+      description: Get lightweight visited and wishlist lighthouse IDs for map rendering
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schemas.UserMapState'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.APIError'
+      security:
+      - ApiKeyAuth: []
+      summary: Get current user's map state
       tags:
       - users
   /user/wishlist:

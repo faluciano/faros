@@ -76,6 +76,9 @@ func main() {
 	// Create handlers with database implementation
 
 	lighthouseHandler := handlers.NewLighthouseHandler(database)
+	if err := lighthouseHandler.WarmMapCache(); err != nil {
+		log.Printf("WARNING: failed to warm lighthouse map cache: %v", err)
+	}
 	userHandler := handlers.NewUserHandler(database)
 	friendsHandler := handlers.NewFriendsHandler(database)
 
@@ -107,6 +110,7 @@ func main() {
 
 	// Public routes
 	mux.HandleFunc("GET /api/lighthouses", lighthouseHandler.GetLighthouses)
+	mux.HandleFunc("GET /api/lighthouses/map", lighthouseHandler.GetLighthouseMap)
 	mux.HandleFunc("GET /api/lighthouses/{id}", lighthouseHandler.GetLighthouseByID)
 
 	// Auth routes
@@ -118,6 +122,7 @@ func main() {
 
 	// User routes with authentication
 	mux.Handle("GET /user", authMiddleware(http.HandlerFunc(userHandler.GetUser)))
+	mux.Handle("GET /user/map-state", authMiddleware(http.HandlerFunc(userHandler.GetUserMapState)))
 
 	// Visited lighthouses routes
 	mux.Handle("GET /user/lighthouses", authMiddleware(http.HandlerFunc(userHandler.GetUserVisitedLighthouses)))

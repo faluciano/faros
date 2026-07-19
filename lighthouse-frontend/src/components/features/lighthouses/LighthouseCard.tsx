@@ -21,12 +21,16 @@ const LighthouseCard = ({ lighthouse }: { lighthouse: Lighthouse }) => {
     }, [visitedLighthouses, lighthouse.id]);
 
     const handleToggleVisit = async () => {
-        if (isVisited) {
-            await removeVisited(lighthouse.id);
-        } else {
-            await addVisited(lighthouse.id);
+        try {
+            if (isVisited) {
+                await removeVisited(lighthouse.id);
+            } else {
+                await addVisited(lighthouse.id);
+            }
+            fetchVisited();
+        } catch (visitError) {
+            console.error("Failed to update lighthouse visit:", visitError);
         }
-        fetchVisited();
     };
 
     return (

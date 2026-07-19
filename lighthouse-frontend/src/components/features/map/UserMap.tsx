@@ -1,15 +1,47 @@
-import { useState, useEffect } from "react";
-import { Map, Marker, Popup } from "react-map-gl/maplibre";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Layer,
+  Map,
+  Popup,
+  Source,
+  type MapLayerMouseEvent,
+  type MapRef,
+} from "react-map-gl/maplibre";
+import type { FeatureCollection, Point } from "geojson";
+import type { GeoJSONSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Lighthouse, User } from "../../../types";
+import type {
+  Lighthouse,
+  LighthouseMapData,
+  LighthouseMapProperties,
+  User,
+} from "../../../types";
 import { useAuth } from "../../../hooks/useAuth";
-import LighthousePopoverContent from "../lighthouses/LighthousePopover";
 import { useLighthouse } from "../../../hooks/useLighthouse";
-import { fetchWithAuth } from "../../../utils/api";
-import { getLighthouseMarkerColor, getMapTilerStyleUrl, MAP_DEFAULTS, FilterState, DEFAULT_FILTERS } from "../../../utils/map";
-import MapPin from "./MapPin";
+import {
+  fetchWithAuth,
+  getLighthouseByID,
+  getUserMapState,
+} from "../../../utils/api";
+import {
+  DEFAULT_FILTERS,
+  type FilterState,
+  getMapTilerStyleUrl,
+  MAP_DEFAULTS,
+} from "../../../utils/map";
 import { isWebGLSupported } from "../../../utils/webgl";
 import PageState from "../../layout/PageState";
+import LighthousePopoverContent from "../lighthouses/LighthousePopover";
+import {
+  clusterCountLayer,
+  clusterLayer,
+  friendClusterCountLayer,
+  friendClusterLayer,
+  friendPointLayer,
+  FRIEND_SOURCE_ID,
+  lighthousePointLayer,
+  LIGHTHOUSE_SOURCE_ID,
+} from "./layers";
 
 interface FriendState {
   isLoading: boolean;
@@ -17,167 +49,295 @@ interface FriendState {
   lighthouses: Lighthouse[] | null;
 }
 
+const emptyFriendState: FriendState = {
+  isLoading: false,
+  error: null,
+  lighthouses: null,
+};
+
 const UserMap = () => {
-  const { lighthouses, setLighthouses, isLoading } = useLighthouse();
+  const mapRef = useRef<MapRef>(null);
+  const detailRequestIDRef = useRef(0);
+  const visitedOverridesRef = useRef<globalThis.Map<string, boolean>>(new globalThis.Map());
+  const wishlistOverridesRef = useRef<globalThis.Map<string, boolean>>(new globalThis.Map());
+  const { mapData, isLoading, error } = useLighthouse();
   const { isSignedIn, getToken } = useAuth();
+  const [visitedIDs, setVisitedIDs] = useState<Set<string>>(() => new Set());
+  const [wishlistIDs, setWishlistIDs] = useState<Set<string>>(() => new Set());
+  const [isMapStateLoading, setIsMapStateLoading] = useState(false);
   const [friends, setFriends] = useState<User[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
-  const [friendState, setFriendState] = useState<FriendState>({
-    isLoading: false,
-    error: null,
-    lighthouses: null
-  });
+  const [friendState, setFriendState] = useState<FriendState>(emptyFriendState);
   const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [wishlistLighthouses, setWishlistLighthouses] = useState<Lighthouse[]>([]);
-  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
 
-  // Fetch friends
   useEffect(() => {
-    const fetchFriends = async () => {
-      if (!isSignedIn) return;
-      
-      try {
-        const token = getToken();
-        if (!token) return;
+    if (!isSignedIn) {
+      return;
+    }
+    const token = getToken();
+    if (!token) {
+      return;
+    }
 
-        const data = await fetchWithAuth(token, '/user/friends');
-        setFriends(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Error fetching friends:', error);
-      }
+    let cancelled = false;
+    visitedOverridesRef.current.clear();
+    wishlistOverridesRef.current.clear();
+    setVisitedIDs(new Set());
+    setWishlistIDs(new Set());
+    setIsMapStateLoading(true);
+
+    getUserMapState(token)
+      .then((state) => {
+        if (cancelled) {
+          return;
+        }
+        const visited = new Set(state.visited_ids);
+        const wishlist = new Set(state.wishlist_ids);
+        for (const [id, isVisited] of visitedOverridesRef.current) {
+          if (isVisited) {
+            visited.add(id);
+          } else {
+            visited.delete(id);
+          }
+        }
+        for (const [id, isWishlist] of wishlistOverridesRef.current) {
+          if (isWishlist) {
+            wishlist.add(id);
+          } else {
+            wishlist.delete(id);
+          }
+        }
+        setVisitedIDs(visited);
+        setWishlistIDs(wishlist);
+      })
+      .catch((mapStateError: unknown) => {
+        if (!cancelled) {
+          console.error("Failed to load user map state:", mapStateError);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsMapStateLoading(false);
+        }
+      });
+
+    fetchWithAuth<User[]>(token, "/user/friends")
+      .then((loadedFriends) => {
+        if (!cancelled) {
+          setFriends(loadedFriends);
+        }
+      })
+      .catch((friendsError: unknown) => {
+        if (!cancelled) {
+          console.error("Failed to load friends:", friendsError);
+        }
+      });
+
+    return () => {
+      cancelled = true;
     };
-
-    fetchFriends();
   }, [isSignedIn, getToken]);
 
-  // Fetch friend's lighthouses when selected
   useEffect(() => {
-    const fetchFriendLighthouses = async () => {
-      if (!selectedFriend || !isSignedIn) return;
-      
-      setFriendState(prev => ({ ...prev, isLoading: true, error: null }));
+    if (!selectedFriend || !isSignedIn) {
+      setFriendState(emptyFriendState);
+      return;
+    }
+    const token = getToken();
+    if (!token) {
+      return;
+    }
+
+    let cancelled = false;
+    const loadFriendLighthouses = async () => {
+      setFriendState({ isLoading: true, error: null, lighthouses: null });
       try {
-        const token = getToken();
-        if (!token) return;
-
-        const data = await fetchWithAuth(token, `/user/friends/lighthouses?friendId=${selectedFriend}`);
-        const friend = friends.find(f => f.id === selectedFriend);
-        
-        if (!friend) {
-          throw new Error('Friend not found');
-        }
-
-        // Ensure data is an array
-        const lighthousesArray = Array.isArray(data) ? data : [];
-        
-        // Set friendly message for no lighthouses, but don't treat it as an error
-        if (lighthousesArray.length === 0) {
+        const lighthouses = await fetchWithAuth<Lighthouse[]>(
+          token,
+          `/user/friends/lighthouses?friendId=${selectedFriend}`,
+        );
+        if (!cancelled) {
           setFriendState({
             isLoading: false,
-            error: `${friend.first_name} hasn't visited any lighthouses yet.`,
-            lighthouses: []
-          });
-        } else {
-          setFriendState({
-            isLoading: false,
-            error: null,
-            lighthouses: lighthousesArray
+            error: lighthouses.length === 0
+              ? `${friends.find((friend) => friend.id === selectedFriend)?.first_name ?? "This friend"} hasn't visited any lighthouses yet.`
+              : null,
+            lighthouses,
           });
         }
-      } catch (error) {
-        console.error('Error fetching friend\'s lighthouses:', error);
-        setFriendState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: 'Failed to load friend\'s lighthouses. Please try again.',
-          lighthouses: null
-        }));
+      } catch (friendError) {
+        if (!cancelled) {
+          console.error("Failed to load friend's lighthouses:", friendError);
+          setFriendState({
+            isLoading: false,
+            error: "Failed to load this friend's lighthouses.",
+            lighthouses: null,
+          });
+        }
       }
     };
 
-    fetchFriendLighthouses();
+    loadFriendLighthouses();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedFriend, friends, isSignedIn, getToken]);
 
-  // Fetch wishlist lighthouses
-  useEffect(() => {
-    const fetchWishlist = async () => {
-      if (!isSignedIn) return;
-      
-      setIsWishlistLoading(true);
-      try {
-        const token = getToken();
-        if (!token) return;
+  const visibleMapData = useMemo<LighthouseMapData | null>(() => {
+    if (!mapData) {
+      return null;
+    }
 
-        const data = await fetchWithAuth(token, '/user/wishlist');
-        setWishlistLighthouses(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Error fetching wishlist:', error);
-      } finally {
-        setIsWishlistLoading(false);
+    const features: LighthouseMapData["features"] = [];
+    for (const feature of mapData.features) {
+      const id = String(feature.id ?? "");
+      if (!id) {
+        continue;
       }
+      const isVisited = visitedIDs.has(id);
+      const isWishlist = wishlistIDs.has(id);
+      const isVisible =
+        (filters.visited && isVisited) ||
+        (filters.unvisited && !isVisited) ||
+        (filters.wishlist && isWishlist);
+
+      if (isVisible) {
+        features.push({
+          ...feature,
+          properties: {
+            ...feature.properties,
+            isVisited,
+            isWishlist,
+          },
+        });
+      }
+    }
+
+    return {
+      ...mapData,
+      features,
     };
+  }, [mapData, visitedIDs, wishlistIDs, filters]);
 
-    fetchWishlist();
-  }, [isSignedIn, getToken]);
+  const friendMapData = useMemo<
+    FeatureCollection<Point, LighthouseMapProperties>
+  >(() => ({
+    type: "FeatureCollection",
+    features: filters.friends && selectedFriend && friendState.lighthouses
+      ? friendState.lighthouses.map((lighthouse) => ({
+          type: "Feature",
+          id: lighthouse.id,
+          geometry: {
+            type: "Point",
+            coordinates: [lighthouse.longitude, lighthouse.latitude],
+          },
+          properties: {
+            isFriend: true,
+          },
+        }))
+      : [],
+  }), [filters.friends, selectedFriend, friendState.lighthouses]);
 
-  const handleMarkerClick = (lighthouse: Lighthouse) => {
-    setSelectedLighthouse(lighthouse);
-  };
-
-  const handleMapClick = () => {
-    setSelectedLighthouse(null);
-  };
-
-  const handleVisitChange = async (lighthouseId: string, isVisited: boolean) => {
-    // Update optimistically
-    setLighthouses(lighthouses.map(l => 
-      l.id === lighthouseId ? { ...l, isVisited } : l
-    ));
-
-    try {
-      const token = getToken();
-      if (!token) return;
-
-      const method = isVisited ? "POST" : "DELETE";
-      await fetchWithAuth(token, '/user/lighthouses', {
-        method,
-        body: JSON.stringify({ lighthouseId })
+  const handleVisitChange = useCallback((lighthouseID: string, isVisited: boolean) => {
+    visitedOverridesRef.current.set(lighthouseID, isVisited);
+    setVisitedIDs((current) => {
+      const next = new Set(current);
+      if (isVisited) {
+        next.add(lighthouseID);
+      } else {
+        next.delete(lighthouseID);
+      }
+      return next;
+    });
+    if (isVisited) {
+      wishlistOverridesRef.current.set(lighthouseID, false);
+      setWishlistIDs((current) => {
+        const next = new Set(current);
+        next.delete(lighthouseID);
+        return next;
       });
-    } catch (error) {
-      console.error('Error updating lighthouse status:', error);
-      // Revert on failure
-      setLighthouses(lighthouses.map(l => 
-        l.id === lighthouseId ? { ...l, isVisited: !isVisited } : l
-      ));
+    }
+  }, []);
+
+  const handleWishlistChange = useCallback((lighthouseID: string, isWishlist: boolean) => {
+    wishlistOverridesRef.current.set(lighthouseID, isWishlist);
+    setWishlistIDs((current) => {
+      const next = new Set(current);
+      if (isWishlist) {
+        next.add(lighthouseID);
+      } else {
+        next.delete(lighthouseID);
+      }
+      return next;
+    });
+  }, []);
+
+  const expandCluster = async (
+    sourceID: string,
+    clusterID: number,
+    coordinates: [number, number],
+  ) => {
+    const map = mapRef.current?.getMap();
+    const source = map?.getSource(sourceID) as GeoJSONSource | undefined;
+    if (!map || !source || !Number.isFinite(clusterID)) {
+      return;
+    }
+    try {
+      const zoom = await source.getClusterExpansionZoom(clusterID);
+      map.easeTo({ center: coordinates, zoom });
+    } catch (clusterError) {
+      console.error("Failed to expand lighthouse cluster:", clusterError);
     }
   };
 
-  const handleWishlistChange = async (lighthouseId: string, isInWishlist: boolean) => {
-    // Update optimistically
-    if (isInWishlist) {
-      setWishlistLighthouses(prev => [...prev, lighthouses.find(l => l.id === lighthouseId)!]);
-    } else {
-      setWishlistLighthouses(prev => prev.filter(l => l.id !== lighthouseId));
+  const handleMapClick = async (event: MapLayerMouseEvent) => {
+    const feature = event.features?.[0];
+    if (!feature) {
+      detailRequestIDRef.current += 1;
+      setIsLoadingDetails(false);
+      setSelectedLighthouse(null);
+      return;
+    }
+
+    if (feature.layer.id === clusterLayer.id || feature.layer.id === friendClusterLayer.id) {
+      detailRequestIDRef.current += 1;
+      setIsLoadingDetails(false);
+      setSelectedLighthouse(null);
+      await expandCluster(
+        feature.layer.id === friendClusterLayer.id ? FRIEND_SOURCE_ID : LIGHTHOUSE_SOURCE_ID,
+        Number(feature.properties?.cluster_id),
+        (feature.geometry as Point).coordinates as [number, number],
+      );
+      return;
+    }
+
+    if (feature.layer.id === lighthousePointLayer.id || feature.layer.id === friendPointLayer.id) {
+      const id = String(feature.id ?? "");
+      if (!id) {
+        return;
+      }
+      const requestID = detailRequestIDRef.current + 1;
+      detailRequestIDRef.current = requestID;
+      setIsLoadingDetails(true);
+      try {
+        const details = await getLighthouseByID(id);
+        if (detailRequestIDRef.current === requestID) {
+          setSelectedLighthouse({
+            ...details,
+            isVisited: visitedIDs.has(id),
+          });
+        }
+      } catch (detailError) {
+        console.error("Failed to fetch lighthouse details:", detailError);
+      } finally {
+        if (detailRequestIDRef.current === requestID) {
+          setIsLoadingDetails(false);
+        }
+      }
     }
   };
-
-  const isLighthouseInWishlist = (lighthouseId: string) => {
-    return wishlistLighthouses.some(l => l.id === lighthouseId);
-  };
-
-  const getFilteredLighthouses = () => {
-    return lighthouses?.filter(lighthouse => {
-      if (filters.visited && lighthouse.isVisited) return true;
-      if (filters.unvisited && !lighthouse.isVisited) return true;
-      if (filters.wishlist && isLighthouseInWishlist(lighthouse.id)) return true;
-      return false;
-    }) || [];
-  };
-
-  if (isLoading || isWishlistLoading) {
-    return <PageState title="Loading lighthouses..." />;
-  }
 
   if (!isWebGLSupported()) {
     return (
@@ -187,82 +347,57 @@ const UserMap = () => {
       />
     );
   }
+  if (error) {
+    return <PageState title="Unable to load the lighthouse map" message={error.message} tone="error" />;
+  }
+  if (isLoading || !visibleMapData) {
+    return <PageState title="Loading lighthouse map..." />;
+  }
 
-  const selectedFriendName = friends.find(f => f.id === selectedFriend)?.first_name;
+  const selectedFriendName = friends.find((friend) => friend.id === selectedFriend)?.first_name;
 
   return (
     <div className="relative h-[calc(100vh-4rem)]">
-      {/* Filter Panel */}
       <div className="app-map-panel absolute left-3 top-3 z-10 w-40 sm:left-4 sm:top-4 sm:w-44">
         <h3 className="mb-3 font-bold text-faros-navy">Filters</h3>
         <div className="space-y-2">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={filters.visited}
-              onChange={(e) => setFilters(prev => ({ ...prev, visited: e.target.checked }))}
-              className="rounded accent-faros-teal focus:ring-faros-teal"
-            />
-            <span className="text-sm flex items-center">
-              <span className="mr-2 inline-block h-3 w-3 rounded-full bg-faros-teal"></span>
-              Visited
-            </span>
-          </label>
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={filters.unvisited}
-              onChange={(e) => setFilters(prev => ({ ...prev, unvisited: e.target.checked }))}
-              className="rounded accent-faros-coral focus:ring-faros-coral"
-            />
-            <span className="text-sm flex items-center">
-              <span className="mr-2 inline-block h-3 w-3 rounded-full bg-faros-coral"></span>
-              Not Visited
-            </span>
-          </label>
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={filters.wishlist}
-              onChange={(e) => setFilters(prev => ({ ...prev, wishlist: e.target.checked }))}
-              className="rounded accent-faros-amber focus:ring-faros-amber"
-            />
-            <span className="text-sm flex items-center">
-              <span className="mr-2 inline-block h-3 w-3 rounded-full bg-faros-amber"></span>
-              Wishlist
-            </span>
-          </label>
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={filters.friends}
-              onChange={(e) => setFilters(prev => ({ ...prev, friends: e.target.checked }))}
-              className="rounded accent-sky-700 focus:ring-sky-700"
-            />
-            <span className="text-sm flex items-center">
-              <span className="mr-2 inline-block h-3 w-3 rounded-full bg-sky-700"></span>
-              Friend's Visited
-            </span>
-          </label>
+          {([
+            ["visited", "Visited", "bg-faros-teal", "accent-faros-teal"],
+            ["unvisited", "Not visited", "bg-faros-coral", "accent-faros-coral"],
+            ["wishlist", "Wishlist", "bg-faros-amber", "accent-faros-amber"],
+            ["friends", "Friend's visited", "bg-sky-700", "accent-sky-700"],
+          ] as const).map(([key, label, color, accent]) => (
+            <label key={key} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={filters[key]}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, [key]: event.target.checked }))
+                }
+                className={`rounded ${accent}`}
+              />
+              <span className="flex items-center text-sm">
+                <span className={`mr-2 inline-block h-3 w-3 rounded-full ${color}`} />
+                {label}
+              </span>
+            </label>
+          ))}
         </div>
       </div>
 
-      {/* Stats Panel */}
       <div className="app-map-panel absolute right-3 top-3 z-10 w-44 sm:right-4 sm:top-4 sm:w-64">
         <p className="mb-2 text-sm font-semibold text-faros-muted">
-          Your Visited Lighthouses: {lighthouses?.filter(l => l.isVisited)?.length || 0}
+          Your visited lighthouses: {visitedIDs.size}
         </p>
-        {friends.length > 0 && (
+        {isMapStateLoading ? (
+          <p className="text-xs text-faros-muted">Syncing your map...</p>
+        ) : null}
+        {friends.length > 0 ? (
           <div className="mt-4">
             <h3 className="mb-2 font-bold text-faros-navy">View a friend&apos;s log</h3>
             <select
-              value={selectedFriend || ""}
-              onChange={(e) => {
-                setSelectedFriend(e.target.value || null);
-                if (!e.target.value) {
-                  setFriendState({ isLoading: false, error: null, lighthouses: null });
-                }
-              }}
+              value={selectedFriend ?? ""}
+              onChange={(event) => setSelectedFriend(event.target.value || null)}
               className="app-input !py-2"
             >
               <option value="">Select a friend</option>
@@ -272,22 +407,23 @@ const UserMap = () => {
                 </option>
               ))}
             </select>
-            {friendState.isLoading && (
+            {friendState.isLoading ? (
               <p className="mt-2 text-sm text-faros-muted">Loading friend&apos;s lighthouses...</p>
-            )}
-            {friendState.error && (
+            ) : null}
+            {friendState.error ? (
               <p className="mt-2 text-sm text-faros-muted">{friendState.error}</p>
-            )}
-            {selectedFriend && !friendState.isLoading && !friendState.error && friendState.lighthouses && (
+            ) : null}
+            {selectedFriend && friendState.lighthouses && !friendState.error ? (
               <p className="mt-2 text-sm text-faros-muted">
-                {selectedFriendName}'s Visited Lighthouses: {friendState.lighthouses.length}
+                {selectedFriendName}&apos;s visited lighthouses: {friendState.lighthouses.length}
               </p>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
 
       <Map
+        ref={mapRef}
         mapStyle={getMapTilerStyleUrl()}
         initialViewState={{
           latitude: MAP_DEFAULTS.CENTER.latitude,
@@ -296,52 +432,50 @@ const UserMap = () => {
         }}
         style={{ width: "100%", height: "100%" }}
         onClick={handleMapClick}
+        interactiveLayerIds={[
+          clusterLayer.id,
+          lighthousePointLayer.id,
+          friendClusterLayer.id,
+          friendPointLayer.id,
+        ]}
       >
-        {/* Your lighthouses */}
-        {getFilteredLighthouses().map((lighthouse) => (
-          <Marker
-            key={lighthouse.id}
-            longitude={lighthouse.longitude}
-            latitude={lighthouse.latitude}
-          >
-            <div
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMarkerClick(lighthouse);
-              }}
-              style={{ cursor: "pointer" }}
-            >
-              <MapPin color={getLighthouseMarkerColor(lighthouse, false, isLighthouseInWishlist(lighthouse.id))} />
-            </div>
-          </Marker>
-        ))}
+        <Source
+          id={LIGHTHOUSE_SOURCE_ID}
+          type="geojson"
+          data={visibleMapData}
+          cluster
+          clusterMaxZoom={14}
+          clusterRadius={50}
+        >
+          <Layer {...clusterLayer} />
+          <Layer {...clusterCountLayer} />
+          <Layer {...lighthousePointLayer} />
+        </Source>
 
-        {/* Friend's visited lighthouses */}
-        {filters.friends && selectedFriend && friendState.lighthouses?.map((lighthouse) => (
-          <Marker
-            key={`friend-${lighthouse.id}`}
-            longitude={lighthouse.longitude}
-            latitude={lighthouse.latitude}
-          >
-            <div
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMarkerClick({ ...lighthouse, isVisited: true });
-              }}
-              style={{ cursor: "pointer" }}
-            >
-              <MapPin color={getLighthouseMarkerColor(lighthouse, true)} />
-            </div>
-          </Marker>
-        ))}
+        <Source
+          id={FRIEND_SOURCE_ID}
+          type="geojson"
+          data={friendMapData}
+          cluster
+          clusterMaxZoom={14}
+          clusterRadius={45}
+        >
+          <Layer {...friendClusterLayer} />
+          <Layer {...friendClusterCountLayer} />
+          <Layer {...friendPointLayer} />
+        </Source>
 
-        {selectedLighthouse && (
+        {selectedLighthouse ? (
           <Popup
             longitude={selectedLighthouse.longitude}
             latitude={selectedLighthouse.latitude}
             anchor="bottom"
-            onClose={() => setSelectedLighthouse(null)}
-            closeButton={true}
+            onClose={() => {
+              detailRequestIDRef.current += 1;
+              setIsLoadingDetails(false);
+              setSelectedLighthouse(null);
+            }}
+            closeButton
             closeOnClick={false}
             maxWidth="300px"
           >
@@ -349,12 +483,18 @@ const UserMap = () => {
               lighthouse={selectedLighthouse}
               onVisitChange={handleVisitChange}
               onWishlistChange={handleWishlistChange}
-              isAuthenticated={isSignedIn || false}
-              isInWishlist={isLighthouseInWishlist(selectedLighthouse.id)}
+              isAuthenticated={isSignedIn}
+              isInWishlist={wishlistIDs.has(selectedLighthouse.id)}
             />
           </Popup>
-        )}
+        ) : null}
       </Map>
+
+      {isLoadingDetails ? (
+        <div className="app-map-panel absolute bottom-4 right-4 z-10 text-sm font-semibold">
+          Loading lighthouse details...
+        </div>
+      ) : null}
     </div>
   );
 };

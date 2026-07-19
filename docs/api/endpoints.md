@@ -33,6 +33,15 @@ endpoint in the `X-WebAuthn-Session` header.
   GET /api/lighthouses?country=USA&state=California
   ```
 
+#### Get Lighthouse Map Data
+- **Endpoint**: `GET /api/lighthouses/map`
+- **Description**: Return a gzip-compressed, cacheable GeoJSON feature collection
+  containing only lighthouse IDs and coordinates
+- **Authentication**: None required
+- **Caching**: Supports `ETag`, conditional requests, and five-minute browser caching
+- **Use case**: High-performance clustered map rendering; fetch full details by ID
+  only after a lighthouse is selected
+
 ## Authenticated Endpoints
 
 All endpoints below require the JWT returned after passkey authentication.
@@ -43,6 +52,17 @@ All endpoints below require the JWT returned after passkey authentication.
 - **Endpoint**: `GET /user`
 - **Description**: Get current authenticated user information
 - **Response**: User object with profile details
+
+#### Get User Map State
+- **Endpoint**: `GET /user/map-state`
+- **Description**: Return lightweight visited and wishlist lighthouse ID arrays
+- **Response**:
+  ```json
+  {
+    "visited_ids": ["lighthouse-uuid"],
+    "wishlist_ids": ["another-lighthouse-uuid"]
+  }
+  ```
 
 ### User Lighthouses
 

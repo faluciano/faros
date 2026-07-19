@@ -1,11 +1,9 @@
-import { createContext, Dispatch, SetStateAction } from 'react';
-import { Lighthouse } from '../types';
+import { createContext } from 'react';
+import type { LighthouseMapData } from '../types';
 
 export interface LighthouseContextType {
-  lighthouses: Lighthouse[];
-  setLighthouses: Dispatch<SetStateAction<Lighthouse[]>>;
+  mapData: LighthouseMapData | null;
   isLoading: boolean;
-  refetchLighthouses: () => void;
   error: Error | null;
 }
 

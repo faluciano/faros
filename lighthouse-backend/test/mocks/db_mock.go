@@ -105,6 +105,18 @@ func (m *MockDB) GetLighthousesSummary() ([]schemas.LighthouseSummary, error) {
 	return summaries, nil
 }
 
+func (m *MockDB) GetLighthouseMapPoints() ([]schemas.LighthouseMapPoint, error) {
+	points := make([]schemas.LighthouseMapPoint, len(m.lighthouses))
+	for i, lighthouse := range m.lighthouses {
+		points[i] = schemas.LighthouseMapPoint{
+			ID:        lighthouse.ID,
+			Latitude:  lighthouse.Latitude,
+			Longitude: lighthouse.Longitude,
+		}
+	}
+	return points, nil
+}
+
 // GetLighthousesByCountry returns lighthouses filtered by country
 func (m *MockDB) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
 	var filtered []schemas.Lighthouse
@@ -160,6 +172,12 @@ func (m *MockDB) GetFriendVisitedLighthouses(userId, fId string) ([]schemas.Ligh
 
 // Auth operations
 func (m *MockDB) GetUserByEmail(email string) (*schemas.User, error) { return nil, nil }
+func (m *MockDB) GetUserMapState(id string) (schemas.UserMapState, error) {
+	return schemas.UserMapState{
+		VisitedIDs:  []string{},
+		WishlistIDs: []string{},
+	}, nil
+}
 func (m *MockDB) SavePasskeySession(ctx context.Context, session schemas.PasskeySession) error {
 	return nil
 }

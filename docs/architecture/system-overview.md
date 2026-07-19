@@ -220,12 +220,20 @@ Developer Machine
 ### Backend
 - **Connection Pooling**: Efficient database connections
 - **Query Optimization**: Indexed database queries
-- **Caching Strategy**: Potential for Redis caching layer
+- **Map Payload Cache**: Pre-warmed in-memory GeoJSON cache avoids repeated Turso
+  queries and JSON encoding
+- **HTTP Delivery**: Map data is gzip-compressed and uses `Cache-Control` and
+  `ETag` headers
 
 ### Frontend
-- **Code Splitting**: Lazy loading of components
-- **API Optimization**: Efficient data fetching patterns
-- **State Management**: Minimal re-renders
+- **WebGL Clustering**: Both public and authenticated maps render through MapLibre
+  GeoJSON layers instead of thousands of React DOM markers
+- **Lightweight Data**: The map downloads only IDs and coordinates; details load
+  after selection
+- **Progressive User State**: Visited, wishlist, and friend data enhance the map
+  without blocking its initial render
+- **Set-Based State**: User lighthouse membership uses constant-time lookups and
+  avoids rebuilding the full lighthouse collection for individual updates
 
 ## Scalability
 

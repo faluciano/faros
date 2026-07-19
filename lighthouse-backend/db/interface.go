@@ -83,6 +83,27 @@ func (d *DBImpl) GetLighthousesSummary() ([]schemas.LighthouseSummary, error) {
 	return lighthouses, nil
 }
 
+func (d *DBImpl) GetLighthouseMapPoints() ([]schemas.LighthouseMapPoint, error) {
+	rows, err := d.db.Query(`SELECT id, latitude, longitude FROM lighthouses`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	points := make([]schemas.LighthouseMapPoint, 0)
+	for rows.Next() {
+		var point schemas.LighthouseMapPoint
+		if err := rows.Scan(&point.ID, &point.Latitude, &point.Longitude); err != nil {
+			return nil, err
+		}
+		points = append(points, point)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return points, nil
+}
+
 // GetLighthousesByCountry returns lighthouses filtered by country
 func (d *DBImpl) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
 	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses WHERE country = ?`, country)
@@ -444,6 +465,44 @@ func (d *DBImpl) GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, err
 	}
 
 	return lighthouses, nil
+}
+
+func (d *DBImpl) GetUserMapState(id string) (schemas.UserMapState, error) {
+	state := schemas.UserMapState{
+		VisitedIDs:  make([]string, 0),
+		WishlistIDs: make([]string, 0),
+	}
+
+	rows, err := d.db.Query(`
+		SELECT 'visited' AS list_type, lighthouse_id
+		FROM user_visited_lighthouse
+		WHERE user_id = ?
+		UNION ALL
+		SELECT 'wishlist' AS list_type, lighthouse_id
+		FROM user_wishlist_lighthouse
+		WHERE user_id = ?
+	`, id, id)
+	if err != nil {
+		return state, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var listType string
+		var lighthouseID string
+		if err := rows.Scan(&listType, &lighthouseID); err != nil {
+			return state, err
+		}
+		if listType == "visited" {
+			state.VisitedIDs = append(state.VisitedIDs, lighthouseID)
+		} else {
+			state.WishlistIDs = append(state.WishlistIDs, lighthouseID)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return state, err
+	}
+	return state, nil
 }
 
 func (d *DBImpl) GetUserWishlistLighthouses(id string) ([]schemas.Lighthouse, error) {

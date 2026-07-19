@@ -1,3 +1,5 @@
+import type { FeatureCollection, Point } from "geojson";
+
 export interface Lighthouse {
   id: string;
   name: string;
@@ -26,6 +28,19 @@ export interface LighthouseSummary {
   state: string;
   country: string;
   isVisited?: boolean;
+}
+
+export interface LighthouseMapProperties {
+  isVisited?: boolean;
+  isWishlist?: boolean;
+  isFriend?: boolean;
+}
+
+export type LighthouseMapData = FeatureCollection<Point, LighthouseMapProperties>;
+
+export interface UserMapState {
+  visited_ids: string[];
+  wishlist_ids: string[];
 }
 
 export interface User {

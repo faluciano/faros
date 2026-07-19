@@ -27,8 +27,12 @@ const WishlistLighthouses = () => {
   }, [data]);
 
   const handleRemoveFromWishlist = async (id: string) => {
-    await removeWishlist(id);
-    setLighthouses(lighthouses.filter(lighthouse => lighthouse.id !== id));
+    try {
+      await removeWishlist(id);
+      setLighthouses((current) => current.filter((lighthouse) => lighthouse.id !== id));
+    } catch (removeError) {
+      console.error("Failed to remove wishlist lighthouse:", removeError);
+    }
   };
 
   if (!isSignedIn) {

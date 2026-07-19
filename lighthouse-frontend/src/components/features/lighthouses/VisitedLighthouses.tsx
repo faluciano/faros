@@ -27,8 +27,12 @@ const VisitedLighthouses = () => {
   }, [data]);
 
   const handleRemoveVisited = async (id: string) => {
-    await removeVisited(id);
-    setLighthouses(lighthouses.filter(lighthouse => lighthouse.id !== id));
+    try {
+      await removeVisited(id);
+      setLighthouses((current) => current.filter((lighthouse) => lighthouse.id !== id));
+    } catch (removeError) {
+      console.error("Failed to remove visited lighthouse:", removeError);
+    }
   };
 
   if (!isSignedIn) {

@@ -22,6 +22,7 @@ type DBInterface interface {
 	GetLighthouses() ([]schemas.Lighthouse, error)
 	GetLighthouseByID(id string) (*schemas.Lighthouse, error)
 	GetLighthousesSummary() ([]schemas.LighthouseSummary, error)
+	GetLighthouseMapPoints() ([]schemas.LighthouseMapPoint, error)
 	GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error)
 	GetLighthousesByState(state string) ([]schemas.Lighthouse, error)
 	GetLighthousesByCountryAndState(country string, state string) ([]schemas.Lighthouse, error)
@@ -44,6 +45,7 @@ type DBInterface interface {
 	) error
 
 	GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error)
+	GetUserMapState(id string) (schemas.UserMapState, error)
 	MarkLighthouseAsVisited(userId string, lighthouseId string) error
 	UnmarkLighthouseAsVisited(userId string, lighthouseId string) error
 

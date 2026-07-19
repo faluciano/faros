@@ -117,7 +117,7 @@ func TestDBImplGetLighthousesSummary(t *testing.T) {
 		image_license TEXT DEFAULT '',
 		image_url TEXT DEFAULT ''
 	)`)
-	
+
 	_, err = db_f.Exec(`INSERT INTO lighthouses (id, name, latitude, longitude, image, state, country) VALUES (?, ?, ?, ?, ?, ?, ?)`, "1", "LH 1", 10.0, 20.0, "img.jpg", "FL", "USA")
 
 	d := NewDB(db_f)
@@ -133,5 +133,74 @@ func TestDBImplGetLighthousesSummary(t *testing.T) {
 	s := summaries[0]
 	if s.Name != "LH 1" || s.Latitude != 10.0 {
 		t.Errorf("Incorrect summary data: %+v", s)
+	}
+}
+
+func TestDBImplGetLighthouseMapPoints(t *testing.T) {
+	testDBPath := "file:db_map_points_test.db"
+	defer os.Remove("db_map_points_test.db")
+
+	dbFile, err := sql.Open("libsql", testDBPath)
+	if err != nil {
+		t.Fatalf("Failed to open test database: %v", err)
+	}
+	defer dbFile.Close()
+
+	if _, err := dbFile.Exec(`CREATE TABLE lighthouses (
+		id TEXT PRIMARY KEY,
+		latitude REAL,
+		longitude REAL
+	)`); err != nil {
+		t.Fatalf("Failed to create lighthouses table: %v", err)
+	}
+	if _, err := dbFile.Exec(
+		`INSERT INTO lighthouses (id, latitude, longitude) VALUES (?, ?, ?)`,
+		"map-1",
+		12.5,
+		-45.25,
+	); err != nil {
+		t.Fatalf("Failed to insert map point: %v", err)
+	}
+
+	points, err := NewDB(dbFile).GetLighthouseMapPoints()
+	if err != nil {
+		t.Fatalf("GetLighthouseMapPoints() error = %v", err)
+	}
+	if len(points) != 1 || points[0].ID != "map-1" {
+		t.Fatalf("map points = %#v, want map-1", points)
+	}
+}
+
+func TestDBImplGetUserMapState(t *testing.T) {
+	testDBPath := "file:db_map_state_test.db"
+	defer os.Remove("db_map_state_test.db")
+
+	dbFile, err := sql.Open("libsql", testDBPath)
+	if err != nil {
+		t.Fatalf("Failed to open test database: %v", err)
+	}
+	defer dbFile.Close()
+
+	statements := []string{
+		`CREATE TABLE user_visited_lighthouse (user_id TEXT, lighthouse_id TEXT)`,
+		`CREATE TABLE user_wishlist_lighthouse (user_id TEXT, lighthouse_id TEXT)`,
+		`INSERT INTO user_visited_lighthouse (user_id, lighthouse_id) VALUES ('user-1', 'visited-1')`,
+		`INSERT INTO user_wishlist_lighthouse (user_id, lighthouse_id) VALUES ('user-1', 'wishlist-1')`,
+	}
+	for _, statement := range statements {
+		if _, err := dbFile.Exec(statement); err != nil {
+			t.Fatalf("prepare map state: %v", err)
+		}
+	}
+
+	state, err := NewDB(dbFile).GetUserMapState("user-1")
+	if err != nil {
+		t.Fatalf("GetUserMapState() error = %v", err)
+	}
+	if len(state.VisitedIDs) != 1 || state.VisitedIDs[0] != "visited-1" {
+		t.Fatalf("visited IDs = %#v, want visited-1", state.VisitedIDs)
+	}
+	if len(state.WishlistIDs) != 1 || state.WishlistIDs[0] != "wishlist-1" {
+		t.Fatalf("wishlist IDs = %#v, want wishlist-1", state.WishlistIDs)
 	}
 }

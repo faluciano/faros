@@ -6,11 +6,22 @@ import (
 	"lighthouse-backend/schemas"
 	"lighthouse-backend/utils"
 	"net/http"
+	"sync"
+	"time"
 )
 
 // LighthouseHandler handles lighthouse-related requests
 type LighthouseHandler struct {
-	db interfaces.DBInterface
+	db       interfaces.DBInterface
+	mapCache lighthouseMapCache
+}
+
+type lighthouseMapCache struct {
+	mu         sync.Mutex
+	raw        []byte
+	compressed []byte
+	etag       string
+	expiresAt  time.Time
 }
 
 // NewLighthouseHandler creates a new LighthouseHandler
