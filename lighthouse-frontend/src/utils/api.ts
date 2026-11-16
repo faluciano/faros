@@ -1,14 +1,15 @@
-import type {
-  Lighthouse,
-  LighthouseMapData,
-  LighthouseSummary,
-  UserMapState,
-} from "../types";
+import type { Lighthouse, LighthouseMapData, UserMapState } from "../types";
 
+const PRODUCTION_API_URL =
+  "https://faros-backend.thankfulmoss-a3acc927.westus2.azurecontainerapps.io";
+
+// VITE_API_URL wins when set (the Aspire AppHost sets it for local runs).
 export const getBaseUrl = () => {
-  return import.meta.env.DEV
-    ? "http://localhost:8080"
-    : "https://faros-backend.thankfulmoss-a3acc927.westus2.azurecontainerapps.io";
+  const configured = import.meta.env.VITE_API_URL?.replace(/\/+$/, "");
+  if (configured) {
+    return configured;
+  }
+  return import.meta.env.DEV ? "http://localhost:8080" : PRODUCTION_API_URL;
 };
 
 export const fetchWithAuth = async <T>(
@@ -47,73 +48,77 @@ export const fetchWithAuth = async <T>(
   return JSON.parse(responseText) as T;
 };
 
-export const getLighthouses = async (): Promise<Lighthouse[]> => {
-  const response = await fetch(`${getBaseUrl()}/api/lighthouses`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch lighthouses');
-  }
-  return response.json() as Promise<Lighthouse[]>;
-};
-
-export const getLighthousesSummary = async (): Promise<LighthouseSummary[]> => {
-  const response = await fetch(`${getBaseUrl()}/api/lighthouses?summary=true`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch lighthouse summaries');
-  }
-  return response.json() as Promise<LighthouseSummary[]>;
-};
-
 let lighthouseMapDataRequest: Promise<LighthouseMapData> | null = null;
 
+// The map payload is the same for everyone, so one request serves the whole
+// session. main.tsx starts it before React mounts; a failure clears the slot
+// so the next caller retries.
 export const getLighthouseMapData = (): Promise<LighthouseMapData> => {
   if (!lighthouseMapDataRequest) {
-    lighthouseMapDataRequest = fetch(`${getBaseUrl()}/api/lighthouses/map`)
+    const request = fetch(`${getBaseUrl()}/api/lighthouses/map`)
       .then((response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch lighthouse map data');
         }
         return response.json() as Promise<LighthouseMapData>;
-      })
-      .finally(() => {
-        lighthouseMapDataRequest = null;
       });
+    request.catch(() => {
+      if (lighthouseMapDataRequest === request) {
+        lighthouseMapDataRequest = null;
+      }
+    });
+    lighthouseMapDataRequest = request;
   }
   return lighthouseMapDataRequest;
 };
 
-export const getLighthouseByID = async (id: string): Promise<Lighthouse> => {
-  const response = await fetch(`${getBaseUrl()}/api/lighthouses/${id}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch lighthouse details');
+const lighthouseDetailRequests = new Map<string, Promise<Lighthouse>>();
+const lighthouseDetails = new Map<string, Lighthouse>();
+
+// Details already fetched this session, available without waiting.
+export const getCachedLighthouse = (id: string): Lighthouse | undefined =>
+  lighthouseDetails.get(id);
+
+// Concurrent and repeat calls for one lighthouse share a single request, so
+// hovering a marker can start the fetch that the click then reuses.
+export const getLighthouseByID = (id: string): Promise<Lighthouse> => {
+  const existing = lighthouseDetailRequests.get(id);
+  if (existing) {
+    return existing;
   }
-  return response.json() as Promise<Lighthouse>;
+
+  const request = fetch(`${getBaseUrl()}/api/lighthouses/${encodeURIComponent(id)}`)
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch lighthouse details');
+      }
+      const lighthouse = await response.json() as Lighthouse;
+      lighthouseDetails.set(id, lighthouse);
+      return lighthouse;
+    });
+  request.catch(() => {
+    lighthouseDetailRequests.delete(id);
+  });
+  lighthouseDetailRequests.set(id, request);
+  return request;
 };
 
 export const getUserMapState = (token: string) =>
   fetchWithAuth<UserMapState>(token, '/user/map-state');
 
+const lighthouseMutation = (endpoint: string, method: 'POST' | 'DELETE') =>
+  (token: string, lighthouseId: string) =>
+    fetchWithAuth<unknown>(token, endpoint, {
+      method,
+      body: JSON.stringify({ lighthouseId }),
+    });
+
 export const getVisitedLighthouses = (token: string) =>
   fetchWithAuth<Lighthouse[]>(token, '/user/lighthouses');
-export const addVisitedLighthouse = (token: string, lighthouseId: string) =>
-  fetchWithAuth<unknown>(token, '/user/lighthouses', {
-    method: 'POST',
-    body: JSON.stringify({ lighthouseId }),
-  });
-export const removeVisitedLighthouse = (token: string, lighthouseId: string) =>
-  fetchWithAuth<unknown>(token, '/user/lighthouses', {
-    method: 'DELETE',
-    body: JSON.stringify({ lighthouseId }),
-  });
+export const addVisitedLighthouse = lighthouseMutation('/user/lighthouses', 'POST');
+export const removeVisitedLighthouse = lighthouseMutation('/user/lighthouses', 'DELETE');
 
 export const getWishlist = (token: string) =>
   fetchWithAuth<Lighthouse[]>(token, '/user/wishlist');
-export const addToWishlist = (token: string, lighthouseId: string) =>
-  fetchWithAuth<unknown>(token, '/user/wishlist', {
-    method: 'POST',
-    body: JSON.stringify({ lighthouseId }),
-  });
-export const removeFromWishlist = (token: string, lighthouseId: string) =>
-  fetchWithAuth<unknown>(token, '/user/wishlist', {
-    method: 'DELETE',
-    body: JSON.stringify({ lighthouseId }),
-  });
+export const addToWishlist = lighthouseMutation('/user/wishlist', 'POST');
+export const removeFromWishlist = lighthouseMutation('/user/wishlist', 'DELETE');

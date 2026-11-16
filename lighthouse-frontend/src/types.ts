@@ -19,17 +19,6 @@ export interface Lighthouse {
   isVisited?: boolean;
 }
 
-export interface LighthouseSummary {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  image: string;
-  state: string;
-  country: string;
-  isVisited?: boolean;
-}
-
 export interface LighthouseMapProperties {
   id: string;
   isVisited?: boolean;
@@ -48,5 +37,6 @@ export interface User {
   id: string;
   first_name: string;
   last_name: string;
-  email: string;
+  // Only present for yourself, your friends, and people who sent you a request.
+  email?: string;
 }

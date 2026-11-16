@@ -15,6 +15,7 @@ var (
 	ErrPasskeyCredentialAbsent  = errors.New("passkey credential not found")
 	ErrPasskeyCredentialChanged = errors.New("passkey credential changed")
 	ErrFriendshipExists         = errors.New("friendship or friend request already exists")
+	ErrFriendRequestNotFound    = errors.New("friend request not found")
 )
 
 // DBInterface defines the database operations we need

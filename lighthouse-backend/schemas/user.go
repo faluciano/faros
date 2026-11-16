@@ -9,6 +9,7 @@ type User struct {
 	FirstName string `json:"first_name"`
 	// @Description User's last name
 	LastName string `json:"last_name"`
-	// @Description User's email address
-	Email string `json:"email"`
+	// @Description User's email address. Omitted where the caller has no
+	// established relationship with the user (search results, outgoing requests).
+	Email string `json:"email,omitempty"`
 }

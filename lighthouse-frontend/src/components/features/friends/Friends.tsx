@@ -320,7 +320,7 @@ export default function Friends() {
                         <h3 className="font-bold text-faros-navy">
                           {user.first_name} {user.last_name}
                         </h3>
-                        <p className="mt-1 text-sm text-faros-muted">{user.email}</p>
+                        {user.email ? <p className="mt-1 text-sm text-faros-muted">{user.email}</p> : null}
                         <button
                           type="button"
                           onClick={() => sendFriendRequest(user.id)}
@@ -414,7 +414,7 @@ export default function Friends() {
                         <h3 className="text-lg font-bold text-faros-navy">
                           {request.first_name} {request.last_name}
                         </h3>
-                        <p className="mt-1 text-sm text-faros-muted">{request.email}</p>
+                        {request.email ? <p className="mt-1 text-sm text-faros-muted">{request.email}</p> : null}
                         <div className="mt-4 flex gap-2">
                           <button
                             type="button"
@@ -452,7 +452,7 @@ export default function Friends() {
                           <h3 className="text-lg font-bold text-faros-navy">
                             {request.first_name} {request.last_name}
                           </h3>
-                          <p className="mt-1 text-sm text-faros-muted">{request.email}</p>
+                          {request.email ? <p className="mt-1 text-sm text-faros-muted">{request.email}</p> : null}
                         </div>
                         <button
                           type="button"

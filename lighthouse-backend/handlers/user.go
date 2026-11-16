@@ -7,6 +7,7 @@ import (
 	"lighthouse-backend/schemas"
 	"lighthouse-backend/utils"
 	"net/http"
+	"strings"
 )
 
 // UserHandler handles user-related requests
@@ -22,6 +23,22 @@ func NewUserHandler(db interfaces.DBInterface) *UserHandler {
 type VisitRequest struct {
 	// @Description ID of the lighthouse to visit
 	LighthouseId string `json:"lighthouseId"`
+}
+
+// decodeVisitRequest reads a size-limited body and requires a plausible
+// lighthouse ID, writing the error response itself when it returns false.
+func decodeVisitRequest(w http.ResponseWriter, r *http.Request) (VisitRequest, bool) {
+	var req VisitRequest
+	if err := decodeJSON(w, r, &req); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, "invalid request")
+		return req, false
+	}
+	req.LighthouseId = strings.TrimSpace(req.LighthouseId)
+	if req.LighthouseId == "" || len(req.LighthouseId) > maxLighthouseIDBytes {
+		utils.WriteError(w, http.StatusBadRequest, "lighthouseId is required")
+		return req, false
+	}
+	return req, true
 }
 
 // @Summary     Get current user
@@ -164,9 +181,8 @@ func (h *UserHandler) AddToWishlist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req VisitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, "invalid request")
+	req, ok := decodeVisitRequest(w, r)
+	if !ok {
 		return
 	}
 
@@ -199,9 +215,8 @@ func (h *UserHandler) RemoveFromWishlist(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var req VisitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, "invalid request")
+	req, ok := decodeVisitRequest(w, r)
+	if !ok {
 		return
 	}
 
@@ -234,9 +249,8 @@ func (h *UserHandler) MarkLighthouseAsVisited(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	var req VisitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, "invalid request")
+	req, ok := decodeVisitRequest(w, r)
+	if !ok {
 		return
 	}
 
@@ -272,9 +286,8 @@ func (h *UserHandler) UnmarkLighthouseAsVisited(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	var req VisitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.WriteError(w, http.StatusBadRequest, "invalid request")
+	req, ok := decodeVisitRequest(w, r)
+	if !ok {
 		return
 	}
 

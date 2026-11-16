@@ -1,5 +1,6 @@
 import { MapPinIcon } from "@heroicons/react/24/outline";
 import { Lighthouse } from "../../../types";
+import LighthouseImage from "./LighthouseImage";
 
 interface LighthouseListProps {
   lighthouses: Lighthouse[];
@@ -32,10 +33,10 @@ const LighthouseList = ({
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {lighthouses.map((lighthouse) => (
               <article key={lighthouse.id} className="app-card-interactive overflow-hidden">
-                <img
-                  src={lighthouse.image}
-                  alt={lighthouse.name}
-                  className="h-48 w-full object-cover"
+                <LighthouseImage
+                  image={lighthouse.image}
+                  name={lighthouse.name}
+                  className="h-48 w-full"
                 />
                 <div className="p-5">
                   <h2 className="font-display text-2xl font-semibold text-faros-navy">

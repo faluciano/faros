@@ -20,6 +20,8 @@ package main
 // @name Authorization
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"lighthouse-backend/auth"
 	"lighthouse-backend/db"
 	"lighthouse-backend/docs"
@@ -28,6 +30,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
@@ -76,16 +79,19 @@ func main() {
 	// Create handlers with database implementation
 
 	lighthouseHandler := handlers.NewLighthouseHandler(database)
-	if err := lighthouseHandler.WarmMapCache(); err != nil {
-		log.Printf("WARNING: failed to warm lighthouse map cache: %v", err)
-	}
+	// Warm the map cache in the background so a cold start can accept
+	// requests as soon as the schema check finishes.
+	go func() {
+		if err := lighthouseHandler.WarmMapCache(); err != nil {
+			log.Printf("WARNING: failed to warm lighthouse map cache: %v", err)
+		}
+	}()
 	userHandler := handlers.NewUserHandler(database)
 	friendsHandler := handlers.NewFriendsHandler(database)
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		log.Println("WARNING: JWT_SECRET not set, authentication will not work")
-		jwtSecret = "default-secret-for-tests-only"
+	jwtSecret, err := loadJWTSecret()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	passkeyRPID := envOrDefault("PASSKEY_RP_ID", "localhost")
@@ -144,17 +150,18 @@ func main() {
 	mux.Handle("POST /user/friends/requests/accept", authMiddleware(http.HandlerFunc(friendsHandler.AcceptFriendRequest)))
 	mux.Handle("GET /users/search", authMiddleware(http.HandlerFunc(friendsHandler.SearchUsers)))
 
-	// Configure CORS
+	// Configure CORS. Passkey origins are always allowed; CORS_ALLOWED_ORIGINS
+	// replaces the built-in extras when set.
 	allowedOrigins := uniqueStrings(append(passkeyOrigins,
-		[]string{
+		envListOrDefault("CORS_ALLOWED_ORIGINS", []string{
 			"http://localhost:5173",
 			"https://agreeable-pond-025c6731e.5.azurestaticapps.net",
 			"https://agreeable-pond-025c6731e.4.azurestaticapps.net",
-		}...,
+		})...,
 	))
 	c := cors.New(cors.Options{
 		AllowedOrigins: allowedOrigins,
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{
 			"Authorization",
 			"Content-Type",
@@ -175,9 +182,38 @@ func main() {
 
 	log.Printf("Starting server on port %s\n", PORT)
 
-	if err := http.ListenAndServe(":"+PORT, handler); err != nil {
+	server := &http.Server{
+		Addr:              ":" + PORT,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 16,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v\n", err)
 	}
+}
+
+const minJWTSecretBytes = 32
+
+// loadJWTSecret never falls back to a known value: a missing secret gets a
+// random one for this process, so tokens cannot be forged with a default.
+func loadJWTSecret() (string, error) {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		random := make([]byte, minJWTSecretBytes)
+		if _, err := rand.Read(random); err != nil {
+			return "", err
+		}
+		log.Println("WARNING: JWT_SECRET not set; using a random secret, so sign-ins end when the server restarts")
+		return hex.EncodeToString(random), nil
+	}
+	if len(secret) < minJWTSecretBytes {
+		log.Printf("WARNING: JWT_SECRET is shorter than %d bytes; rotate it to a longer random value", minJWTSecretBytes)
+	}
+	return secret, nil
 }
 
 func envOrDefault(name string, fallback string) string {
