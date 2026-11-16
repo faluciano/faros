@@ -24,3 +24,17 @@ export function titleMatchesLighthouse(fileTitle: string, lighthouseName: string
     .split(/\s+/)
     .some((word) => word.length > 3 && !GENERIC_NAME_WORDS.has(word) && normalisedTitle.includes(word));
 }
+
+// Stricter test for choosing a new photo: the title itself has to say
+// "lighthouse" (or name the kind of light), in one of the dataset's languages.
+// A bare "light" is not enough, since it also turns up in "daylight" or
+// "lightning".
+const SAYS_LIGHTHOUSE = /light ?house|light ?station|\blight\b|\bbeacon\b|phare|\bfaro\b|farol|leuchtturm|leuchtfeuer|leuchtbake|\bfyr\b|fyrt[åa]rn|fyren|vuurtoren|lichtopstand|маяк|majak|latarnia|灯台|燈塔|등대|deniz feneri|\bfeneri\b|tuletorn|tulepaak|majakka|\bloisto\b|svjetionik|svetilnik|φάρος|\bfar de\b|\bbák[aā]\b|\bviti\b/i;
+
+// "View from the lighthouse" is a photo taken at it, not of it.
+const VIEW_FROM = /\b(view|views|looking|vue|blick|aussicht|vista|utsikt|udsigt|uitzicht|widok|вид)\b.{0,40}\b(from|depuis|du|de la|vom|von|desde|dal|dalla|fra|från|vanaf|z|с|со)\b/i;
+
+export function titleSaysLighthouse(fileTitle: string): boolean {
+  const title = fileTitle.replace(/_/g, " ");
+  return SAYS_LIGHTHOUSE.test(title) && !VIEW_FROM.test(title);
+}
