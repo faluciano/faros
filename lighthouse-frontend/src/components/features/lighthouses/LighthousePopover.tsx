@@ -2,10 +2,12 @@ import { Lighthouse } from "../../../types";
 import { useState } from "react";
 import { useMutation } from "../../../hooks/useMutation";
 import { addVisitedLighthouse, removeVisitedLighthouse, addToWishlist, removeFromWishlist } from "../../../utils/api";
+import { getSafeExternalUrl } from "../../../utils/images";
+import LighthouseImage from "./LighthouseImage";
 
 interface PopoverContentProps {
   lighthouse: Lighthouse;
-  onVisitChange: (lighthouseId: string, isVisited: boolean) => void;
+  onVisitChange?: (lighthouseId: string, isVisited: boolean) => void;
   onWishlistChange?: (lighthouseId: string, isInWishlist: boolean) => void;
   isAuthenticated: boolean;
   isInWishlist?: boolean;
@@ -38,7 +40,7 @@ const LighthousePopoverContent = ({
       } else {
         await removeVisited(lighthouse.id);
       }
-      onVisitChange(lighthouse.id, newVisitedState);
+      onVisitChange?.(lighthouse.id, newVisitedState);
     } catch (error) {
       setOptimisticIsVisited(!newVisitedState);
       console.error('Error updating visit status:', error);
@@ -66,22 +68,26 @@ const LighthousePopoverContent = ({
   };
 
   const isLoading = isVisiting || isUnvisiting;
+  const imagePageUrl = getSafeExternalUrl(lighthouse.image_url);
+  const location = [lighthouse.state, lighthouse.country].filter(Boolean).join(", ");
   const isWishlistLoading = isAddingToWishlist || isRemovingFromWishlist;
 
   return (
     <div className="flex flex-col gap-3">
       <h3 className="font-display text-2xl font-semibold text-faros-navy">{lighthouse.name}</h3>
-      <img
-        src={lighthouse.image}
-        alt={lighthouse.name}
-        className="h-32 w-full rounded-xl object-cover"
+      <LighthouseImage
+        image={lighthouse.image}
+        name={lighthouse.name}
+        className="h-32 w-full rounded-xl"
       />
       <div className="text-sm text-faros-muted">
-        <p>{lighthouse.state}, {lighthouse.country}</p>
-        <div className="mt-2 grid grid-cols-2 gap-x-4 border-t border-faros-line pt-2">
+        {location ? <p>{location}</p> : null}
+        {(lighthouse.height > 0 || lighthouse.year_built > 0) && (
+          <div className="mt-2 grid grid-cols-2 gap-x-4 border-t border-faros-line pt-2">
             {lighthouse.height > 0 && <p><span className="font-semibold text-faros-ink">Height:</span> {lighthouse.height}m</p>}
             {lighthouse.year_built > 0 && <p><span className="font-semibold text-faros-ink">Built:</span> {lighthouse.year_built}</p>}
-        </div>
+          </div>
+        )}
         {lighthouse.light_characteristics && (
             <p className="mt-1">
                 <span className="font-semibold text-faros-ink">Light:</span> {lighthouse.light_characteristics}
@@ -99,8 +105,8 @@ const LighthousePopoverContent = ({
                 <p>
                     Image © {lighthouse.image_author}
                     {lighthouse.image_license ? ` (${lighthouse.image_license})` : ''}
-                    {lighthouse.image_url && (
-                        <a href={lighthouse.image_url} target="_blank" rel="noopener noreferrer" className="ml-1 font-semibold text-faros-teal underline">
+                    {imagePageUrl && (
+                        <a href={imagePageUrl} target="_blank" rel="noopener noreferrer" className="ml-1 font-semibold text-faros-teal underline">
                             [Original]
                         </a>
                     )}

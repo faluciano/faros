@@ -1,14 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Layer,
-  Map,
-  Popup,
-  Source,
-  type MapLayerMouseEvent,
-  type MapRef,
-} from "react-map-gl/maplibre";
+import { Layer, Map, Source, type MapRef } from "react-map-gl/maplibre";
 import type { FeatureCollection, Point } from "geojson";
-import type { GeoJSONSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type {
   Lighthouse,
@@ -18,11 +10,8 @@ import type {
 } from "../../../types";
 import { useAuth } from "../../../hooks/useAuth";
 import { useLighthouse } from "../../../hooks/useLighthouse";
-import {
-  fetchWithAuth,
-  getLighthouseByID,
-  getUserMapState,
-} from "../../../utils/api";
+import { useLighthouseSelection } from "../../../hooks/useLighthouseSelection";
+import { fetchWithAuth, getUserMapState } from "../../../utils/api";
 import {
   DEFAULT_FILTERS,
   type FilterState,
@@ -31,7 +20,7 @@ import {
 } from "../../../utils/map";
 import { isWebGLSupported } from "../../../utils/webgl";
 import PageState from "../../layout/PageState";
-import LighthousePopoverContent from "../lighthouses/LighthousePopover";
+import LighthousePopup from "./LighthousePopup";
 import {
   clusterCountLayer,
   clusterLayer,
@@ -57,9 +46,20 @@ const emptyFriendState: FriendState = {
   lighthouses: null,
 };
 
+const POINT_LAYER_IDS = [
+  lighthousePointLayer.id,
+  lighthouseHitLayer.id,
+  friendPointLayer.id,
+  friendHitLayer.id,
+];
+const CLUSTER_SOURCES = {
+  [clusterLayer.id]: LIGHTHOUSE_SOURCE_ID,
+  [friendClusterLayer.id]: FRIEND_SOURCE_ID,
+};
+const INTERACTIVE_LAYER_IDS = [clusterLayer.id, friendClusterLayer.id, ...POINT_LAYER_IDS];
+
 const UserMap = () => {
   const mapRef = useRef<MapRef>(null);
-  const detailRequestIDRef = useRef(0);
   const visitedOverridesRef = useRef<globalThis.Map<string, boolean>>(new globalThis.Map());
   const wishlistOverridesRef = useRef<globalThis.Map<string, boolean>>(new globalThis.Map());
   const { mapData, isLoading, error } = useLighthouse();
@@ -70,9 +70,12 @@ const UserMap = () => {
   const [friends, setFriends] = useState<User[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
   const [friendState, setFriendState] = useState<FriendState>(emptyFriendState);
-  const [selectedLighthouse, setSelectedLighthouse] = useState<Lighthouse | null>(null);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const { selection, clearSelection, handleMapClick, handleMouseMove, cursor } =
+    useLighthouseSelection(mapRef, {
+      pointLayerIDs: POINT_LAYER_IDS,
+      clusterSources: CLUSTER_SOURCES,
+    });
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -158,7 +161,7 @@ const UserMap = () => {
       try {
         const lighthouses = await fetchWithAuth<Lighthouse[]>(
           token,
-          `/user/friends/lighthouses?friendId=${selectedFriend}`,
+          `/user/friends/lighthouses?friendId=${encodeURIComponent(selectedFriend)}`,
         );
         if (!cancelled) {
           setFriendState({
@@ -277,76 +280,6 @@ const UserMap = () => {
     });
   }, []);
 
-  const expandCluster = async (
-    sourceID: string,
-    clusterID: number,
-    coordinates: [number, number],
-  ) => {
-    const map = mapRef.current?.getMap();
-    const source = map?.getSource(sourceID) as GeoJSONSource | undefined;
-    if (!map || !source || !Number.isFinite(clusterID)) {
-      return;
-    }
-    try {
-      const zoom = await source.getClusterExpansionZoom(clusterID);
-      map.easeTo({ center: coordinates, zoom });
-    } catch (clusterError) {
-      console.error("Failed to expand lighthouse cluster:", clusterError);
-    }
-  };
-
-  const handleMapClick = async (event: MapLayerMouseEvent) => {
-    const feature = event.features?.[0];
-    if (!feature) {
-      detailRequestIDRef.current += 1;
-      setIsLoadingDetails(false);
-      setSelectedLighthouse(null);
-      return;
-    }
-
-    if (feature.layer.id === clusterLayer.id || feature.layer.id === friendClusterLayer.id) {
-      detailRequestIDRef.current += 1;
-      setIsLoadingDetails(false);
-      setSelectedLighthouse(null);
-      await expandCluster(
-        feature.layer.id === friendClusterLayer.id ? FRIEND_SOURCE_ID : LIGHTHOUSE_SOURCE_ID,
-        Number(feature.properties?.cluster_id),
-        (feature.geometry as Point).coordinates as [number, number],
-      );
-      return;
-    }
-
-    if (
-      feature.layer.id === lighthousePointLayer.id ||
-      feature.layer.id === lighthouseHitLayer.id ||
-      feature.layer.id === friendPointLayer.id ||
-      feature.layer.id === friendHitLayer.id
-    ) {
-      const id = String(feature.properties?.id ?? feature.id ?? "");
-      if (!id) {
-        return;
-      }
-      const requestID = detailRequestIDRef.current + 1;
-      detailRequestIDRef.current = requestID;
-      setIsLoadingDetails(true);
-      try {
-        const details = await getLighthouseByID(id);
-        if (detailRequestIDRef.current === requestID) {
-          setSelectedLighthouse({
-            ...details,
-            isVisited: visitedIDs.has(id),
-          });
-        }
-      } catch (detailError) {
-        console.error("Failed to fetch lighthouse details:", detailError);
-      } finally {
-        if (detailRequestIDRef.current === requestID) {
-          setIsLoadingDetails(false);
-        }
-      }
-    }
-  };
-
   if (!isWebGLSupported()) {
     return (
       <PageState
@@ -446,14 +379,9 @@ const UserMap = () => {
         }}
         style={{ width: "100%", height: "100%" }}
         onClick={handleMapClick}
-        interactiveLayerIds={[
-          clusterLayer.id,
-          lighthousePointLayer.id,
-          lighthouseHitLayer.id,
-          friendClusterLayer.id,
-          friendPointLayer.id,
-          friendHitLayer.id,
-        ]}
+        onMouseMove={handleMouseMove}
+        cursor={cursor}
+        interactiveLayerIds={INTERACTIVE_LAYER_IDS}
       >
         <Source
           id={LIGHTHOUSE_SOURCE_ID}
@@ -485,36 +413,18 @@ const UserMap = () => {
           <Layer {...friendHitLayer} />
         </Source>
 
-        {selectedLighthouse ? (
-          <Popup
-            longitude={selectedLighthouse.longitude}
-            latitude={selectedLighthouse.latitude}
-            anchor="bottom"
-            onClose={() => {
-              detailRequestIDRef.current += 1;
-              setIsLoadingDetails(false);
-              setSelectedLighthouse(null);
-            }}
-            closeButton
-            closeOnClick={false}
-            maxWidth="300px"
-          >
-            <LighthousePopoverContent
-              lighthouse={selectedLighthouse}
-              onVisitChange={handleVisitChange}
-              onWishlistChange={handleWishlistChange}
-              isAuthenticated={isSignedIn}
-              isInWishlist={wishlistIDs.has(selectedLighthouse.id)}
-            />
-          </Popup>
+        {selection ? (
+          <LighthousePopup
+            selection={selection}
+            onClose={clearSelection}
+            isAuthenticated={isSignedIn}
+            isVisited={visitedIDs.has(selection.id)}
+            isInWishlist={wishlistIDs.has(selection.id)}
+            onVisitChange={handleVisitChange}
+            onWishlistChange={handleWishlistChange}
+          />
         ) : null}
       </Map>
-
-      {isLoadingDetails ? (
-        <div className="app-map-panel absolute bottom-4 right-4 z-10 text-sm font-semibold">
-          Loading lighthouse details...
-        </div>
-      ) : null}
     </div>
   );
 };

@@ -1,27 +1,37 @@
-import { useEffect, useMemo, type ReactNode } from 'react';
-import { usePublicApi } from '../hooks/usePublicApi';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { LighthouseMapData } from '../types';
 import { getLighthouseMapData } from '../utils/api';
 import { LighthouseContext } from './LighthouseContext';
 
 export const LighthouseProvider = ({ children }: { children: ReactNode }) => {
-  const {
-    data: mapData,
-    isLoading,
-    error,
-    request: fetchMapData,
-  } = usePublicApi(getLighthouseMapData);
+  const [mapData, setMapData] = useState<LighthouseMapData | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    fetchMapData();
-  }, [fetchMapData]);
+    let cancelled = false;
+    getLighthouseMapData()
+      .then((data) => {
+        if (!cancelled) {
+          setMapData(data);
+        }
+      })
+      .catch((loadError: unknown) => {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError : new Error(String(loadError)));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const value = useMemo(
     () => ({
       mapData,
-      isLoading,
+      isLoading: !mapData && !error,
       error,
     }),
-    [mapData, isLoading, error],
+    [mapData, error],
   );
 
   return (
