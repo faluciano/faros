@@ -1,20 +1,5 @@
-import { createClient } from "@libsql/client";
-import { join } from "path";
-import * as dotenv from "dotenv";
-
 // Load env from backend
-const envPath = join(process.cwd(), "lighthouse-backend", ".env");
-dotenv.config({ path: envPath });
-
-const url = process.env.TURSO_DATABASE_URL;
-const authToken = process.env.TURSO_AUTH_TOKEN;
-
-if (!url || !authToken) {
-  console.error("Error: TURSO_DATABASE_URL or TURSO_AUTH_TOKEN not found");
-  process.exit(1);
-}
-
-const client = createClient({ url, authToken });
+import { client } from "./client";
 
 async function fetchWithTimeout(url: string, options: any = {}, timeout = 10000) {
   const controller = new AbortController();

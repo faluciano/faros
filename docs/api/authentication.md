@@ -1,70 +1,45 @@
 # Authentication
 
-Faros uses WebAuthn passkeys for account registration and sign-in. Passwords are
-not accepted or stored. After a passkey ceremony succeeds, the API returns a
-JWT used by the existing protected endpoints.
+Faros has no passwords. Accounts are created and used with
+[passkeys](https://passkeys.dev) (WebAuthn), and a signed-in browser holds a
+session cookie.
 
-## Backend configuration
+## Passkey ceremonies
 
-```env
-JWT_SECRET=replace_with_a_long_random_value
-PASSKEY_RP_ID=localhost
-PASSKEY_RP_ORIGINS=http://localhost:5173
-```
+Registration and sign-in are each two requests. The first returns WebAuthn
+options and a `flow_id`; the second sends the browser's response back with
+that `flow_id` in the `X-WebAuthn-Session` header.
 
-For production, `PASSKEY_RP_ID` must be the exact stable frontend hostname and
-`PASSKEY_RP_ORIGINS` must contain its HTTPS origin. Multiple origins can be
-comma-separated, but each origin must be valid for the configured relying-party
-ID.
+| Step | Request | Returns |
+| --- | --- | --- |
+| Start registration | `POST /api/auth/passkey/register/options` with `email`, `first_name`, `last_name` | `{ flow_id, public_key }` |
+| Finish registration | `POST /api/auth/passkey/register` with the browser's registration response | `201 { user }` and the session cookie |
+| Start sign-in | `POST /api/auth/passkey/login/options` | `{ flow_id, public_key }` |
+| Finish sign-in | `POST /api/auth/passkey/login` with the browser's assertion response | `200 { user }` and the session cookie |
 
-## Registration flow
+Rules the server enforces:
 
-1. `POST /auth/passkey/register/options` with the user's profile:
+- A ceremony expires after 5 minutes and can be finished only once.
+- Passkeys must be discoverable and must verify the user (biometrics or device PIN).
+- Sign-in has no username step: the browser offers the passkeys it holds for the site.
+- A passkey whose signature counter goes backwards is rejected as a possible clone.
+- An email can belong to one account. Registering it again returns `409`.
 
-   ```json
-   {
-     "email": "user@example.com",
-     "first_name": "Grace",
-     "last_name": "Hopper"
-   }
-   ```
+## The session cookie
 
-2. Pass `public_key` from the response to `navigator.credentials.create()` or a
-   WebAuthn browser helper.
-3. `POST /auth/passkey/register` with the credential response as the JSON body
-   and the returned ceremony ID in:
+A successful ceremony sets `__Host-faros_session`:
 
-   ```text
-   X-WebAuthn-Session: <flow_id>
-   ```
+- `HttpOnly`, so page scripts cannot read it
+- `Secure` and `SameSite=Strict`, so it is only sent over HTTPS by Faros's own pages
+- valid for 7 days; it holds a signed token naming the user
 
-4. Store the returned JWT and use it for protected requests.
+`POST /api/auth/logout` clears it. `GET /api/auth/me` returns the signed-in
+user, or `401` when there is none, which is how the frontend learns who is
+signed in. Local development over plain HTTP uses the name `faros_session`
+without the `Secure` attribute.
 
-## Sign-in flow
+## The hostname is permanent
 
-1. `POST /auth/passkey/login/options` without a username or email.
-2. Pass `public_key` to `navigator.credentials.get()` or a WebAuthn browser
-   helper. The discoverable passkey identifies the account.
-3. `POST /auth/passkey/login` with the assertion response and
-   `X-WebAuthn-Session` header.
-4. Store the returned JWT.
-
-Ceremony IDs are short-lived, server-stored, and single-use. If a ceremony
-expires or fails validation, begin a new one.
-
-## Protected requests
-
-```text
-Authorization: Bearer <token>
-```
-
-Tokens expire after 24 hours. A missing or invalid token returns
-`401 Unauthorized`.
-
-## Security notes
-
-- Passkey registration requires a discoverable credential and user verification.
-- Passkeys require HTTPS except on localhost.
-- Authenticator counters and backup state are persisted after every sign-in.
-- Changing the relying-party ID invalidates existing passkeys.
-- Never expose `JWT_SECRET` to the frontend.
+Passkeys are bound to the site's hostname (`PASSKEY_RP_ID` in
+`lighthouse-frontend/cloudflare.config.ts`). Changing it makes every existing
+passkey unusable, and there is no account recovery yet.

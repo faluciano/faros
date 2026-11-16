@@ -1,175 +1,52 @@
-# API Endpoints
+# Endpoints
 
-## Public Endpoints
+All paths are under `/api`. Every route except the four passkey ceremony
+routes requires the session cookie and returns `401` without it. See
+[Authentication](./authentication.md) for the ceremony routes.
 
-These endpoints are accessible without authentication and provide public lighthouse data.
+A **user** is `{ id, first_name, last_name, email? }`. `email` is present only
+for yourself, your accepted friends, and people who sent you a request.
 
-### Passkey Authentication
+## Current user
 
-- `POST /auth/passkey/register/options`: Begin passkey account registration
-- `POST /auth/passkey/register`: Verify the new passkey and return a JWT
-- `POST /auth/passkey/login/options`: Begin usernameless passkey sign-in
-- `POST /auth/passkey/login`: Verify the passkey assertion and return a JWT
+| Route | Returns |
+| --- | --- |
+| `GET /auth/me`, `GET /user` | The signed-in user |
+| `POST /auth/logout` | `{ success: true }`; clears the session |
 
-The finish endpoints require the ceremony ID returned by their matching options
-endpoint in the `X-WebAuthn-Session` header.
+## Visited and wishlist
 
-### Lighthouses
+Lighthouses are referred to by ID. Full records come from the static data files.
 
-#### Get All Lighthouses
-- **Endpoint**: `GET /api/lighthouses`
-- **Description**: Retrieve all lighthouses, with optional filtering by country and/or state
-- **Authentication**: None required (public access)
-- **Query Parameters**:
-  - `country` (optional): Filter by country name
-  - `state` (optional): Filter by state name
-  - **Note**: Both parameters can be used together to filter by state within a specific country
-- **Response**: Array of lighthouse objects
-- **Examples**:
-  ```
-  GET /api/lighthouses
-  GET /api/lighthouses?country=USA
-  GET /api/lighthouses?state=California
-  GET /api/lighthouses?country=USA&state=California
-  ```
+| Route | Body | Returns |
+| --- | --- | --- |
+| `GET /user/map-state` | | `{ visited_ids: string[], wishlist_ids: string[] }` |
+| `POST /user/lighthouses` | `{ lighthouseId }` | `{ success: true }`. Also removes it from the wishlist |
+| `DELETE /user/lighthouses` | `{ lighthouseId }` | `{ success: true }` |
+| `POST /user/wishlist` | `{ lighthouseId }` | `{ success: true }` |
+| `DELETE /user/wishlist` | `{ lighthouseId }` | `{ success: true }` |
 
-#### Get Lighthouse Map Data
-- **Endpoint**: `GET /api/lighthouses/map`
-- **Description**: Return a gzip-compressed, cacheable GeoJSON feature collection
-  containing only lighthouse IDs and coordinates
-- **Authentication**: None required
-- **Caching**: Supports `ETag`, conditional requests, and five-minute browser caching
-- **Use case**: High-performance clustered map rendering; fetch full details by ID
-  only after a lighthouse is selected
+Adding something already saved, or removing something that is not, succeeds
+without changing anything.
 
-## Authenticated Endpoints
+## Friends
 
-All endpoints below require the JWT returned after passkey authentication.
+| Route | Body or query | Returns |
+| --- | --- | --- |
+| `GET /users/search` | `?query=` (2 to 100 characters) | Up to 10 users, without emails |
+| `GET /user/friends` | | Accepted friends |
+| `DELETE /user/friends` | `{ friendId }` | `{ success: true }`. Removes a friendship or a pending request |
+| `GET /user/friends/requests` | | Users who have sent you a request |
+| `GET /user/friends/requests/outgoing` | | Users you have sent a request to, without emails |
+| `POST /user/friends/requests` | `{ friendId }` | `{ success: true }` |
+| `POST /user/friends/requests/accept` | `{ friendId }` | `{ success: true }` |
+| `GET /user/friends/lighthouses` | `?friendId=` | IDs the friend has visited; empty unless the friendship is accepted |
 
-### User Management
+Details worth knowing:
 
-#### Get Current User
-- **Endpoint**: `GET /user`
-- **Description**: Get current authenticated user information
-- **Response**: User object with profile details
-
-#### Get User Map State
-- **Endpoint**: `GET /user/map-state`
-- **Description**: Return lightweight visited and wishlist lighthouse ID arrays
-- **Response**:
-  ```json
-  {
-    "visited_ids": ["lighthouse-uuid"],
-    "wishlist_ids": ["another-lighthouse-uuid"]
-  }
-  ```
-
-### User Lighthouses
-
-#### Get Visited Lighthouses
-- **Endpoint**: `GET /user/lighthouses`
-- **Description**: Get all lighthouses visited by the current user
-
-#### Mark Lighthouse as Visited
-- **Endpoint**: `POST /user/lighthouses`
-- **Description**: Mark a lighthouse as visited
-- **Body**:
-  ```json
-  {
-    "lighthouseId": "lighthouse-uuid"
-  }
-  ```
-
-#### Unmark Lighthouse as Visited
-- **Endpoint**: `DELETE /user/lighthouses`
-- **Query Parameters**:
-  - `lighthouseId`: ID of the lighthouse to unmark
-
-### User Wishlist
-
-#### Get Wishlist
-- **Endpoint**: `GET /user/wishlist`
-- **Description**: Get all lighthouses in user's wishlist
-
-#### Add to Wishlist
-- **Endpoint**: `POST /user/wishlist`
-- **Body**:
-  ```json
-  {
-    "lighthouseId": "lighthouse-uuid"
-  }
-  ```
-
-#### Remove from Wishlist
-- **Endpoint**: `DELETE /user/wishlist`
-- **Query Parameters**:
-  - `lighthouseId`: ID of the lighthouse to remove
-
-### Friends Management
-
-#### Search Users
-- **Endpoint**: `GET /users/search`
-- **Description**: Search for users by name or email
-- **Query Parameters**:
-  - `query` (required): Search term (2-100 characters)
-
-#### Get Friends
-- **Endpoint**: `GET /user/friends`
-- **Description**: Get current user's friends list
-
-#### Remove Friend
-- **Endpoint**: `DELETE /user/friends`
-- **Query Parameters**:
-  - `friendId`: ID of the friend to remove
-
-#### Get Friend's Visited Lighthouses
-- **Endpoint**: `GET /user/friends/lighthouses`
-- **Description**: Get lighthouses visited by user's friends
-
-### Friend Requests
-
-#### Get Pending Friend Requests
-- **Endpoint**: `GET /user/friends/requests`
-- **Description**: Get incoming friend requests
-
-#### Send Friend Request
-- **Endpoint**: `POST /user/friends/requests`
-- **Body**:
-  ```json
-  {
-    "friendId": "user-uuid"
-  }
-  ```
-
-#### Get Outgoing Friend Requests
-- **Endpoint**: `GET /user/friends/requests/outgoing`
-- **Description**: Get sent friend requests
-
-#### Accept Friend Request
-- **Endpoint**: `POST /user/friends/requests/accept`
-- **Body**:
-  ```json
-  {
-    "friendId": "user-uuid"
-  }
-  ```
-
-## Response Format
-
-All endpoints return JSON responses with appropriate HTTP status codes:
-
-- `200 OK`: Successful request
-- `400 Bad Request`: Invalid request parameters
-- `401 Unauthorized`: Authentication required or invalid
-- `404 Not Found`: Resource not found
-- `405 Method Not Allowed`: HTTP method not supported
-- `500 Internal Server Error`: Server error
-
-## Error Response Format
-
-```json
-{
-  "status": 400,
-  "message": "Descriptive error message"
-}
-```
+- **Search** matches names by substring and email only by exact address, and
+  leaves out people you already have a request or friendship with.
+- **Sending a request** returns `404` for an unknown user, `400` for yourself,
+  and `409` if a request or friendship already exists in either direction.
+- **Accepting** works only for the recipient of a pending request; anything
+  else returns `404`.

@@ -1,20 +1,6 @@
-import { createClient } from "@libsql/client";
 import { join } from "path";
 import { readFileSync } from "fs";
-import * as dotenv from "dotenv";
-
-const envPath = join(process.cwd(), "lighthouse-backend", ".env");
-dotenv.config({ path: envPath });
-
-const url = process.env.TURSO_DATABASE_URL;
-const authToken = process.env.TURSO_AUTH_TOKEN;
-
-if (!url || !authToken) {
-  console.error("Error: TURSO credentials not found");
-  process.exit(1);
-}
-
-const client = createClient({ url, authToken });
+import { client } from "./client";
 const dataPath = join(process.cwd(), "scripts", "global_lighthouses.json");
 
 async function fetchWikidata(wikidataId: string) {
@@ -119,7 +105,7 @@ async function run() {
 
     // Execute batch update
     if (pendingUpdates.length >= BATCH_SIZE || (i === ids.length - 1 && pendingUpdates.length > 0)) {
-        console.log(`[BATCH] Flushing ${pendingUpdates.length} updates to Turso...`);
+        console.log(`[BATCH] Flushing ${pendingUpdates.length} updates to the working database...`);
         const statements = pendingUpdates.map(u => ({
             sql: `
                 UPDATE lighthouses 

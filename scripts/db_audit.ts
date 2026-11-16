@@ -1,19 +1,4 @@
-import { createClient } from "@libsql/client";
-import { join } from "path";
-import * as dotenv from "dotenv";
-
-const envPath = join(process.cwd(), "lighthouse-backend", ".env");
-dotenv.config({ path: envPath });
-
-const url = process.env.TURSO_DATABASE_URL || "file:lighthouse-backend/lighthouse.db";
-const authToken = process.env.TURSO_AUTH_TOKEN;
-
-console.log(`Auditing database: ${url}`);
-
-const client = createClient({ 
-    url: url, 
-    authToken: authToken 
-});
+import { client } from "./client";
 
 async function run() {
   const stats = await client.execute(`

@@ -1,42 +1,19 @@
-# Faros API Documentation
+# Faros API
 
-The Faros API manages lighthouse visits, wishlists, and social features.
+The API is part of the Faros Worker and is served under `/api` on the same
+origin as the app: `https://faros.faluciano.workers.dev/api`.
 
-## Base URL
+- [Authentication](./authentication.md): passkeys and the session cookie
+- [Endpoints](./endpoints.md): every route, with request and response shapes
 
-- **Local Development**: `http://localhost:8080`
-- **Production**: Your deployed API URL
+## Conventions
 
-## Authentication
+- Requests and responses are JSON. Request bodies are limited to 64 KB.
+- Errors use one shape: `{ "status": 404, "message": "user not found" }`.
+- Responses are never cached (`Cache-Control: no-store`).
+- Writes (`POST`, `DELETE`) are refused with `403` when the `Origin` header
+  names a different site.
+- Lighthouse data is not served by the API. It is static files under
+  `/data/lighthouses/`; see the [system overview](../architecture/system-overview.md).
 
-Users register and sign in with a WebAuthn passkey. Successful authentication
-returns a short-lived JWT for protected API requests:
-
-```text
-Authorization: Bearer <token>
-```
-
-See [authentication.md](./authentication.md) for the complete passkey ceremony.
-
-## Interactive Documentation
-
-- **Local**: [http://localhost:8080/docs/](http://localhost:8080/docs/)
-- **Production**: `<your-api-url>/docs/`
-
-## Quick Start
-
-1. `GET /api/lighthouses`
-2. `GET /api/lighthouses?country=USA`
-3. `GET /api/lighthouses?state=California`
-4. `GET /user` with a valid bearer token
-
-## Error Handling
-
-```json
-{
-  "status": 400,
-  "message": "Error description"
-}
-```
-
-For API support, create an issue in the GitHub repository.
+The code is in [`lighthouse-frontend/worker/`](../../lighthouse-frontend/worker/).

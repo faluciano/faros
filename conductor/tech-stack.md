@@ -1,27 +1,28 @@
 # Tech Stack
 
-## Backend
-- **Language:** Go 1.25
-- **Architecture:** Clean Architecture (Handlers, Services, Repositories).
-- **Web Framework:** Standard library (`net/http`) with `rs/cors` and `swaggo/http-swagger`.
-- **JWT:** `golang-jwt/jwt/v5`.
-- **API Docs:** Swagger (`swag`).
+Faros is a single Cloudflare Worker serving both the frontend and the API.
 
 ## Frontend
 - **Framework:** React 18
 - **Language:** TypeScript
 - **Build Tool:** Vite
 - **Styling:** Tailwind CSS
-- **Maps:** `maplibre-gl`, `react-map-gl`, and Pigeon-Maps.
+- **Maps:** `maplibre-gl` and `react-map-gl`, with OpenFreeMap tiles.
 
-## Database
-- **Provider:** Turso (SQLite).
-- **Driver:** `go-libsql`.
+## API
+- **Runtime:** Cloudflare Workers
+- **Language:** TypeScript
+- **Web Framework:** Hono
+- **Passkeys:** `@simplewebauthn/server`
+
+## Data
+- **User data:** Cloudflare D1 (SQLite).
+- **Lighthouse data:** static JSON files shipped with the frontend, maintained by the scripts in `scripts/`.
 
 ## Authentication
-- **Provider:** Clerk.
+- **Method:** WebAuthn passkeys with an httpOnly session cookie. No third-party provider.
 
 ## DevOps & Infrastructure
-- **Containerization:** Docker.
-- **CI/CD:** GitHub Actions.
-- **Hosting:** Azure Static Web Apps (Frontend), Azure Web Apps for Containers (Backend).
+- **Hosting:** Cloudflare Workers (static assets and API on one origin).
+- **Tooling:** `cf` CLI with `cloudflare.config.ts`.
+- **CI:** GitHub Actions (typecheck, lint, API tests, dry-run build).
