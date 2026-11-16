@@ -38,14 +38,19 @@ export const getLighthouseImageCandidates = (image: string): string[] => {
 
   if (url.hostname === "upload.wikimedia.org") {
     const match = ORIGINAL_UPLOAD_PATH.exec(url.pathname);
-    if (match && THUMBNAIL_EXTENSIONS.test(match[3])) {
+    if (match) {
       const [, first, second, file] = match;
-      // Originals narrower than the thumbnail width have no such thumbnail,
-      // so the stored URL stays as the fallback.
-      return [
-        `https://upload.wikimedia.org/wikipedia/commons/thumb/${first}/${second}/${file}/${THUMBNAIL_WIDTH}px-${file}`,
-        image,
-      ];
+      if (THUMBNAIL_EXTENSIONS.test(file)) {
+        // Originals narrower than the thumbnail width have no such
+        // thumbnail, so the stored URL stays as the fallback.
+        return [
+          `https://upload.wikimedia.org/wikipedia/commons/thumb/${first}/${second}/${file}/${THUMBNAIL_WIDTH}px-${file}`,
+          image,
+        ];
+      }
+      // Browsers cannot show formats such as TIFF. Commons converts them
+      // when asked for a width, so go through its file redirect instead.
+      return [`https://commons.wikimedia.org/wiki/Special:FilePath/${file}?width=${THUMBNAIL_WIDTH}`];
     }
   }
 

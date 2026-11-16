@@ -2,8 +2,8 @@ import { Lighthouse } from "../../../types";
 import { useState } from "react";
 import { useMutation } from "../../../hooks/useMutation";
 import { addVisitedLighthouse, removeVisitedLighthouse, addToWishlist, removeFromWishlist } from "../../../utils/api";
-import { getSafeExternalUrl } from "../../../utils/images";
 import LighthouseImage from "./LighthouseImage";
+import PhotoCredit from "./PhotoCredit";
 
 interface PopoverContentProps {
   lighthouse: Lighthouse;
@@ -68,7 +68,6 @@ const LighthousePopoverContent = ({
   };
 
   const isLoading = isVisiting || isUnvisiting;
-  const imagePageUrl = getSafeExternalUrl(lighthouse.image_url);
   const location = [lighthouse.state, lighthouse.country].filter(Boolean).join(", ");
   const isWishlistLoading = isAddingToWishlist || isRemovingFromWishlist;
 
@@ -101,17 +100,7 @@ const LighthousePopoverContent = ({
         
         <div className="mt-3 border-t border-faros-line pt-2 text-xs text-faros-muted/80">
             <p>Data Source: {lighthouse.source}</p>
-            {lighthouse.image_author && (
-                <p>
-                    Image © {lighthouse.image_author}
-                    {lighthouse.image_license ? ` (${lighthouse.image_license})` : ''}
-                    {imagePageUrl && (
-                        <a href={imagePageUrl} target="_blank" rel="noopener noreferrer" className="ml-1 font-semibold text-faros-teal underline">
-                            [Original]
-                        </a>
-                    )}
-                </p>
-            )}
+            <PhotoCredit lighthouse={lighthouse} />
         </div>
       </div>
       {isAuthenticated && (

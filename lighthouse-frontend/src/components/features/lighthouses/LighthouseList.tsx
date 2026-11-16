@@ -1,6 +1,7 @@
 import { MapPinIcon } from "@heroicons/react/24/outline";
 import { Lighthouse } from "../../../types";
 import LighthouseImage from "./LighthouseImage";
+import PhotoCredit from "./PhotoCredit";
 
 interface LighthouseListProps {
   lighthouses: Lighthouse[];
@@ -45,6 +46,9 @@ const LighthouseList = ({
                   <p className="mt-2 text-sm font-medium text-faros-muted">
                     {[lighthouse.state, lighthouse.country].filter(Boolean).join(", ")}
                   </p>
+                  <div className="mt-2 text-xs text-faros-muted/80">
+                    <PhotoCredit lighthouse={lighthouse} />
+                  </div>
                   <button
                     type="button"
                     onClick={() => onRemove(lighthouse.id)}
