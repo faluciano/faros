@@ -14,76 +14,40 @@ Web app to track visited lighthouses around the world with a map to display visi
 
 ## 🏗️ Architecture
 
-- **Backend**: Go REST API with clean architecture
-- **Frontend**: React with TypeScript and Vite
-- **Authentication**: WebAuthn passkeys with JWT-protected API sessions
-- **Database**: Turso (SQLite) with embedded replica
-- **Maps**: Pigeon-Maps for interactive map visualization
+Faros runs as a single Cloudflare Worker:
 
-## 📚 Documentation
-
-- **[API Documentation](./docs/api/)** - Complete API reference and examples
-- **[Development Setup](./docs/development/setup.md)** - Get started with local development
-- **[System Architecture](./docs/architecture/system-overview.md)** - Technical architecture overview
-- **[Deployment Guide](./docs/deployment/)** - Production deployment instructions
+- **Frontend**: React with TypeScript and Vite, served as static assets
+- **API**: [Hono](https://hono.dev) on the same Worker, under `/api`
+- **Database**: Cloudflare D1 (SQLite) for accounts, visits, wishlists and friendships
+- **Lighthouse data**: static JSON files shipped with the frontend, so the map needs no API
+- **Authentication**: WebAuthn passkeys with an httpOnly session cookie
+- **Maps**: MapLibre GL with OpenFreeMap tiles
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Go 1.24.0+
-- Node.js 18+
-- Git
+Requires Node.js 22.18 or later and the [`cf` CLI](https://developers.cloudflare.com/cf/).
 
-### Local Development
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/faluciano/faros.git
-   cd faros
-   ```
-
-2. **Setup Backend**
-   ```bash
-   cd lighthouse-backend
-   go mod download
-   cp .env.example .env
-   # Set JWT_SECRET and the passkey relying-party values
-   go run main.go
-   ```
-
-3. **Setup Frontend**
-   ```bash
-   cd lighthouse-frontend
-   bun install
-   bun run dev
-   ```
-
-4. **Access the application**
-   - Frontend: http://localhost:5173
-   - API Documentation: http://localhost:8080/docs/
-
-## 🔐 Passkey Configuration
-
-Local development uses `localhost` by default. Production must set the exact,
-stable frontend hostname:
-
-```env
-JWT_SECRET=<random-secret>
-PASSKEY_RP_ID=agreeable-pond-025c6731e.5.azurestaticapps.net
-PASSKEY_RP_ORIGINS=https://agreeable-pond-025c6731e.5.azurestaticapps.net
+```bash
+git clone https://github.com/faluciano/faros.git
+cd faros/lighthouse-frontend
+npm install
+cp .dev.vars.example .dev.vars          # then set JWT_SECRET
+npm run migrate:local -- <database-id>   # the id in cloudflare.config.ts
+npm run dev                              # http://localhost:5173
 ```
 
-Changing `PASSKEY_RP_ID` makes existing passkeys unusable. Passkeys require
-HTTPS outside local development.
+See [`lighthouse-frontend/README.md`](./lighthouse-frontend/README.md) for the
+project layout, checks and deployment.
 
-The first backend startup containing the passkey migration removes existing
-user, friendship, visit, and wishlist records so every account can register a
-new passkey.
+## 🔐 Passkeys
+
+Passkeys are bound to the site's hostname, set in
+`lighthouse-frontend/cloudflare.config.ts`. Changing it makes every existing
+passkey unusable. Local development uses `localhost`.
 
 ## 🌐 Live Deployment
 
-- **API**: https://faros-backend.azurewebsites.net/docs/
-- **Web App**: https://agreeable-pond-025c6731e.5.azurestaticapps.net/
+https://faros.faluciano.workers.dev
 
 ## 🤝 Contributing
 

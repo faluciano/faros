@@ -1,89 +1,56 @@
-import { useState, useEffect, useCallback, ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { User } from '../types';
 import { AuthContext } from './AuthContext';
-import { getBaseUrl } from '../utils/api';
+import { getCurrentUser, signOut } from '../utils/api';
 import { createPasskeyAccount, signInWithPasskey } from '../utils/passkeys';
 
-const TOKEN_KEY = 'token';
-
+// The session is an httpOnly cookie the page cannot read, so "who is signed
+// in" is whatever the API says.
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    if (!storedToken) {
-      setIsLoading(false);
-      return;
-    }
-
-    const validateToken = async () => {
-      try {
-        const response = await fetch(`${getBaseUrl()}/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${storedToken}`,
-          },
-        });
-
-        if (!response.ok) {
-          localStorage.removeItem(TOKEN_KEY);
-          setToken(null);
-          setUser(null);
-          return;
+    let cancelled = false;
+    getCurrentUser()
+      .then((currentUser) => {
+        if (!cancelled) {
+          setUser(currentUser);
         }
-
-        const data = await response.json();
-        setToken(storedToken);
-        setUser(data);
-      } catch {
-        localStorage.removeItem(TOKEN_KEY);
-        setToken(null);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
+      })
+      .catch(() => {
+        // Not signed in, or the API is unreachable; either way show the public app.
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
     };
-
-    validateToken();
   }, []);
 
   const login = useCallback(async () => {
-    const data = await signInWithPasskey();
-    localStorage.setItem(TOKEN_KEY, data.token);
-    setToken(data.token);
-    setUser(data.user);
+    setUser(await signInWithPasskey());
   }, []);
 
   const register = useCallback(async (email: string, firstName: string, lastName: string) => {
-    const data = await createPasskeyAccount({ email, firstName, lastName });
-    localStorage.setItem(TOKEN_KEY, data.token);
-    setToken(data.token);
-    setUser(data.user);
+    setUser(await createPasskeyAccount({ email, firstName, lastName }));
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    setToken(null);
-    setUser(null);
+  const logout = useCallback(async () => {
+    try {
+      await signOut();
+    } finally {
+      setUser(null);
+    }
   }, []);
 
-  const getToken = useCallback(() => token, [token]);
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        isSignedIn: !!token && !!user,
-        isLoading,
-        login,
-        register,
-        logout,
-        getToken,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, isSignedIn: user !== null, isLoading, login, register, logout }),
+    [user, isLoading, login, register, logout],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

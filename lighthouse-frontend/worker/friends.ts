@@ -14,7 +14,8 @@ const listUsers = async (c: AppContext, clause: string, ...values: unknown[]): P
 
 // Addresses are only shown to people the user has a relationship with, so
 // search and outgoing requests cannot be used to collect them.
-const withoutEmails = (users: User[]): User[] => users.map(({ email: _email, ...user }) => user);
+const withoutEmails = (users: User[]): User[] =>
+	users.map(({ id, first_name, last_name }) => ({ id, first_name, last_name }));
 
 // Makes user input literal inside a LIKE pattern that uses \ as its escape.
 const escapeLike = (value: string): string => value.replace(/[\\%_]/g, (character) => `\\${character}`);

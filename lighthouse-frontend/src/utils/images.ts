@@ -2,6 +2,7 @@
 // popup and the list cards on high-density screens at a fraction of the
 // original file size.
 const THUMBNAIL_WIDTH = 500;
+const IMAGE_HOSTS = new Set(["commons.wikimedia.org", "upload.wikimedia.org"]);
 const THUMBNAIL_EXTENSIONS = /\.(jpe?g|png|gif|webp)$/i;
 const ORIGINAL_UPLOAD_PATH = /^\/wikipedia\/commons\/([0-9a-f])\/(\1[0-9a-f])\/([^/]+)$/;
 
@@ -22,9 +23,10 @@ export const getLighthouseImageCandidates = (image: string): string[] => {
   if (url.protocol !== "https:") {
     return [];
   }
-  // Seed data points unphotographed lighthouses at a third-party placeholder
-  // service; draw the placeholder locally instead of calling it.
-  if (url.hostname === "via.placeholder.com") {
+  // Photos only come from Wikimedia. Everything else in the dataset is a
+  // placeholder service or a link to a web page, not an image, and the
+  // Content-Security-Policy in public/_headers allows only these hosts.
+  if (!IMAGE_HOSTS.has(url.hostname)) {
     return [];
   }
 
