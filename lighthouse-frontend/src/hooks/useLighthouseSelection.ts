@@ -5,6 +5,10 @@ import type { GeoJSONSource } from "maplibre-gl";
 import type { Lighthouse } from "../types";
 import { getCachedLighthouse, getLighthouseByID } from "../utils/api";
 
+// How far below the map's centre a selected marker is placed, as a fraction
+// of the map's height. The popup's max-height in index.css assumes this.
+const SELECTED_MARKER_OFFSET = 0.3;
+
 export interface LighthouseSelection {
   id: string;
   longitude: number;
@@ -69,6 +73,18 @@ export const useLighthouseSelection = (
     const id = String(feature.properties?.id ?? feature.id ?? "");
     if (!id) {
       return;
+    }
+
+    // The popup opens above the marker and can be most of a phone screen
+    // tall, so bring the marker to the lower middle of the map where the
+    // whole popup fits, whichever edge it started near.
+    const map = mapRef.current?.getMap();
+    if (map) {
+      map.easeTo({
+        center: coordinates,
+        offset: [0, Math.round(map.getContainer().clientHeight * SELECTED_MARKER_OFFSET)],
+        duration: 350,
+      });
     }
 
     const requestID = requestIDRef.current + 1;
