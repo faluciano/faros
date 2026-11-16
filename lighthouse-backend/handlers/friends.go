@@ -67,10 +67,7 @@ func (h *FriendsHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if users == nil {
-		users = []schemas.User{}
-	}
-	json.NewEncoder(w).Encode(users)
+	json.NewEncoder(w).Encode(withoutEmails(users))
 }
 
 // @Summary     Get user's friends
@@ -153,10 +150,18 @@ func (h *FriendsHandler) GetOutgoingFriendRequests(w http.ResponseWriter, r *htt
 		return
 	}
 
-	if requests == nil {
-		requests = []schemas.User{}
+	json.NewEncoder(w).Encode(withoutEmails(requests))
+}
+
+// withoutEmails strips addresses from users the caller has no accepted
+// relationship with, so search and outgoing requests cannot harvest them.
+func withoutEmails(users []schemas.User) []schemas.User {
+	stripped := make([]schemas.User, len(users))
+	for index, user := range users {
+		user.Email = ""
+		stripped[index] = user
 	}
-	json.NewEncoder(w).Encode(requests)
+	return stripped
 }
 
 // @Summary     Send friend request
@@ -183,7 +188,7 @@ func (h *FriendsHandler) SendFriendRequest(w http.ResponseWriter, r *http.Reques
 	}
 
 	var req FriendRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodeJSON(w, r, &req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
@@ -241,12 +246,16 @@ func (h *FriendsHandler) AcceptFriendRequest(w http.ResponseWriter, r *http.Requ
 	}
 
 	var req FriendRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodeJSON(w, r, &req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
-	if err := h.db.AcceptFriendRequest(userID, req.FriendId); err != nil {
+	if err := h.db.AcceptFriendRequest(userID, strings.TrimSpace(req.FriendId)); errors.Is(err, interfaces.ErrFriendRequestNotFound) {
+		utils.WriteError(w, http.StatusNotFound, "friend request not found")
+		return
+	} else if err != nil {
+		log.Printf("accept friend request: %v", err)
 		utils.WriteError(w, http.StatusInternalServerError, "Failed to accept friend request")
 		return
 	}
@@ -276,7 +285,7 @@ func (h *FriendsHandler) RemoveFriend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req FriendRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodeJSON(w, r, &req); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, "invalid request")
 		return
 	}

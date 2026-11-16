@@ -24,9 +24,23 @@ func NewDB(db *sql.DB) interfaces.DBInterface {
 	return &DBImpl{db: db}
 }
 
-// GetLighthouses returns all lighthouses
-func (d *DBImpl) GetLighthouses() ([]schemas.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses`)
+// lighthouseSelect is the single column list for full lighthouse rows; it
+// must stay in step with scanLighthouse.
+const lighthouseSelect = `SELECT l.id, l.name, l.country, l.state, l.latitude, l.longitude, l.image, l.height, l.year_built, l.light_characteristics, l.description, l.source, l.image_author, l.image_license, l.image_url FROM lighthouses l`
+
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanLighthouse(row rowScanner) (schemas.Lighthouse, error) {
+	var l schemas.Lighthouse
+	err := row.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL)
+	return l, err
+}
+
+// queryLighthouses runs lighthouseSelect followed by the given clause.
+func (d *DBImpl) queryLighthouses(clause string, args ...any) ([]schemas.Lighthouse, error) {
+	rows, err := d.db.Query(lighthouseSelect+" "+clause, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +48,8 @@ func (d *DBImpl) GetLighthouses() ([]schemas.Lighthouse, error) {
 
 	lighthouses := make([]schemas.Lighthouse, 0)
 	for rows.Next() {
-		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
+		l, err := scanLighthouse(rows)
+		if err != nil {
 			return nil, err
 		}
 		lighthouses = append(lighthouses, l)
@@ -46,13 +60,39 @@ func (d *DBImpl) GetLighthouses() ([]schemas.Lighthouse, error) {
 	return lighthouses, nil
 }
 
+const userSelect = `SELECT u.id, u.first_name, u.last_name, u.email FROM users u`
+
+// queryUsers runs userSelect followed by the given clause.
+func (d *DBImpl) queryUsers(clause string, args ...any) ([]schemas.User, error) {
+	rows, err := d.db.Query(userSelect+" "+clause, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := make([]schemas.User, 0)
+	for rows.Next() {
+		var user schemas.User
+		if err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+// GetLighthouses returns all lighthouses
+func (d *DBImpl) GetLighthouses() ([]schemas.Lighthouse, error) {
+	return d.queryLighthouses("")
+}
+
 // GetLighthouseByID returns a single lighthouse by its ID
 func (d *DBImpl) GetLighthouseByID(id string) (*schemas.Lighthouse, error) {
-	var l schemas.Lighthouse
-	err := d.db.QueryRow(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses WHERE id = ?`, id).
-		Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL)
-
-	if err == sql.ErrNoRows {
+	l, err := scanLighthouse(d.db.QueryRow(lighthouseSelect+" WHERE l.id = ?", id))
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -106,68 +146,17 @@ func (d *DBImpl) GetLighthouseMapPoints() ([]schemas.LighthouseMapPoint, error) 
 
 // GetLighthousesByCountry returns lighthouses filtered by country
 func (d *DBImpl) GetLighthousesByCountry(country string) ([]schemas.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses WHERE country = ?`, country)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	lighthouses := make([]schemas.Lighthouse, 0)
-	for rows.Next() {
-		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
-			return nil, err
-		}
-		lighthouses = append(lighthouses, l)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return lighthouses, nil
+	return d.queryLighthouses("WHERE l.country = ?", country)
 }
 
 // GetLighthousesByState returns lighthouses filtered by state
 func (d *DBImpl) GetLighthousesByState(state string) ([]schemas.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses WHERE state = ?`, state)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	lighthouses := make([]schemas.Lighthouse, 0)
-	for rows.Next() {
-		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
-			return nil, err
-		}
-		lighthouses = append(lighthouses, l)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return lighthouses, nil
+	return d.queryLighthouses("WHERE l.state = ?", state)
 }
 
 // GetLighthousesByCountryAndState returns lighthouses filtered by both country and state
 func (d *DBImpl) GetLighthousesByCountryAndState(country string, state string) ([]schemas.Lighthouse, error) {
-	rows, err := d.db.Query(`SELECT id, name, country, state, latitude, longitude, image, height, year_built, light_characteristics, description, source, image_author, image_license, image_url FROM lighthouses WHERE country = ? AND state = ?`, country, state)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	lighthouses := make([]schemas.Lighthouse, 0)
-	for rows.Next() {
-		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
-			return nil, err
-		}
-		lighthouses = append(lighthouses, l)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return lighthouses, nil
+	return d.queryLighthouses("WHERE l.country = ? AND l.state = ?", country, state)
 }
 
 func (d *DBImpl) CreateUser(user schemas.User) error {
@@ -442,29 +431,10 @@ func isUniqueConstraintError(err error) bool {
 }
 
 func (d *DBImpl) GetUserVisitedLighthouses(id string) ([]schemas.Lighthouse, error) {
-	query := `
-	SELECT l.id, l.name, l.country, l.state, l.latitude, l.longitude, l.image, l.height, l.year_built, l.light_characteristics, l.description, l.source, l.image_author, l.image_license, l.image_url
-	FROM user_visited_lighthouse uvl
-	JOIN lighthouses l ON uvl.lighthouse_id = l.id
-	WHERE uvl.user_id = ?
-	`
-
-	rows, err := d.db.Query(query, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	lighthouses := make([]schemas.Lighthouse, 0)
-	for rows.Next() {
-		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
-			return nil, err
-		}
-		lighthouses = append(lighthouses, l)
-	}
-
-	return lighthouses, nil
+	return d.queryLighthouses(`
+		JOIN user_visited_lighthouse uvl ON uvl.lighthouse_id = l.id
+		WHERE uvl.user_id = ?
+	`, id)
 }
 
 func (d *DBImpl) GetUserMapState(id string) (schemas.UserMapState, error) {
@@ -506,29 +476,10 @@ func (d *DBImpl) GetUserMapState(id string) (schemas.UserMapState, error) {
 }
 
 func (d *DBImpl) GetUserWishlistLighthouses(id string) ([]schemas.Lighthouse, error) {
-	query := `
-	SELECT l.id, l.name, l.country, l.state, l.latitude, l.longitude, l.image, l.height, l.year_built, l.light_characteristics, l.description, l.source, l.image_author, l.image_license, l.image_url
-	FROM user_wishlist_lighthouse uwl
-	JOIN lighthouses l ON uwl.lighthouse_id = l.id
-	WHERE uwl.user_id = ?
-	`
-
-	rows, err := d.db.Query(query, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	lighthouses := make([]schemas.Lighthouse, 0)
-	for rows.Next() {
-		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
-			return nil, err
-		}
-		lighthouses = append(lighthouses, l)
-	}
-
-	return lighthouses, nil
+	return d.queryLighthouses(`
+		JOIN user_wishlist_lighthouse uwl ON uwl.lighthouse_id = l.id
+		WHERE uwl.user_id = ?
+	`, id)
 }
 
 func (d *DBImpl) AddToWishlist(userId string, lighthouseId string) error {
@@ -574,103 +525,58 @@ func (d *DBImpl) UnmarkLighthouseAsVisited(userId string, lighthouseId string) e
 }
 
 func (d *DBImpl) GetFriendVisitedLighthouses(userId string, friendId string) ([]schemas.Lighthouse, error) {
-	query := `
-	SELECT l.id, l.name, l.country, l.state, l.latitude, l.longitude, l.image, l.height, l.year_built, l.light_characteristics, l.description, l.source, l.image_author, l.image_license, l.image_url
-	FROM user_visited_lighthouse uvl
-	JOIN lighthouses l ON uvl.lighthouse_id = l.id
-	-- This JOIN confirms friendship exists and is accepted
-	JOIN friendships f ON (
-		(f.user_id = ? AND f.friend_id = uvl.user_id) OR
-		(f.user_id = uvl.user_id AND f.friend_id = ?)
-	)
-	WHERE uvl.user_id = ? AND f.status = 'accepted'
-	`
-
-	rows, err := d.db.Query(query, userId, userId, friendId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	lighthouses := make([]schemas.Lighthouse, 0)
-	for rows.Next() {
-		var l schemas.Lighthouse
-		if err := rows.Scan(&l.ID, &l.Name, &l.Country, &l.State, &l.Latitude, &l.Longitude, &l.Image, &l.Height, &l.YearBuilt, &l.LightCharacteristics, &l.Description, &l.Source, &l.ImageAuthor, &l.ImageLicense, &l.ImageURL); err != nil {
-			return nil, err
-		}
-		lighthouses = append(lighthouses, l)
-	}
-
-	return lighthouses, nil
+	// The friendships JOIN only matches an accepted friendship between the
+	// caller and the friend, in either direction.
+	return d.queryLighthouses(`
+		JOIN user_visited_lighthouse uvl ON uvl.lighthouse_id = l.id
+		JOIN friendships f ON (
+			(f.user_id = ? AND f.friend_id = uvl.user_id) OR
+			(f.user_id = uvl.user_id AND f.friend_id = ?)
+		)
+		WHERE uvl.user_id = ? AND f.status = 'accepted'
+	`, userId, userId, friendId)
 }
 
+// SearchUsers matches names by substring and email only by exact address, so
+// the search cannot be used to enumerate other users' email addresses.
 func (d *DBImpl) SearchUsers(query string, currentUserId string) ([]schemas.User, error) {
-	// First, verify the current user exists
-	var currentUser schemas.User
-	err := d.db.QueryRow("SELECT id, first_name, last_name, email FROM users WHERE id = ?", currentUserId).
-		Scan(&currentUser.ID, &currentUser.FirstName, &currentUser.LastName, &currentUser.Email)
-	if err != nil {
-		return nil, err
-	}
-
-	// Simplified search query
-	searchQuery := `
-	SELECT DISTINCT u.id, u.first_name, u.last_name, u.email
-	FROM users u
-	WHERE u.id != ?
-	AND (
-		LOWER(u.first_name) LIKE LOWER(?)
-		OR LOWER(u.last_name) LIKE LOWER(?)
-		OR LOWER(u.email) LIKE LOWER(?)
-	)
-	AND NOT EXISTS (
-		SELECT 1 FROM friendships f
-		WHERE (
-			(f.user_id = ? AND f.friend_id = u.id)
-			OR (f.friend_id = ? AND f.user_id = u.id)
+	likeQuery := "%" + escapeLike(query) + "%"
+	return d.queryUsers(`
+		WHERE u.id != ?
+		AND (
+			LOWER(u.first_name) LIKE LOWER(?) ESCAPE '\'
+			OR LOWER(u.last_name) LIKE LOWER(?) ESCAPE '\'
+			OR LOWER(u.first_name || ' ' || u.last_name) LIKE LOWER(?) ESCAPE '\'
+			OR LOWER(u.email) = LOWER(?)
 		)
-	)
-	ORDER BY
-		CASE
-			WHEN LOWER(u.first_name) = LOWER(?) THEN 0
-			WHEN LOWER(u.last_name) = LOWER(?) THEN 1
-			WHEN LOWER(u.email) = LOWER(?) THEN 2
-			ELSE 3
-		END,
-		u.first_name ASC
-	LIMIT 10
-	`
-
-	likeQuery := "%" + query + "%"
-	exactQuery := query
-	args := []interface{}{
+		AND NOT EXISTS (
+			SELECT 1 FROM friendships f
+			WHERE (
+				(f.user_id = ? AND f.friend_id = u.id)
+				OR (f.friend_id = ? AND f.user_id = u.id)
+			)
+		)
+		ORDER BY
+			CASE
+				WHEN LOWER(u.email) = LOWER(?) THEN 0
+				WHEN LOWER(u.first_name) = LOWER(?) THEN 1
+				WHEN LOWER(u.last_name) = LOWER(?) THEN 2
+				ELSE 3
+			END,
+			u.first_name ASC
+		LIMIT 10
+	`,
 		currentUserId,
-		likeQuery, likeQuery, likeQuery, // For LIKE clauses
-		currentUserId, currentUserId, // For friendship check
-		exactQuery, exactQuery, exactQuery, // For ORDER BY exact matches
-	}
+		likeQuery, likeQuery, likeQuery, query,
+		currentUserId, currentUserId,
+		query, query, query,
+	)
+}
 
-	rows, err := d.db.Query(searchQuery, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	users := make([]schemas.User, 0)
-	for rows.Next() {
-		var user schemas.User
-		err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, user)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return users, nil
+// escapeLike makes user input literal inside a LIKE pattern that uses
+// backslash as its ESCAPE character.
+func escapeLike(value string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(value)
 }
 
 func (d *DBImpl) SendFriendRequest(userId, friendId string) error {
@@ -699,8 +605,18 @@ func (d *DBImpl) AcceptFriendRequest(userId, friendId string) error {
 	SET status = 'accepted', updated_at = CURRENT_TIMESTAMP
 	WHERE user_id = ? AND friend_id = ? AND status = 'pending'
 	`
-	_, err := d.db.Exec(query, friendId, userId)
-	return err
+	result, err := d.db.Exec(query, friendId, userId)
+	if err != nil {
+		return err
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if updated != 1 {
+		return interfaces.ErrFriendRequestNotFound
+	}
+	return nil
 }
 
 func (d *DBImpl) RemoveFriend(userId, friendId string) error {
@@ -713,83 +629,25 @@ func (d *DBImpl) RemoveFriend(userId, friendId string) error {
 }
 
 func (d *DBImpl) GetFriends(userId string) ([]schemas.User, error) {
-	query := `
-	SELECT u.id, u.first_name, u.last_name, u.email
-	FROM users u
-	JOIN friendships f ON (u.id = f.friend_id OR u.id = f.user_id)
-	WHERE ((f.user_id = ? AND f.friend_id = u.id) OR (f.friend_id = ? AND f.user_id = u.id))
-	AND f.status = 'accepted'
-	`
-
-	rows, err := d.db.Query(query, userId, userId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	friends := make([]schemas.User, 0)
-	for rows.Next() {
-		var friend schemas.User
-		err := rows.Scan(&friend.ID, &friend.FirstName, &friend.LastName, &friend.Email)
-		if err != nil {
-			return nil, err
-		}
-		friends = append(friends, friend)
-	}
-
-	return friends, nil
+	return d.queryUsers(`
+		JOIN friendships f ON (
+			(f.user_id = ? AND f.friend_id = u.id) OR
+			(f.friend_id = ? AND f.user_id = u.id)
+		)
+		WHERE f.status = 'accepted'
+	`, userId, userId)
 }
 
 func (d *DBImpl) GetPendingFriendRequests(userId string) ([]schemas.User, error) {
-	query := `
-	SELECT u.id, u.first_name, u.last_name, u.email
-	FROM users u
-	JOIN friendships f ON u.id = f.user_id
-	WHERE f.friend_id = ? AND f.status = 'pending'
-	`
-
-	rows, err := d.db.Query(query, userId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	requests := make([]schemas.User, 0)
-	for rows.Next() {
-		var request schemas.User
-		err := rows.Scan(&request.ID, &request.FirstName, &request.LastName, &request.Email)
-		if err != nil {
-			return nil, err
-		}
-		requests = append(requests, request)
-	}
-
-	return requests, nil
+	return d.queryUsers(`
+		JOIN friendships f ON u.id = f.user_id
+		WHERE f.friend_id = ? AND f.status = 'pending'
+	`, userId)
 }
 
 func (d *DBImpl) GetOutgoingFriendRequests(userId string) ([]schemas.User, error) {
-	query := `
-	SELECT u.id, u.first_name, u.last_name, u.email
-	FROM users u
-	JOIN friendships f ON u.id = f.friend_id
-	WHERE f.user_id = ? AND f.status = 'pending'
-	`
-
-	rows, err := d.db.Query(query, userId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	requests := make([]schemas.User, 0)
-	for rows.Next() {
-		var request schemas.User
-		err := rows.Scan(&request.ID, &request.FirstName, &request.LastName, &request.Email)
-		if err != nil {
-			return nil, err
-		}
-		requests = append(requests, request)
-	}
-
-	return requests, nil
+	return d.queryUsers(`
+		JOIN friendships f ON u.id = f.friend_id
+		WHERE f.user_id = ? AND f.status = 'pending'
+	`, userId)
 }

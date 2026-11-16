@@ -129,6 +129,11 @@ func (h *LighthouseHandler) getLighthouseMapPayload() (lighthouseMapPayload, err
 	h.mapCache.compressed = compressed.Bytes()
 	h.mapCache.etag = etag
 	h.mapCache.expiresAt = time.Now().Add(lighthouseMapCacheTTL)
+	if len(points) == 0 {
+		// An empty table (fresh database, seed still running) is not worth
+		// holding on to for the full TTL.
+		h.mapCache.expiresAt = time.Now()
+	}
 
 	return lighthouseMapPayload{
 		raw:        h.mapCache.raw,

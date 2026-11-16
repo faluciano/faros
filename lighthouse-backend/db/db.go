@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	_ "github.com/tursodatabase/go-libsql"
 )
+
+const httpStreamIdleLimit = 5 * time.Second
 
 func InitDB() (*sql.DB, error) {
 	var db *sql.DB
@@ -22,6 +25,13 @@ func InitDB() (*sql.DB, error) {
 		db, err = sql.Open("libsql", dbUrl)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open database: %w", err)
+		}
+		if strings.HasPrefix(tursoURL, "http://") || strings.HasPrefix(tursoURL, "https://") {
+			// Over plain HTTP the server expires a connection's stream after
+			// about ten idle seconds, and the driver then fails every query
+			// on it. Retire idle connections before that can happen.
+			// libsql:// URLs use a persistent WebSocket and are unaffected.
+			db.SetConnMaxIdleTime(httpStreamIdleLimit)
 		}
 	} else {
 		// Local console setup: Use a local SQLite file

@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+const (
+	lighthouseDetailCacheControl = "public, max-age=3600, stale-while-revalidate=86400"
+	maxLighthouseIDBytes         = 128
+)
+
 // LighthouseHandler handles lighthouse-related requests
 type LighthouseHandler struct {
 	db       interfaces.DBInterface
@@ -101,7 +106,7 @@ func (h *LighthouseHandler) GetLighthouseByID(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "application/json")
 
 	id := r.PathValue("id")
-	if id == "" {
+	if id == "" || len(id) > maxLighthouseIDBytes {
 		utils.WriteError(w, http.StatusBadRequest, "ID is required")
 		return
 	}
@@ -117,5 +122,8 @@ func (h *LighthouseHandler) GetLighthouseByID(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Lighthouse details are public and change rarely, so repeat opens can
+	// be served from the browser cache.
+	w.Header().Set("Cache-Control", lighthouseDetailCacheControl)
 	json.NewEncoder(w).Encode(lighthouse)
 }
