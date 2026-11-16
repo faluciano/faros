@@ -1,9 +1,15 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*"]
+    "exclude": ["/assets/*", "/data/*"]
   },
   "routes": [
+    {
+      "route": "/data/*",
+      "headers": {
+        "Cache-Control": "public, max-age=3600, stale-while-revalidate=604800"
+      }
+    },
     {
       "route": "/assets/*",
       "headers": {

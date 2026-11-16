@@ -6,6 +6,9 @@ import type {
 export const LIGHTHOUSE_SOURCE_ID = "lighthouses";
 export const FRIEND_SOURCE_ID = "friend-lighthouses";
 
+// Must be a font the basemap style's glyph server provides.
+const CLUSTER_COUNT_FONT = ["Noto Sans Bold"];
+
 export const clusterLayer: CircleLayerSpecification = {
   id: "clusters",
   type: "circle",
@@ -26,7 +29,7 @@ export const clusterCountLayer: SymbolLayerSpecification = {
   filter: ["has", "point_count"],
   layout: {
     "text-field": "{point_count_abbreviated}",
-    "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+    "text-font": CLUSTER_COUNT_FONT,
     "text-size": 12,
   },
   paint: {
@@ -89,7 +92,7 @@ export const friendClusterCountLayer: SymbolLayerSpecification = {
   filter: ["has", "point_count"],
   layout: {
     "text-field": "{point_count_abbreviated}",
-    "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+    "text-font": CLUSTER_COUNT_FONT,
     "text-size": 12,
   },
 };

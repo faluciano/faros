@@ -17,5 +17,6 @@ export const DEFAULT_FILTERS: FilterState = {
   friends: true,
 };
 
-export const getMapTilerStyleUrl = () =>
-  `https://api.maptiler.com/maps/streets-v2/style.json?key=${import.meta.env.VITE_MAPTILER_API_KEY}`;
+// OpenFreeMap serves OpenStreetMap vector tiles without an API key. Any
+// MapLibre style URL works here if the provider ever needs to change.
+export const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
