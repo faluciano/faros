@@ -21,7 +21,8 @@ Then review the diff under `public/data/lighthouses/`, commit it, and deploy.
 | `export_static.ts` | Writes the working database back out as the published files |
 | `populate_data.ts` | Imports lighthouses from the OpenStreetMap extract in `global_lighthouses.json` |
 | `enrich_wikidata.ts` | Fills in height, year built and descriptions from Wikidata |
-| `source_images.ts` | Finds photos and their attribution on Wikimedia Commons |
+| `source_images.ts` | Searches Wikimedia Commons for photos taken near lighthouses that have none. It takes the nearest file without checking it shows the lighthouse, so run `repair_images.ts` afterwards |
+| `repair_images.ts` | Fixes photo references, removes images that are not of the lighthouse, and fills in each photo's author, licence and source page |
 | `deduplicate.ts`, `check_duplicates.ts`, `audit_proximity.ts` | Find and merge duplicate entries |
 | `prune_unnamed.ts` | Removes unnamed, insignificant entries |
 | `db_audit.ts` | Prints coverage statistics |
