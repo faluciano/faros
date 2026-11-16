@@ -26,11 +26,14 @@ const LighthousePopup = ({
   <Popup
     longitude={selection.longitude}
     latitude={selection.latitude}
+    // Always opens upwards; selecting a marker pans it low enough on screen
+    // for the popup to fit (see useLighthouseSelection).
     anchor="bottom"
+    offset={12}
     onClose={onClose}
     closeButton
     closeOnClick={false}
-    maxWidth="300px"
+    maxWidth="min(300px, calc(100vw - 24px))"
   >
     {selection.details ? (
       <LighthousePopoverContent
