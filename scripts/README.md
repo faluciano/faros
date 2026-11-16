@@ -21,10 +21,12 @@ Then review the diff under `public/data/lighthouses/`, commit it, and deploy.
 | `export_static.ts` | Writes the working database back out as the published files |
 | `populate_data.ts` | Imports lighthouses from the OpenStreetMap extract in `global_lighthouses.json` |
 | `enrich_wikidata.ts` | Fills in height, year built and descriptions from Wikidata |
-| `source_images.ts` | Searches Wikimedia Commons for photos taken near lighthouses that have none. It takes the nearest file without checking it shows the lighthouse, so run `repair_images.ts` afterwards |
+| `find_photos.ts` | Searches Wikimedia Commons for a photo of each lighthouse that has none, accepting only photos taken within 300 m whose title says they show a lighthouse. Run with `--apply` afterwards to write the results, then `repair_images.ts` |
+| `source_images.ts` | Older, looser photo search: takes the nearest file within 1 km without checking what it shows. Prefer `find_photos.ts` |
 | `repair_images.ts` | Fixes photo references, removes images that are not of the lighthouse, and fills in each photo's author, licence and source page |
 | `deduplicate.ts`, `check_duplicates.ts`, `audit_proximity.ts` | Find and merge duplicate entries |
 | `prune_unnamed.ts` | Removes unnamed, insignificant entries |
+| `fill_locations.ts` | Sets each lighthouse's country and region from its coordinates, offline, using Natural Earth boundaries |
 | `db_audit.ts` | Prints coverage statistics |
 
 The working database is a scratch copy: it is ignored by git and safe to delete.
