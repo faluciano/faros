@@ -10,7 +10,6 @@ import {
 } from "@simplewebauthn/server";
 import { isoBase64URL } from "@simplewebauthn/server/helpers";
 import {
-	allowedOrigins,
 	ApiError,
 	isUniqueViolation,
 	readObject,
@@ -18,7 +17,7 @@ import {
 	type AppContext,
 	type AppEnv,
 } from "./http.ts";
-import { issueToken } from "./session.ts";
+import { endSession, startSession } from "./session.ts";
 import type { User } from "./users.ts";
 
 const SESSION_HEADER = "X-WebAuthn-Session";
@@ -83,8 +82,10 @@ const consumeSession = async (c: AppContext, ceremony: Ceremony) => {
 	return session;
 };
 
-const signedIn = async (c: AppContext, user: Required<User>, status: 200 | 201) =>
-	c.json({ token: await issueToken(c.env, user.id), user }, status);
+const signedIn = async (c: AppContext, user: Required<User>, status: 200 | 201) => {
+	await startSession(c, user.id);
+	return c.json({ user }, status);
+};
 
 export const auth = new Hono<AppEnv>();
 
@@ -128,7 +129,7 @@ auth.post("/auth/passkey/register", async (c) => {
 	const verification = await verifyRegistrationResponse({
 		response,
 		expectedChallenge: session.challenge,
-		expectedOrigin: allowedOrigins(c.env),
+		expectedOrigin: c.env.APP_ORIGIN,
 		expectedRPID: c.env.PASSKEY_RP_ID,
 		requireUserVerification: true,
 	}).catch(() => null);
@@ -198,7 +199,7 @@ auth.post("/auth/passkey/login", async (c) => {
 	const verification = await verifyAuthenticationResponse({
 		response,
 		expectedChallenge: session.challenge,
-		expectedOrigin: allowedOrigins(c.env),
+		expectedOrigin: c.env.APP_ORIGIN,
 		expectedRPID: c.env.PASSKEY_RP_ID,
 		requireUserVerification: true,
 		credential: {
@@ -228,4 +229,9 @@ auth.post("/auth/passkey/login", async (c) => {
 		last_name: stored.last_name,
 		email: stored.email,
 	}, 200);
+});
+
+auth.post("/auth/logout", (c) => {
+	endSession(c);
+	return c.json({ success: true });
 });

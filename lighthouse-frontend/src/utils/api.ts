@@ -1,4 +1,4 @@
-import type { Lighthouse, LighthouseMapData, UserMapState } from "../types";
+import type { Lighthouse, LighthouseMapData, User, UserMapState } from "../types";
 import {
   getDetailShard,
   getDetailShardFile,
@@ -8,28 +8,15 @@ import {
   type LighthouseIndex,
 } from "./lighthouseData";
 
-const PRODUCTION_API_URL =
-  "https://faros-backend.thankfulmoss-a3acc927.westus2.azurecontainerapps.io";
+// The API is served by the same Worker as the app, under /api. The browser
+// sends the session cookie on its own, so no token is handled here.
+const API_BASE = "/api";
 
-// VITE_API_URL wins when set (the Aspire AppHost sets it for local runs).
-export const getBaseUrl = () => {
-  const configured = import.meta.env.VITE_API_URL?.replace(/\/+$/, "");
-  if (configured) {
-    return configured;
-  }
-  return import.meta.env.DEV ? "http://localhost:8080" : PRODUCTION_API_URL;
-};
-
-export const fetchWithAuth = async <T>(
-  token: string,
-  endpoint: string,
-  options: RequestInit = {},
-): Promise<T> => {
-  const response = await fetch(`${getBaseUrl()}${endpoint}`, {
+export const apiFetch = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
   });
@@ -38,23 +25,31 @@ export const fetchWithAuth = async <T>(
 
   if (!response.ok) {
     let errorMessage = responseText;
-    if (responseText) {
-      try {
-        const payload = JSON.parse(responseText) as { message?: string; error?: string };
-        errorMessage = payload.message || payload.error || responseText;
-      } catch {
-        errorMessage = responseText;
-      }
+    try {
+      const payload = JSON.parse(responseText) as { message?: string };
+      errorMessage = payload.message || responseText;
+    } catch {
+      // Not JSON; show the body as it is.
     }
-    throw new Error(errorMessage || `HTTP error! status: ${response.status}`);
+    throw new ApiRequestError(response.status, errorMessage || `Request failed with status ${response.status}`);
   }
 
-  if (!responseText) {
-    return undefined as T;
-  }
-
-  return JSON.parse(responseText) as T;
+  return (responseText ? JSON.parse(responseText) : undefined) as T;
 };
+
+export class ApiRequestError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+const jsonBody = (method: 'POST' | 'DELETE', body: unknown): RequestInit => ({
+  method,
+  body: JSON.stringify(body),
+});
 
 const fetchLighthouseData = async <T>(file: string): Promise<T> => {
   const response = await fetch(`${LIGHTHOUSE_DATA_PATH}/${file}`);
@@ -123,22 +118,35 @@ export const getLighthousesByIDs = async (ids: string[]): Promise<Lighthouse[]> 
   return results.filter((lighthouse): lighthouse is Lighthouse => lighthouse !== null);
 };
 
-export const getUserMapState = (token: string) =>
-  fetchWithAuth<UserMapState>(token, '/user/map-state');
+export const getUserMapState = () => apiFetch<UserMapState>('/user/map-state');
 
 const lighthouseMutation = (endpoint: string, method: 'POST' | 'DELETE') =>
-  (token: string, lighthouseId: string) =>
-    fetchWithAuth<unknown>(token, endpoint, {
-      method,
-      body: JSON.stringify({ lighthouseId }),
-    });
+  (lighthouseId: string) => apiFetch<unknown>(endpoint, jsonBody(method, { lighthouseId }));
 
-export const getVisitedLighthouses = async (token: string) =>
-  getLighthousesByIDs((await getUserMapState(token)).visited_ids);
+export const getVisitedLighthouses = async () =>
+  getLighthousesByIDs((await getUserMapState()).visited_ids);
 export const addVisitedLighthouse = lighthouseMutation('/user/lighthouses', 'POST');
 export const removeVisitedLighthouse = lighthouseMutation('/user/lighthouses', 'DELETE');
 
-export const getWishlist = async (token: string) =>
-  getLighthousesByIDs((await getUserMapState(token)).wishlist_ids);
+export const getWishlist = async () =>
+  getLighthousesByIDs((await getUserMapState()).wishlist_ids);
 export const addToWishlist = lighthouseMutation('/user/wishlist', 'POST');
 export const removeFromWishlist = lighthouseMutation('/user/wishlist', 'DELETE');
+
+export const getFriends = () => apiFetch<User[]>('/user/friends');
+export const getFriendRequests = () => apiFetch<User[]>('/user/friends/requests');
+export const getOutgoingFriendRequests = () => apiFetch<User[]>('/user/friends/requests/outgoing');
+export const searchUsers = (query: string) =>
+  apiFetch<User[]>(`/users/search?query=${encodeURIComponent(query)}`);
+export const sendFriendRequest = (friendId: string) =>
+  apiFetch<unknown>('/user/friends/requests', jsonBody('POST', { friendId }));
+export const acceptFriendRequest = (friendId: string) =>
+  apiFetch<unknown>('/user/friends/requests/accept', jsonBody('POST', { friendId }));
+export const removeFriend = (friendId: string) =>
+  apiFetch<unknown>('/user/friends', jsonBody('DELETE', { friendId }));
+// IDs of the lighthouses a friend has visited.
+export const getFriendVisitedIDs = (friendId: string) =>
+  apiFetch<string[]>(`/user/friends/lighthouses?friendId=${encodeURIComponent(friendId)}`);
+
+export const getCurrentUser = () => apiFetch<User>('/auth/me');
+export const signOut = () => apiFetch<unknown>('/auth/logout', { method: 'POST' });

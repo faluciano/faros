@@ -4,8 +4,9 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 export interface Env {
 	DB: D1Database;
 	JWT_SECRET: string;
+	// The hostname passkeys are bound to, and the one origin the app is served from.
 	PASSKEY_RP_ID: string;
-	ALLOWED_ORIGINS: string;
+	APP_ORIGIN: string;
 }
 
 export interface AppEnv {
@@ -30,9 +31,6 @@ export class ApiError extends Error {
 }
 
 export const errorBody = (status: number, message: string) => ({ status, message });
-
-export const allowedOrigins = (env: Env): string[] =>
-	env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean);
 
 export const readObject = async (c: AppContext): Promise<Record<string, unknown>> => {
 	let body: unknown;

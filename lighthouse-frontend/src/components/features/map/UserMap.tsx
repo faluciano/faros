@@ -10,7 +10,7 @@ import type {
 import { useAuth } from "../../../hooks/useAuth";
 import { useLighthouse } from "../../../hooks/useLighthouse";
 import { useLighthouseSelection } from "../../../hooks/useLighthouseSelection";
-import { fetchWithAuth, getUserMapState } from "../../../utils/api";
+import { getFriends, getFriendVisitedIDs, getUserMapState } from "../../../utils/api";
 import {
   DEFAULT_FILTERS,
   type FilterState,
@@ -63,7 +63,7 @@ const UserMap = () => {
   const visitedOverridesRef = useRef<globalThis.Map<string, boolean>>(new globalThis.Map());
   const wishlistOverridesRef = useRef<globalThis.Map<string, boolean>>(new globalThis.Map());
   const { mapData, isLoading, error } = useLighthouse();
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn } = useAuth();
   const [visitedIDs, setVisitedIDs] = useState<Set<string>>(() => new Set());
   const [wishlistIDs, setWishlistIDs] = useState<Set<string>>(() => new Set());
   const [isMapStateLoading, setIsMapStateLoading] = useState(false);
@@ -81,11 +81,6 @@ const UserMap = () => {
     if (!isSignedIn) {
       return;
     }
-    const token = getToken();
-    if (!token) {
-      return;
-    }
-
     let cancelled = false;
     visitedOverridesRef.current.clear();
     wishlistOverridesRef.current.clear();
@@ -93,7 +88,7 @@ const UserMap = () => {
     setWishlistIDs(new Set());
     setIsMapStateLoading(true);
 
-    getUserMapState(token)
+    getUserMapState()
       .then((state) => {
         if (cancelled) {
           return;
@@ -128,7 +123,7 @@ const UserMap = () => {
         }
       });
 
-    fetchWithAuth<User[]>(token, "/user/friends")
+    getFriends()
       .then((loadedFriends) => {
         if (!cancelled) {
           setFriends(loadedFriends);
@@ -143,29 +138,18 @@ const UserMap = () => {
     return () => {
       cancelled = true;
     };
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn]);
 
   useEffect(() => {
     if (!selectedFriend || !isSignedIn) {
       setFriendState(emptyFriendState);
       return;
     }
-    const token = getToken();
-    if (!token) {
-      return;
-    }
-
     let cancelled = false;
     const loadFriendLighthouses = async () => {
       setFriendState({ isLoading: true, error: null, lighthouses: null });
       try {
-        // The Go API returns full records and the Worker API returns IDs;
-        // only the IDs are needed, since positions come from the map data.
-        const visited = await fetchWithAuth<Array<string | { id: string }>>(
-          token,
-          `/user/friends/lighthouses?friendId=${encodeURIComponent(selectedFriend)}`,
-        );
-        const lighthouses = visited.map((entry) => (typeof entry === "string" ? entry : entry.id));
+        const lighthouses = await getFriendVisitedIDs(selectedFriend);
         if (!cancelled) {
           setFriendState({
             isLoading: false,
@@ -191,7 +175,7 @@ const UserMap = () => {
     return () => {
       cancelled = true;
     };
-  }, [selectedFriend, friends, isSignedIn, getToken]);
+  }, [selectedFriend, friends, isSignedIn]);
 
   const visibleMapData = useMemo<LighthouseMapData | null>(() => {
     if (!mapData) {

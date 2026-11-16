@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import app from "../src/index.ts";
+import app from "../worker/index.ts";
 import { TestPasskey } from "./authenticator.ts";
 import { TestD1 } from "./d1.ts";
 
@@ -13,7 +13,7 @@ beforeEach(() => {
 		DB: new TestD1(),
 		JWT_SECRET: "test-secret-that-is-at-least-32-characters",
 		PASSKEY_RP_ID: site.rpID,
-		ALLOWED_ORIGINS: ORIGIN,
+		APP_ORIGIN: ORIGIN,
 	};
 });
 
@@ -24,11 +24,11 @@ interface CallOptions {
 }
 
 const call = async (method: string, path: string, { token, body, headers = {} }: CallOptions = {}) => {
-	const response = await app.request(path, {
+	const response = await app.request(`/api${path}`, {
 		method,
 		headers: {
 			...(body === undefined ? {} : { "Content-Type": "application/json" }),
-			...(token ? { Authorization: `Bearer ${token}` } : {}),
+			...(token ? { Cookie: token } : {}),
 			...headers,
 		},
 		body: body === undefined ? undefined : JSON.stringify(body),
@@ -36,6 +36,10 @@ const call = async (method: string, path: string, { token, body, headers = {} }:
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	return { status: response.status, body: await response.json() as any, headers: response.headers };
 };
+
+// The "name=value" pair from a response's Set-Cookie header. Tests pass it
+// back as `token`, standing in for the browser's cookie jar.
+const sessionCookie = (headers: Headers): string => (headers.get("Set-Cookie") ?? "").split(";")[0]!;
 
 const startRegistration = (email: string, first = "Ada", last = "Lovelace") =>
 	call("POST", "/auth/passkey/register/options", { body: { email, first_name: first, last_name: last } });
@@ -48,7 +52,7 @@ const register = async (email: string, first = "Ada", last = "Lovelace", passkey
 		headers: { "X-WebAuthn-Session": options.body.flow_id },
 	});
 	assert.equal(finished.status, 201);
-	return { passkey, token: finished.body.token as string, user: finished.body.user as { id: string } };
+	return { passkey, token: sessionCookie(finished.headers), user: finished.body.user as { id: string } };
 };
 
 const signIn = async (passkey: TestPasskey) => {
@@ -68,7 +72,7 @@ describe("passkeys", () => {
 		const first = await signIn(passkey);
 		assert.equal(first.status, 200);
 		assert.equal(first.body.user.id, user.id);
-		assert.equal((await call("GET", "/user", { token: first.body.token })).status, 200);
+		assert.equal((await call("GET", "/user", { token: sessionCookie(first.headers) })).status, 200);
 		// The signature counter moves forward, so a second sign-in still works.
 		assert.equal((await signIn(passkey)).status, 200);
 	});
@@ -233,11 +237,43 @@ describe("friends", () => {
 	});
 });
 
+describe("session cookie", () => {
+	it("is hidden from scripts, pinned to the host and cleared on sign-out", async () => {
+		const options = await startRegistration("ada@example.com");
+		const finished = await call("POST", "/auth/passkey/register", {
+			body: await new TestPasskey(site).register(options.body.public_key),
+			headers: { "X-WebAuthn-Session": options.body.flow_id },
+		});
+		const cookie = finished.headers.get("Set-Cookie") ?? "";
+		assert.match(cookie, /^__Host-faros_session=/);
+		for (const attribute of ["HttpOnly", "Secure", "SameSite=Strict", "Path=/"]) {
+			assert.ok(cookie.includes(attribute), attribute);
+		}
+		assert.equal(finished.body.token, undefined);
+
+		const signedOut = await call("POST", "/auth/logout", { token: sessionCookie(finished.headers) });
+		assert.match(signedOut.headers.get("Set-Cookie") ?? "", /Max-Age=0/);
+	});
+
+	it("does not accept the session as a bearer token", async () => {
+		const { token } = await register("ada@example.com");
+		const value = token.split("=")[1]!;
+		assert.equal((await call("GET", "/user", { headers: { Authorization: `Bearer ${value}` } })).status, 401);
+	});
+});
+
 describe("cross-origin requests", () => {
-	it("only answers the configured origins", async () => {
-		const allowed = await call("GET", "/user", { headers: { Origin: ORIGIN } });
-		assert.equal(allowed.headers.get("Access-Control-Allow-Origin"), ORIGIN);
-		const other = await call("GET", "/user", { headers: { Origin: "https://evil.example" } });
-		assert.equal(other.headers.get("Access-Control-Allow-Origin"), null);
+	it("refuses writes from another origin and sends no CORS headers", async () => {
+		const { token } = await register("ada@example.com");
+		const write = (origin: string) => call("POST", "/user/wishlist", {
+			token,
+			body: { lighthouseId: "a" },
+			headers: { Origin: origin },
+		});
+		assert.equal((await write("https://evil.example")).status, 403);
+		const sameOrigin = await write(ORIGIN);
+		assert.equal(sameOrigin.status, 200);
+		assert.equal(sameOrigin.headers.get("Access-Control-Allow-Origin"), null);
+		assert.equal(sameOrigin.headers.get("Cache-Control"), "no-store");
 	});
 });

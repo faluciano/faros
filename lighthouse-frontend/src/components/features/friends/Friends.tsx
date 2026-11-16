@@ -3,7 +3,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { Tab } from '@headlessui/react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { User } from '../../../types';
-import { fetchWithAuth, getBaseUrl } from '../../../utils/api';
+import * as api from '../../../utils/api';
 import PageState from '../../layout/PageState';
 
 function classNames(...classes: string[]) {
@@ -11,7 +11,7 @@ function classNames(...classes: string[]) {
 }
 
 export default function Friends() {
-  const { getToken, isSignedIn } = useAuth();
+  const { isSignedIn } = useAuth();
   const [friends, setFriends] = useState<User[]>([]);
   const [pendingRequests, setPendingRequests] = useState<User[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<User[]>([]);
@@ -24,69 +24,36 @@ export default function Friends() {
 
   const fetchFriends = useCallback(async () => {
     if (!isSignedIn) return;
-    
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`${getBaseUrl()}/user/friends`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) throw new Error('Failed to fetch friends');
-      const data = await response.json();
-      setFriends(data || []);
+      setFriends(await api.getFriends());
     } catch (err) {
       setError('Failed to load friends');
       console.error(err);
       setFriends([]);
     }
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn]);
 
   const fetchPendingRequests = useCallback(async () => {
     if (!isSignedIn) return;
-    
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`${getBaseUrl()}/user/friends/requests`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) throw new Error('Failed to fetch friend requests');
-      const data = await response.json();
-      setPendingRequests(data || []);
+      setPendingRequests(await api.getFriendRequests());
     } catch (err) {
       setError('Failed to load friend requests');
       console.error(err);
       setPendingRequests([]);
     }
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn]);
 
   const fetchOutgoingRequests = useCallback(async () => {
     if (!isSignedIn) return;
-    
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`${getBaseUrl()}/user/friends/requests/outgoing`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) throw new Error('Failed to fetch outgoing friend requests');
-      const data = await response.json();
-      setOutgoingRequests(data || []);
+      setOutgoingRequests(await api.getOutgoingFriendRequests());
     } catch (err) {
       setError('Failed to load outgoing friend requests');
       console.error(err);
       setOutgoingRequests([]);
     }
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn]);
 
   const searchUsers = useCallback(async (query: string) => {
     if (!query.trim() || query.trim().length < 2 || !isSignedIn) {
@@ -97,38 +64,12 @@ export default function Friends() {
 
     setIsSearching(true);
     setError(null);
-    
+
     try {
-      const token = getToken();
-      if (!token) {
-        setIsSearching(false);
-        return;
-      }
-
-      const response = await fetch(`${getBaseUrl()}/users/search?query=${encodeURIComponent(query.trim())}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to search users');
-      }
-
-      const data = await response.json();
-      
-      // Filter out users that are already friends, have pending requests, or outgoing requests
-      const currentFriendIds = new Set(friends.map(f => f.id));
-      const pendingRequestIds = new Set(pendingRequests.map(p => p.id));
-      const outgoingRequestIds = new Set(outgoingRequests.map(p => p.id));
-      
-      const filteredResults = (data || []).filter((user: User) => 
-        !currentFriendIds.has(user.id) && 
-        !pendingRequestIds.has(user.id) &&
-        !outgoingRequestIds.has(user.id)
-      );
-      
-      setSearchResults(filteredResults);
+      // The API already leaves out people you have a request or friendship
+      // with; this also covers changes made on this page since it loaded.
+      const known = new Set([...friends, ...pendingRequests, ...outgoingRequests].map((user) => user.id));
+      setSearchResults((await api.searchUsers(query.trim())).filter((user) => !known.has(user.id)));
     } catch (err) {
       console.error('Search error:', err);
       setError('Failed to search users. Please try again.');
@@ -136,7 +77,7 @@ export default function Friends() {
     } finally {
       setIsSearching(false);
     }
-  }, [isSignedIn, getToken, friends, pendingRequests, outgoingRequests]);
+  }, [isSignedIn, friends, pendingRequests, outgoingRequests]);
 
   const sendFriendRequest = async (friendId: string) => {
     if (!isSignedIn) return;
@@ -146,14 +87,7 @@ export default function Friends() {
     setError(null);
 
     try {
-      const token = getToken();
-      if (!token) return;
-
-      await fetchWithAuth<{ success: boolean }>(token, '/user/friends/requests', {
-        method: 'POST',
-        body: JSON.stringify({ friendId }),
-      });
-
+      await api.sendFriendRequest(friendId);
       setSearchResults((current) => current.filter((user) => user.id !== friendId));
       if (userToAdd) {
         setOutgoingRequests((current) => [...current, userToAdd]);
@@ -176,22 +110,8 @@ export default function Friends() {
 
   const acceptFriendRequest = async (friendId: string) => {
     if (!isSignedIn) return;
-    
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`${getBaseUrl()}/user/friends/requests/accept`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ friendId }),
-      });
-      if (!response.ok) throw new Error('Failed to accept friend request');
-      
-      // Refresh both lists
+      await api.acceptFriendRequest(friendId);
       await fetchPendingRequests();
       await fetchFriends();
     } catch (err) {
@@ -202,22 +122,8 @@ export default function Friends() {
 
   const removeFriend = async (friendId: string) => {
     if (!isSignedIn) return;
-    
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`${getBaseUrl()}/user/friends`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ friendId }),
-      });
-      if (!response.ok) throw new Error('Failed to remove friend');
-      
-      // Update all relevant lists
+      await api.removeFriend(friendId);
       setFriends(friends.filter(friend => friend.id !== friendId));
       setPendingRequests(pendingRequests.filter(request => request.id !== friendId));
       setOutgoingRequests(outgoingRequests.filter(request => request.id !== friendId));

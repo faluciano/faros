@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
-import { useAuth } from './useAuth';
 
-type MutationFunction<T, U> = (token: string, args: T) => Promise<U>;
+type MutationFunction<T, U> = (args: T) => Promise<U>;
 
 interface UseMutationResult<T, U> {
   data: U | null;
@@ -14,17 +13,12 @@ export const useMutation = <T, U>(mutationFunc: MutationFunction<T, U>): UseMuta
   const [data, setData] = useState<U | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { getToken } = useAuth();
 
   const mutate = useCallback(async (args: T) => {
     setIsLoading(true);
     setError(null);
     try {
-      const token = getToken();
-      if (!token) {
-        throw new Error("User is not authenticated.");
-      }
-      const result = await mutationFunc(token, args);
+      const result = await mutationFunc(args);
       setData(result);
     } catch (err: unknown) {
       const mutationError = err instanceof Error ? err : new Error(String(err));
@@ -33,7 +27,7 @@ export const useMutation = <T, U>(mutationFunc: MutationFunction<T, U>): UseMuta
     } finally {
       setIsLoading(false);
     }
-  }, [mutationFunc, getToken]);
+  }, [mutationFunc]);
 
   return { data, error, isLoading, mutate };
 };

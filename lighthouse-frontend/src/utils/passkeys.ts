@@ -6,7 +6,7 @@ import {
   type StartRegistrationOpts,
 } from '@simplewebauthn/browser';
 import type { User } from '../types';
-import { getBaseUrl } from './api';
+import { apiFetch } from './api';
 
 const PASSKEY_SESSION_HEADER = 'X-WebAuthn-Session';
 
@@ -19,12 +19,7 @@ interface CeremonyOptions<T> {
 }
 
 interface AuthResponse {
-  token: string;
   user: User;
-}
-
-interface APIError {
-  message?: string;
 }
 
 interface RegistrationProfile {
@@ -35,7 +30,7 @@ interface RegistrationProfile {
 
 export const passkeysAreSupported = browserSupportsWebAuthn();
 
-export const signInWithPasskey = async (): Promise<AuthResponse> => {
+export const signInWithPasskey = async (): Promise<User> => {
   requirePasskeySupport();
 
   const options = await requestJSON<CeremonyOptions<AuthenticationOptionsJSON>>(
@@ -47,28 +42,25 @@ export const signInWithPasskey = async (): Promise<AuthResponse> => {
     startAuthentication({ optionsJSON: options.public_key }),
   );
 
-  return requestJSON<AuthResponse>('/auth/passkey/login', {
+  const { user } = await requestJSON<AuthResponse>('/auth/passkey/login', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      [PASSKEY_SESSION_HEADER]: options.flow_id,
-    },
+    headers: { [PASSKEY_SESSION_HEADER]: options.flow_id },
     body: JSON.stringify(authentication),
   });
+  return user;
 };
 
 export const createPasskeyAccount = async ({
   email,
   firstName,
   lastName,
-}: RegistrationProfile): Promise<AuthResponse> => {
+}: RegistrationProfile): Promise<User> => {
   requirePasskeySupport();
 
   const options = await requestJSON<CeremonyOptions<RegistrationOptionsJSON>>(
     '/auth/passkey/register/options',
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
         first_name: firstName,
@@ -81,14 +73,12 @@ export const createPasskeyAccount = async ({
     startRegistration({ optionsJSON: options.public_key }),
   );
 
-  return requestJSON<AuthResponse>('/auth/passkey/register', {
+  const { user } = await requestJSON<AuthResponse>('/auth/passkey/register', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      [PASSKEY_SESSION_HEADER]: options.flow_id,
-    },
+    headers: { [PASSKEY_SESSION_HEADER]: options.flow_id },
     body: JSON.stringify(registration),
   });
+  return user;
 };
 
 const requirePasskeySupport = () => {
@@ -119,13 +109,5 @@ const isCanceledPasskeyRequest = (error: unknown): boolean => {
     code === 'ERROR_CEREMONY_ABORTED';
 };
 
-const requestJSON = async <T>(endpoint: string, options: RequestInit): Promise<T> => {
-  const response = await fetch(`${getBaseUrl()}${endpoint}`, options);
-
-  if (!response.ok) {
-    const error = await response.json() as APIError;
-    throw new Error(error.message || `Request failed with status ${response.status}`);
-  }
-
-  return response.json() as Promise<T>;
-};
+const requestJSON = <T>(endpoint: string, options: RequestInit): Promise<T> =>
+  apiFetch<T>(endpoint, options);

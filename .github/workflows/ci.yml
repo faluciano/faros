@@ -1,0 +1,28 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+    paths: ["lighthouse-frontend/**", ".github/workflows/ci.yml"]
+  pull_request:
+    paths: ["lighthouse-frontend/**", ".github/workflows/ci.yml"]
+
+defaults:
+  run:
+    working-directory: lighthouse-frontend
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: lighthouse-frontend/package-lock.json
+      - run: npm ci
+      # Typecheck, lint and API tests.
+      - run: npm run check
+      # Builds the client and the Worker without uploading anything.
+      - run: npx cf deploy --dry-run
