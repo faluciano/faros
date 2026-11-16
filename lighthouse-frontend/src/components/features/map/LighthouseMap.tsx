@@ -3,7 +3,7 @@ import { Layer, Map, Source, type MapRef } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useLighthouse } from "../../../hooks/useLighthouse";
 import { useLighthouseSelection } from "../../../hooks/useLighthouseSelection";
-import { getMapTilerStyleUrl, MAP_DEFAULTS } from "../../../utils/map";
+import { MAP_DEFAULTS, MAP_STYLE_URL } from "../../../utils/map";
 import { isWebGLSupported } from "../../../utils/webgl";
 import PageState from "../../layout/PageState";
 import LighthousePopup from "./LighthousePopup";
@@ -47,7 +47,7 @@ const LighthouseMap = () => {
     <div className="relative h-[calc(100vh-4rem)]">
       <Map
         ref={mapRef}
-        mapStyle={getMapTilerStyleUrl()}
+        mapStyle={MAP_STYLE_URL}
         initialViewState={{
           latitude: MAP_DEFAULTS.CENTER.latitude,
           longitude: MAP_DEFAULTS.CENTER.longitude,

@@ -15,8 +15,8 @@ import { fetchWithAuth, getUserMapState } from "../../../utils/api";
 import {
   DEFAULT_FILTERS,
   type FilterState,
-  getMapTilerStyleUrl,
   MAP_DEFAULTS,
+  MAP_STYLE_URL,
 } from "../../../utils/map";
 import { isWebGLSupported } from "../../../utils/webgl";
 import PageState from "../../layout/PageState";
@@ -371,7 +371,7 @@ const UserMap = () => {
 
       <Map
         ref={mapRef}
-        mapStyle={getMapTilerStyleUrl()}
+        mapStyle={MAP_STYLE_URL}
         initialViewState={{
           latitude: MAP_DEFAULTS.CENTER.latitude,
           longitude: MAP_DEFAULTS.CENTER.longitude,
