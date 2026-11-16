@@ -3,7 +3,6 @@ import { Layer, Map, Source, type MapRef } from "react-map-gl/maplibre";
 import type { FeatureCollection, Point } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type {
-  Lighthouse,
   LighthouseMapData,
   LighthouseMapProperties,
   User,
@@ -37,7 +36,8 @@ import {
 interface FriendState {
   isLoading: boolean;
   error: string | null;
-  lighthouses: Lighthouse[] | null;
+  // IDs of the lighthouses the selected friend has visited.
+  lighthouses: string[] | null;
 }
 
 const emptyFriendState: FriendState = {
@@ -159,10 +159,13 @@ const UserMap = () => {
     const loadFriendLighthouses = async () => {
       setFriendState({ isLoading: true, error: null, lighthouses: null });
       try {
-        const lighthouses = await fetchWithAuth<Lighthouse[]>(
+        // The Go API returns full records and the Worker API returns IDs;
+        // only the IDs are needed, since positions come from the map data.
+        const visited = await fetchWithAuth<Array<string | { id: string }>>(
           token,
           `/user/friends/lighthouses?friendId=${encodeURIComponent(selectedFriend)}`,
         );
+        const lighthouses = visited.map((entry) => (typeof entry === "string" ? entry : entry.id));
         if (!cancelled) {
           setFriendState({
             isLoading: false,
@@ -228,23 +231,20 @@ const UserMap = () => {
 
   const friendMapData = useMemo<
     FeatureCollection<Point, LighthouseMapProperties>
-  >(() => ({
-    type: "FeatureCollection",
-    features: filters.friends && selectedFriend && friendState.lighthouses
-      ? friendState.lighthouses.map((lighthouse) => ({
-          type: "Feature",
-          id: lighthouse.id,
-          geometry: {
-            type: "Point",
-            coordinates: [lighthouse.longitude, lighthouse.latitude],
-          },
-          properties: {
-            id: lighthouse.id,
-            isFriend: true,
-          },
-        }))
-      : [],
-  }), [filters.friends, selectedFriend, friendState.lighthouses]);
+  >(() => {
+    const visited = new Set(
+      filters.friends && selectedFriend ? friendState.lighthouses ?? [] : [],
+    );
+    return {
+      type: "FeatureCollection",
+      features: (visited.size > 0 ? mapData?.features ?? [] : [])
+        .filter((feature) => visited.has(feature.properties.id))
+        .map((feature) => ({
+          ...feature,
+          properties: { id: feature.properties.id, isFriend: true },
+        })),
+    };
+  }, [filters.friends, selectedFriend, friendState.lighthouses, mapData]);
 
   const handleVisitChange = useCallback((lighthouseID: string, isVisited: boolean) => {
     visitedOverridesRef.current.set(lighthouseID, isVisited);

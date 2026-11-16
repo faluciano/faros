@@ -1,0 +1,2 @@
+# Copy to .dev.vars for local development. Any random string of 32+ characters.
+JWT_SECRET=replace-me-with-a-long-random-string
