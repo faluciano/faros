@@ -1,20 +1,6 @@
-import { createClient } from "@libsql/client";
 import { join } from "path";
 import { readFileSync } from "fs";
-import * as dotenv from "dotenv";
-
-const envPath = join(process.cwd(), "lighthouse-backend", ".env");
-dotenv.config({ path: envPath });
-
-const url = process.env.TURSO_DATABASE_URL;
-const authToken = process.env.TURSO_AUTH_TOKEN;
-
-if (!url || !authToken) {
-  console.error("Error: TURSO credentials not found");
-  process.exit(1);
-}
-
-const client = createClient({ url, authToken });
+import { client } from "./client";
 const dataPath = join(process.cwd(), "scripts", "global_lighthouses.json");
 
 async function run() {
@@ -133,9 +119,9 @@ async function run() {
     });
   }
 
-  console.log(`Prepared ${processedLighthouses.length} lighthouses for cloud import.`);
+  console.log(`Prepared ${processedLighthouses.length} lighthouses for import.`);
 
-  // 3. Batched Cloud Import with Image Safety
+  // 3. Batched import with Image Safety
   const BATCH_SIZE = 50;
   for (let i = 0; i < processedLighthouses.length; i += BATCH_SIZE) {
     const batch = processedLighthouses.slice(i, i + BATCH_SIZE);
@@ -173,9 +159,9 @@ async function run() {
     }
   }
 
-  console.log(`[${new Date().toISOString()}] Successfully synchronized Turso cloud database!`);
+  console.log(`[${new Date().toISOString()}] Successfully synchronized working database!`);
   const finalCount = await client.execute("SELECT COUNT(*) as total FROM lighthouses");
-  console.log(`Final lighthouse count in Turso: ${finalCount.rows[0].total}`);
+  console.log(`Final lighthouse count in the working database: ${finalCount.rows[0].total}`);
 }
 
 run().catch(console.error).finally(() => client.close());

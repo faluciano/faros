@@ -1,248 +1,57 @@
-# System Architecture
+# System overview
 
-## Overview
-
-Faros is a full-stack web application for tracking lighthouse visits and connecting with other lighthouse enthusiasts. The system follows a clean architecture pattern with clear separation between frontend, backend, and data layers.
-
-## High-Level Architecture
+Faros is one Cloudflare Worker. It serves the React app as static assets and
+answers `/api` itself, backed by a D1 database.
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │    Backend      │    │   Database      │
-│   (React)       │◄──►│   (Go API)      │◄──►│   (Turso/SQLite)│
-│                 │    │                 │    │                 │
-│ - User Interface│    │ - REST API      │    │ - User Data     │
-│ - State Mgmt    │    │ - Authentication│    │ - Lighthouse DB │
-│ - API Client    │    │ - Business Logic│    │ - Relationships │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │
-         │              ┌─────────────────┐
-         └─────────────►│ Device Passkey  │
-                        │  Authenticator  │
-                        └─────────────────┘
+Browser
+  |
+  |-- /, /lighthouse, /assets/*, /data/*   static assets (no code runs)
+  |-- /api/*                               Worker (Hono) --> D1
+  |
+  '-- map tiles from OpenFreeMap, photos from Wikimedia Commons
 ```
 
-## Backend Architecture
+## The two kinds of data
 
-### Layer Structure
+**Lighthouses** are about 10,000 public records that change only when someone
+runs an import script. They are published as static files with the frontend:
 
-```
-┌─────────────────────────────────────────────────┐
-│                 HTTP Layer                       │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
-│  │ Lighthouse  │ │    User     │ │   Friends   ││
-│  │  Handler    │ │   Handler   │ │   Handler   ││
-│  └─────────────┘ └─────────────┘ └─────────────┘│
-└─────────────────────────────────────────────────┘
-                        │
-┌─────────────────────────────────────────────────┐
-│                Business Logic                    │
-│  ┌─────────────────────────────────────────────┐│
-│  │            Interfaces Layer                 ││
-│  │          (DBInterface)                      ││
-│  └─────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────┘
-                        │
-┌─────────────────────────────────────────────────┐
-│                Data Layer                        │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
-│  │ Lighthouse  │ │    User     │ │   Friends   ││
-│  │     DB      │ │     DB      │ │     DB      ││
-│  └─────────────┘ └─────────────┘ └─────────────┘│
-└─────────────────────────────────────────────────┘
-```
+- `/data/lighthouses/index.json`: every lighthouse as `[id, longitude, latitude]`
+- `/data/lighthouses/details/<nn>.json`: full records, split into 256 files of a few KB
 
-### Key Components
+The map loads the index once; opening a lighthouse fetches one detail file.
+None of this touches the API or the database, so browsing works even if the
+API is down. The files are written by `scripts/export_static.ts`; see
+[`scripts/README.md`](../../scripts/README.md).
 
-#### Handlers
-- **LighthouseHandler**: Manages lighthouse-related operations
-- **UserHandler**: Handles user profiles and lighthouse visits
-- **FriendsHandler**: Manages social features and friend relationships
+**User data** is small and private: accounts, passkeys, visited and wishlist
+entries, and friendships. It lives in D1 and is only reached through the API.
+Visited and wishlist rows store lighthouse IDs; there is no lighthouse table.
 
-#### Interfaces
-- **DBInterface**: Defines database operations contract
-- Enables dependency injection and testability
-- Abstracts database implementation details
+## Request handling
 
-#### Database Layer
-- **Turso** (production): SQLite in the cloud
-- **SQLite** (local): File-based database for development
-- Connection pooling and transaction management
+- Requests that match a static file are served directly by Cloudflare.
+- Other navigations get `index.html`, and React Router picks the page.
+- `/api/*` always runs the Worker.
 
-#### Middleware
-- **CORS**: Cross-origin resource sharing
-- **Authentication**: WebAuthn passkey verification and JWT validation
-- **Error Handling**: Consistent error responses
+Static responses carry a Content-Security-Policy and caching rules from
+`lighthouse-frontend/public/_headers`: hashed assets are cached for a year,
+lighthouse data for an hour.
 
-## Frontend Architecture
+## Sign-in
 
-### Component Structure
+Passkeys only, with an httpOnly same-site session cookie. See
+[Authentication](../api/authentication.md).
 
-```
-src/
-├── components/
-│   ├── features/           # Feature-specific components
-│   │   ├── lighthouses/   # Lighthouse management
-│   │   ├── friends/       # Social features
-│   │   └── map/          # Map visualizations
-│   └── layout/           # Layout components
-├── context/              # React contexts
-│   ├── UserContext       # User state management
-│   └── LighthouseContext # Lighthouse data
-├── hooks/                # Custom React hooks
-│   ├── useApi           # API communication
-│   ├── useUser          # User operations
-│   └── useLighthouse    # Lighthouse operations
-└── utils/                # Utility functions
-    ├── api.ts           # API client
-    └── map.ts           # Map utilities
-```
+## What is deliberately not here
 
-### State Management
-- **React Context**: Global state for user and lighthouse data
-- **Custom Hooks**: Encapsulate business logic and API calls
-- **Local State**: Component-specific state management
+- No container, server or always-on process: nothing to wake up.
+- No API key for the map: OpenFreeMap needs none. The style URL is one constant
+  in `src/utils/map.ts` if the provider ever has to change.
+- No cross-origin access: the app and API share an origin, so CORS is off.
 
-## Data Flow
+## Layout
 
-### Public Lighthouse Access Flow
-```
-1. User visits application (no authentication required)
-2. Frontend requests lighthouse data from public API
-3. Backend serves lighthouse data without authentication
-4. Map displays all lighthouses to any visitor
-5. Interactive features require authentication
-```
-
-### User Authentication Flow
-```
-1. Frontend requests a short-lived, single-use WebAuthn ceremony
-2. The user's device or password manager verifies the passkey
-3. Backend validates the signed WebAuthn response and stored credential
-4. Frontend receives a 24-hour JWT
-5. JWT is included in authenticated API requests
-6. Backend validates the JWT for protected routes
-```
-
-### API Request Flow
-```
-1. Frontend component triggers action
-2. Custom hook handles API call
-3. Public routes: Direct API call (no auth headers)
-4. Protected routes: API client adds authentication headers
-5. Backend handler receives request
-6. Public routes: Process immediately
-7. Protected routes: Middleware validates authentication
-8. Handler processes business logic
-9. Database layer executes queries
-10. Response sent back to frontend
-11. Context/state updated
-12. UI re-renders with new data
-```
-
-## Security Architecture
-
-### Public Access
-- **Lighthouse Data**: Publicly accessible without authentication
-- **Map Visualization**: Available to all visitors
-- **Basic Browse Functionality**: No login required
-
-### Authentication
-- **Passkeys**: Discoverable WebAuthn credentials with required user verification
-- **JWT Tokens**: Stateless authentication for protected routes
-- **Header-based Auth**: Bearer token in Authorization header
-
-### Authorization
-- **Public Routes**: Lighthouse data accessible to everyone
-- **Protected Routes**: Authentication middleware on user-specific endpoints
-- **User Context**: Access control based on authenticated user
-- **Data Isolation**: Users can only access their own personal data (visits, wishlist, friends)
-
-### Data Protection
-- **Input Validation**: Query parameter validation and sanitization
-- **SQL Injection Prevention**: Parameterized queries
-- **CORS Configuration**: Controlled cross-origin access
-
-## Deployment Architecture
-
-### Development
-```
-Developer Machine
-├── Frontend (localhost:5173)
-│   ├── Public: Lighthouse map and data
-│   └── Protected: User features (login required)
-├── Backend (localhost:8080)
-│   ├── Public API: /api/lighthouses
-│   └── Protected API: /user/* endpoints
-└── Database (SQLite file)
-    ├── Public: Lighthouse data
-    └── Private: User data, visits, friendships
-```
-
-### Production
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Azure Static  │    │   Cloud Host    │    │     Turso       │
-│   Web Apps      │◄──►│   (Backend)     │◄──►│   Database      │
-│   (Frontend)    │    │                 │    │                 │
-│                 │    │ Public Routes:  │    │ Public Data:    │
-│ - Public Map    │    │ /api/lighthouses│    │ - Lighthouses   │
-│ - Auth Features │    │                 │    │                 │
-│                 │    │ Protected:      │    │ Private Data:   │
-│                 │    │ /user/*         │    │ - User profiles │
-│                 │    │ /users/search   │    │ - Visits        │
-│                 │    │                 │    │ - Friendships   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-## Database Schema
-
-### Public Tables
-- **lighthouses**: Lighthouse information and locations (publicly accessible)
-
-### Private Tables  
-- **users**: User profiles and metadata (authentication required)
-- **webauthn_users**: Stable opaque user handles scoped by relying-party ID
-- **webauthn_credentials**: Passkey public credentials and authenticator state
-- **webauthn_sessions**: Short-lived, single-use ceremony state
-- **user_visited_lighthouses**: User visit tracking (user-specific)
-- **user_wishlist**: User wishlist management (user-specific)
-- **friends**: Friend relationships (user-specific)
-- **friend_requests**: Pending friend requests (user-specific)
-
-### Relationships
-- Public: No user relationships required for lighthouse data
-- Private: One-to-many: User → Visits, User → Wishlist
-- Private: Many-to-many: Users ↔ Friends (via friend relationships)
-
-## Performance Considerations
-
-### Backend
-- **Connection Pooling**: Efficient database connections
-- **Query Optimization**: Indexed database queries
-- **Map Payload Cache**: Pre-warmed in-memory GeoJSON cache avoids repeated Turso
-  queries and JSON encoding
-- **HTTP Delivery**: Map data is gzip-compressed and uses `Cache-Control` and
-  `ETag` headers
-
-### Frontend
-- **WebGL Clustering**: Both public and authenticated maps render through MapLibre
-  GeoJSON layers instead of thousands of React DOM markers
-- **Lightweight Data**: The map downloads only IDs and coordinates; details load
-  after selection
-- **Progressive User State**: Visited, wishlist, and friend data enhance the map
-  without blocking its initial render
-- **Set-Based State**: User lighthouse membership uses constant-time lookups and
-  avoids rebuilding the full lighthouse collection for individual updates
-
-## Scalability
-
-### Horizontal Scaling
-- **Stateless Backend**: Easy to scale across multiple instances
-- **Database**: Turso provides global distribution
-- **Frontend**: CDN distribution via Azure Static Web Apps
-
-### Vertical Scaling
-- **Resource Optimization**: Efficient memory and CPU usage
-- **Database Indexing**: Optimized query performance
-- **Caching**: Reduce database load
+See [`lighthouse-frontend/README.md`](../../lighthouse-frontend/README.md) for
+where each piece lives in the code.

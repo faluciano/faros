@@ -1,14 +1,4 @@
-import { createClient } from "@libsql/client";
-import { join } from "path";
-import * as dotenv from "dotenv";
-
-const envPath = join(process.cwd(), "lighthouse-backend", ".env");
-dotenv.config({ path: envPath });
-
-const url = process.env.TURSO_DATABASE_URL;
-const authToken = process.env.TURSO_AUTH_TOKEN;
-
-const client = createClient({ url, authToken });
+import { client } from "./client";
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371e3; // meters

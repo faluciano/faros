@@ -4,3 +4,6 @@ node_modules/
 bun.lock
 lighthouse.db
 .env*
+
+# Scratch database for the data scripts
+scripts/.work/

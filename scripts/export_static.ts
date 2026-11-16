@@ -3,12 +3,11 @@
 //
 //   bun run scripts/export_static.ts
 //
-// It only reads from the database. Commit the files it writes.
+// It only reads from the working database. Commit the files it writes.
 
-import { createClient } from "@libsql/client";
 import { mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
-import * as dotenv from "dotenv";
+import { client } from "./client";
 import {
   DETAIL_SHARD_COUNT,
   getDetailShard,
@@ -17,15 +16,6 @@ import {
   type LighthouseIndex,
 } from "../lighthouse-frontend/src/utils/lighthouseData";
 import type { Lighthouse } from "../lighthouse-frontend/src/types";
-
-dotenv.config({ path: join(process.cwd(), "lighthouse-backend", ".env") });
-
-const url = process.env.TURSO_DATABASE_URL;
-const authToken = process.env.TURSO_AUTH_TOKEN;
-if (!url || !authToken) {
-  console.error("Error: TURSO credentials not found");
-  process.exit(1);
-}
 
 const outputDirectory = join(process.cwd(), "lighthouse-frontend", "public", "data", "lighthouses");
 // About one metre; more digits only add bytes.
@@ -37,8 +27,6 @@ const number = (value: unknown): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 const round = (value: number): number => Number(value.toFixed(COORDINATE_DECIMALS));
-
-const client = createClient({ url, authToken });
 
 async function run() {
   const result = await client.execute(`

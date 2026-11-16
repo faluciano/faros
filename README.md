@@ -39,6 +39,13 @@ npm run dev                              # http://localhost:5173
 See [`lighthouse-frontend/README.md`](./lighthouse-frontend/README.md) for the
 project layout, checks and deployment.
 
+## 📚 Documentation
+
+- **[System overview](./docs/architecture/system-overview.md)** - how the pieces fit together
+- **[API](./docs/api/)** - authentication and endpoints
+- **[Development setup](./docs/development/setup.md)** - run, test and deploy
+- **[Lighthouse data scripts](./scripts/README.md)** - how the dataset is maintained
+
 ## 🔐 Passkeys
 
 Passkeys are bound to the site's hostname, set in

@@ -1,17 +1,7 @@
-import { createClient } from "@libsql/client";
-import { join } from "path";
-import * as dotenv from "dotenv";
-
-const envPath = join(process.cwd(), "lighthouse-backend", ".env");
-dotenv.config({ path: envPath });
-
-const url = process.env.TURSO_DATABASE_URL;
-const authToken = process.env.TURSO_AUTH_TOKEN;
-
-const client = createClient({ url, authToken });
+import { client } from "./client";
 
 async function run() {
-  console.log("Searching for duplicates in Turso...");
+  console.log("Searching for duplicates in the working database...");
   const result = await client.execute({
     sql: "SELECT id, name, latitude, longitude, image, height, source FROM lighthouses WHERE name LIKE '%Point Robinson%' OR name LIKE '%Cape Meares%'",
     args: []
